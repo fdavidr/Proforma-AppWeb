@@ -1,0 +1,337 @@
+// ==================== GENERACIÓN DE PDF ====================
+
+function generatePDF() {
+    if (!appData.currentClient) {
+        alert('Debe seleccionar un cliente');
+        return;
+    }
+    if (!appData.currentSeller) {
+        alert('Debe seleccionar un vendedor');
+        return;
+    }
+    if (appData.currentQuoteItems.length === 0) {
+        alert('Debe agregar al menos un producto');
+        return;
+    }
+
+    saveTerms();
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 15;
+    let yPos = margin;
+
+    // Logo y Header
+    addPDFHeader(doc, margin, yPos, pageWidth);
+    yPos += appData.company.logo ? 25 : 0;
+
+    // Tipo de documento y número
+    addPDFDocumentInfo(doc, margin, pageWidth);
+
+    // Línea separadora
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+
+    // Información del cliente
+    yPos = addPDFClientInfo(doc, margin, yPos);
+
+    // Información del vendedor
+    yPos = addPDFSellerInfo(doc, margin, yPos);
+
+    // Tabla de productos
+    yPos = addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight);
+
+    // Totales
+    yPos = addPDFTotals(doc, margin, yPos, pageWidth);
+
+    // Términos y condiciones
+    addPDFTerms(doc, margin, yPos, pageWidth, pageHeight);
+
+    // Numeración de páginas
+    addPDFPageNumbers(doc, pageWidth, pageHeight);
+
+    // Guardar PDF
+    const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
+    const fileName = `${docTitle}_${appData.currentQuoteNumber}_${appData.currentClient.name.replace(/\s+/g, '_')}.pdf`;
+    doc.save(fileName);
+
+    // Guardar en historial ANTES de limpiar (usa currentQuoteItems)
+    saveToHistory(fileName);
+
+    // Incrementar número de cotización
+    appData.currentQuoteNumber++;
+    
+    // Guardar datos
+    saveData();
+    
+    // Actualizar UI
+    updateUI();
+    
+    // Mostrar alerta de éxito
+    alert('PDF generado exitosamente. Use el botón "Nueva Cotización" para limpiar los datos.');
+}
+
+// ==================== FUNCIONES AUXILIARES DE PDF ====================
+
+function addPDFHeader(doc, margin, yPos, pageWidth) {
+    if (appData.company.logo) {
+        try {
+            doc.addImage(appData.company.logo, 'PNG', margin, yPos - 10, 30, 30);
+        } catch(e) {
+            console.log('Error al cargar logo:', e);
+        }
+    }
+    
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text(appData.company.name, margin + (appData.company.logo ? 35 : 0), yPos + 5);
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'italic');
+    doc.text(appData.company.slogan, margin + (appData.company.logo ? 35 : 0), yPos + 12);
+}
+
+function addPDFDocumentInfo(doc, margin, pageWidth) {
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
+    doc.text(docTitle, pageWidth - margin, 15, { align: 'right' });
+    doc.setFontSize(12);
+    doc.text('Nº ' + appData.currentQuoteNumber, pageWidth - margin, 22, { align: 'right' });
+    
+    doc.setFontSize(10);
+    doc.text('Fecha: ' + new Date().toLocaleDateString('es-BO'), pageWidth - margin, 29, { align: 'right' });
+}
+
+function addPDFClientInfo(doc, margin, yPos) {
+    doc.setFont(undefined, 'bold');
+    doc.text('CLIENTE:', margin, yPos);
+    doc.setFont(undefined, 'normal');
+    doc.text(appData.currentClient.name, margin + 25, yPos);
+    yPos += 6;
+
+    if (appData.currentClient.company) {
+        doc.setFont(undefined, 'bold');
+        doc.text('Empresa:', margin, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(appData.currentClient.company, margin + 25, yPos);
+        yPos += 6;
+    }
+
+    if (appData.currentClient.ci) {
+        doc.setFont(undefined, 'bold');
+        doc.text('CI/CNIT:', margin, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(appData.currentClient.ci, margin + 25, yPos);
+        yPos += 6;
+    }
+
+    if (appData.currentClient.phone) {
+        doc.setFont(undefined, 'bold');
+        doc.text('Teléfono:', margin, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(appData.currentClient.phone, margin + 25, yPos);
+        yPos += 6;
+    }
+
+    return yPos + 3;
+}
+
+function addPDFSellerInfo(doc, margin, yPos) {
+    doc.setFont(undefined, 'bold');
+    doc.text('VENDEDOR:', margin, yPos);
+    doc.setFont(undefined, 'normal');
+    doc.text(appData.currentSeller.name, margin + 25, yPos);
+    
+    if (appData.currentSeller.phone) {
+        doc.text('Tel: ' + appData.currentSeller.phone, margin + 80, yPos);
+    }
+    
+    return yPos + 8;
+}
+
+function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
+    // Header de la tabla
+    doc.setFont(undefined, 'bold');
+    doc.setFillColor(52, 152, 219);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.text('#', margin + 2, yPos + 5);
+    doc.text('Código', margin + 8, yPos + 5);
+    doc.text('Descripción', margin + 52, yPos + 5);
+    doc.text('Cant.', margin + 108, yPos + 5);
+    doc.text('P.Unit.', margin + 122, yPos + 5);
+    doc.text('Desc.', margin + 147, yPos + 5);
+    doc.text('Subtotal', pageWidth - margin - 2, yPos + 5, { align: 'right' });
+    
+    yPos += 10;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+
+    const tableLeft = margin;
+    const tableRight = pageWidth - margin;
+
+    // Filas de productos
+    appData.currentQuoteItems.forEach((item, index) => {
+        if (yPos > pageHeight - 50) {
+            doc.addPage();
+            yPos = margin;
+        }
+
+        // Calcular altura de la fila primero
+        const description = doc.splitTextToSize(item.product.description, 56);
+        const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
+        const textYCenter = yPos + (rowHeight / 2); // Centro vertical de la fila
+
+        // Textos centrados verticalmente
+        doc.text((index + 1).toString(), margin + 2, textYCenter);
+        doc.text(item.product.code || '-', margin + 8, textYCenter);
+        
+        // Imagen del producto
+        if (item.product.image) {
+            try {
+                const imgHeight = 24;
+                const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
+                doc.addImage(item.product.image, 'PNG', margin + 25, imgY, 24, imgHeight);
+            } catch(e) {
+                console.log('Error al cargar imagen del producto:', e);
+            }
+        }
+        
+        // Descripción centrada verticalmente
+        const descHeight = description.length * 5;
+        const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
+        doc.text(description, margin + 52, descYCenter);
+        
+        doc.text(item.quantity.toString(), margin + 108, textYCenter);
+        doc.text('Bs ' + item.price.toFixed(2), margin + 122, textYCenter);
+        doc.text(item.discount + ' ' + item.discountType, margin + 147, textYCenter);
+        doc.text('Bs ' + item.subtotal.toFixed(2), pageWidth - margin - 2, textYCenter, { align: 'right' });
+        
+        // Bordes de la fila
+        doc.setDrawColor(200, 200, 200);
+        doc.line(tableLeft, yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
+        doc.line(tableLeft, yPos - 3, tableLeft, yPos + rowHeight - 3);
+        doc.line(tableRight, yPos - 3, tableRight, yPos + rowHeight - 3);
+        
+        // Líneas verticales entre columnas
+        doc.line(margin + 6, yPos - 3, margin + 6, yPos + rowHeight - 3);
+        doc.line(margin + 25, yPos - 3, margin + 25, yPos + rowHeight - 3);
+        doc.line(margin + 107, yPos - 3, margin + 107, yPos + rowHeight - 3);
+        doc.line(margin + 120, yPos - 3, margin + 120, yPos + rowHeight - 3);
+        doc.line(margin + 145, yPos - 3, margin + 145, yPos + rowHeight - 3);
+        doc.line(margin + 160, yPos - 3, margin + 160, yPos + rowHeight - 3);
+        
+        yPos += rowHeight;
+    });
+
+    // Borde inferior de la tabla
+    doc.setDrawColor(0, 0, 0);
+    doc.line(tableLeft, yPos - 3, tableRight, yPos - 3);
+
+    yPos += 5;
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    
+    return yPos + 8;
+}
+
+function addPDFTotals(doc, margin, yPos, pageWidth) {
+    const subtotal = appData.currentQuoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalDiscount = appData.currentQuoteItems.reduce((sum, item) => sum + item.discountAmount, 0);
+    const total = subtotal - totalDiscount;
+
+    const totalsX = pageWidth - margin - 60;
+    doc.setFont(undefined, 'normal');
+    doc.text('Subtotal:', totalsX, yPos);
+    doc.text('Bs ' + subtotal.toFixed(2), totalsX + 40, yPos, { align: 'right' });
+    yPos += 6;
+
+    doc.text('Descuento:', totalsX, yPos);
+    doc.text('Bs ' + totalDiscount.toFixed(2), totalsX + 40, yPos, { align: 'right' });
+    yPos += 8;
+
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
+    doc.text('TOTAL:', totalsX, yPos);
+    doc.text('Bs ' + total.toFixed(2), totalsX + 40, yPos, { align: 'right' });
+    
+    return yPos + 10;
+}
+
+function addPDFTerms(doc, margin, yPos, pageWidth, pageHeight) {
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Términos y Condiciones:', margin, yPos);
+    yPos += 6;
+
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    const terms = appData.terms[appData.documentType];
+    terms.forEach((term, index) => {
+        if (term.trim()) {
+            const termText = `${index + 1}. ${term}`;
+            const lines = doc.splitTextToSize(termText, pageWidth - 2 * margin);
+            lines.forEach(line => {
+                if (yPos > pageHeight - 20) {
+                    doc.addPage();
+                    yPos = margin;
+                }
+                doc.text(line, margin, yPos);
+                yPos += 5;
+            });
+        }
+    });
+}
+
+function addPDFPageNumbers(doc, pageWidth, pageHeight) {
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    }
+}
+
+function saveToHistory(fileName) {
+    const subtotal = appData.currentQuoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalDiscount = appData.currentQuoteItems.reduce((sum, item) => sum + item.discountAmount, 0);
+    const total = subtotal - totalDiscount;
+
+    const historyEntry = {
+        id: Date.now(),
+        type: appData.documentType,
+        number: appData.currentQuoteNumber,
+        client: JSON.parse(JSON.stringify({
+            name: appData.currentClient.name,
+            phone: appData.currentClient.phone || '',
+            ci: appData.currentClient.ci || '',
+            company: appData.currentClient.company || ''
+        })),
+        seller: JSON.parse(JSON.stringify({
+            name: appData.currentSeller.name,
+            phone: appData.currentSeller.phone || ''
+        })),
+        items: JSON.parse(JSON.stringify(appData.currentQuoteItems)),
+        subtotal: subtotal,
+        totalDiscount: totalDiscount,
+        total: total,
+        date: new Date().toLocaleString('es-BO'),
+        terms: JSON.parse(JSON.stringify(appData.terms[appData.documentType])),
+        company: JSON.parse(JSON.stringify({
+            name: appData.company.name,
+            slogan: appData.company.slogan,
+            logo: appData.company.logo
+        })),
+        fileName: fileName
+    };
+    
+    appData.pdfHistory.unshift(historyEntry);
+}
+
+// Exponer funciones globalmente para eventos onclick
+window.generatePDF = generatePDF;

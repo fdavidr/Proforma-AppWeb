@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test jsPDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <h1>Test jsPDF</h1>
+    <button onclick="testPDF()">Generar PDF de Prueba</button>
+    
+    <script>
+        function testPDF() {
+            console.log('Botón clickeado');
+            console.log('window.jspdf:', window.jspdf);
+            
+            if (!window.jspdf) {
+                alert('jsPDF no está cargado');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.text('Hola mundo', 10, 10);
+            doc.save('prueba.pdf');
+            
+            alert('PDF generado correctamente');
+        }
+    </script>
+</body>
+</html>

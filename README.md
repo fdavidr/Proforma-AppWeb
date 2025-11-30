@@ -1,12 +1,20 @@
-# Sistema de Cotizaciones y Notas de Venta
+# Proforma AppWeb
 
-Sistema web completo para generar cotizaciones y notas de venta con gestión de clientes, vendedores y productos.
+Sistema web para gestión de cotizaciones y notas de venta con roles de usuario.
 
 ## Características
 
-✅ **Sistema de Login**
+✅ **Sistema de Login con Roles**
+
+### Administrador
 - Usuario: `CiamP25`
 - Contraseña: `CiamP25`
+- Acceso completo: Configuración, Historial y todas las funciones
+
+### Vendedor
+- Usuario: `VendedorX25`
+- Contraseña: `VendedorX25`
+- Acceso limitado: Solo cotizaciones y notas de venta (sin Configuración ni Historial)
 
 ✅ **Gestión de Empresa**
 - Configuración de nombre, eslogan y logo
@@ -74,40 +82,42 @@ Sistema web completo para generar cotizaciones y notas de venta con gestión de 
    - Personalizar términos y condiciones
    - Generar PDF
 
-## Despliegue en Firebase
-
-### Requisitos
-- Cuenta de Firebase
-- Firebase CLI instalado
+## Despliegue en Render.com
 
 ### Pasos
 
-1. **Instalar Firebase CLI** (si no lo tienes):
+1. **Crear cuenta en Render.com**:
+   - Ir a https://render.com
+   - Registrarse con GitHub
+
+2. **Conectar repositorio**:
+   - Subir tu código a GitHub
+   - En Render, clic en "New +" → "Static Site"
+   - Conectar tu repositorio
+
+3. **Configuración automática**:
+   - Render detectará el archivo `render.yaml`
+   - Se configurará automáticamente como sitio estático
+
+4. **Desplegar**:
+   - Clic en "Create Static Site"
+   - Render desplegará automáticamente
+
+5. **Acceder a tu aplicación**:
+   - URL: `https://tu-app.onrender.com`
+
+### Alternativa: Firebase Hosting
+
+1. **Instalar Firebase CLI**:
 ```bash
 npm install -g firebase-tools
 ```
 
-2. **Iniciar sesión en Firebase**:
+2. **Iniciar sesión y desplegar**:
 ```bash
 firebase login
-```
-
-3. **Crear proyecto en Firebase Console**:
-   - Ir a https://console.firebase.google.com
-   - Crear nuevo proyecto
-   - Copiar el ID del proyecto
-
-4. **Configurar el proyecto**:
-   - Editar `.firebaserc` y reemplazar `"tu-proyecto-firebase"` con tu ID de proyecto
-
-5. **Desplegar**:
-```bash
 firebase deploy --only hosting
 ```
-
-6. **Acceder a tu aplicación**:
-   - URL: `https://tu-proyecto-firebase.web.app`
-   - O la URL personalizada que Firebase te proporcione
 
 ## Tecnologías Utilizadas
 
