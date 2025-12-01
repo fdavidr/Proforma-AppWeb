@@ -22,7 +22,7 @@ Sistema web para gestión de cotizaciones y notas de venta con roles de usuario.
 
 ✅ **Gestión de Clientes**
 - Agregar, editar y seleccionar clientes
-- Datos: Nombre, Teléfono, CI/CNIT, Empresa
+- Datos: Nombre, Teléfono, CI/NIT, Empresa
 - Filtrado en tiempo real
 - Validación visual (fondo verde al seleccionar)
 

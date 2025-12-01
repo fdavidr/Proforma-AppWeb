@@ -206,6 +206,11 @@ select:focus {
     font-style: italic;
 }
 
+.company-nit {
+    font-style: normal;
+    color: #34495e;
+}
+
 .header-actions {
     display: flex;
     gap: 10px;

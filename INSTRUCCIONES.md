@@ -21,7 +21,7 @@
 - Numeración automática de cotizaciones (inicia en 100000)
 
 ### ✅ Gestión de Clientes
-- Datos: Nombre, Teléfono, CI/CNIT, Empresa
+- Datos: Nombre, Teléfono, CI/NIT, Empresa
 - Filtro en tiempo real
 - Validación visual (fondo verde)
 - Botón dinámico Agregar/Editar

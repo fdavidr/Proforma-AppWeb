@@ -15,6 +15,7 @@ function generatePDF() {
     }
 
     saveTerms();
+    console.log('generatePDF: company.nit =', appData.company.nit);
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -25,8 +26,8 @@ function generatePDF() {
     let yPos = margin;
 
     // Logo y Header
-    addPDFHeader(doc, margin, yPos, pageWidth);
-    yPos += appData.company.logo ? 25 : 0;
+    const headerHeight = addPDFHeader(doc, margin, yPos, pageWidth);
+    yPos += headerHeight;
 
     // Tipo de documento y número
     addPDFDocumentInfo(doc, margin, pageWidth);
@@ -37,13 +38,25 @@ function generatePDF() {
     yPos += 8;
 
     // Información del cliente
-    yPos = addPDFClientInfo(doc, margin, yPos);
+    yPos = addPDFClientInfo(doc, margin, yPos, pageWidth);
 
     // Información del vendedor
     yPos = addPDFSellerInfo(doc, margin, yPos);
 
     // Tabla de productos
     yPos = addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight);
+
+    const pagesAfterTable = doc.internal.getNumberOfPages();
+    if (appData.currentQuoteItems.length >= 7 && pagesAfterTable === 1) {
+        doc.addPage();
+        yPos = margin;
+        const newHeaderHeight = addPDFHeader(doc, margin, yPos, pageWidth);
+        yPos += newHeaderHeight;
+        addPDFDocumentInfo(doc, margin, pageWidth);
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+    }
 
     // Totales
     yPos = addPDFTotals(doc, margin, yPos, pageWidth);
@@ -78,9 +91,10 @@ function generatePDF() {
 // ==================== FUNCIONES AUXILIARES DE PDF ====================
 
 function addPDFHeader(doc, margin, yPos, pageWidth) {
+    doc.setTextColor(0, 0, 0);
     if (appData.company.logo) {
         try {
-            doc.addImage(appData.company.logo, 'PNG', margin, yPos - 10, 30, 30);
+            doc.addImage(appData.company.logo, 'PNG', margin, yPos - 4, 30, 30);
         } catch(e) {
             console.log('Error al cargar logo:', e);
         }
@@ -88,30 +102,60 @@ function addPDFHeader(doc, margin, yPos, pageWidth) {
     
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text(appData.company.name, margin + (appData.company.logo ? 35 : 0), yPos + 5);
+    const infoX = margin + (appData.company.logo ? 35 : 0);
+    doc.text(appData.company.name, infoX, yPos + 6);
     
     doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
-    doc.text(appData.company.slogan, margin + (appData.company.logo ? 35 : 0), yPos + 12);
+    doc.text(appData.company.slogan || '', infoX, yPos + 13);
+
+    if (appData.company.nit) {
+        doc.setFont(undefined, 'normal');
+        const nitText = 'NIT: ' + appData.company.nit;
+        doc.setTextColor(0, 0, 0);
+        doc.text(nitText, infoX, yPos + 20);
+    }
+
+    let headerHeight = 12;
+    if (appData.company.logo) {
+        // Logo + name + slogan (+ optional NIT)
+        headerHeight = appData.company.nit ? 30 : 28;
+    } else if (appData.company.nit) {
+        // No logo but has NIT
+        headerHeight = 24;
+    }
+
+    return headerHeight;
 }
 
 function addPDFDocumentInfo(doc, margin, pageWidth) {
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
-    doc.text(docTitle, pageWidth - margin, 15, { align: 'right' });
+    doc.text(docTitle, pageWidth - margin, 20, { align: 'right' });
     doc.setFontSize(12);
-    doc.text('Nº ' + appData.currentQuoteNumber, pageWidth - margin, 22, { align: 'right' });
+    doc.text('Nº ' + appData.currentQuoteNumber, pageWidth - margin, 27, { align: 'right' });
     
     doc.setFontSize(10);
-    doc.text('Fecha: ' + new Date().toLocaleDateString('es-BO'), pageWidth - margin, 29, { align: 'right' });
+    doc.text('Fecha: ' + new Date().toLocaleDateString('es-BO'), pageWidth - margin, 34, { align: 'right' });
 }
 
-function addPDFClientInfo(doc, margin, yPos) {
+function addPDFClientInfo(doc, margin, yPos, pageWidth) {
     doc.setFont(undefined, 'bold');
     doc.text('CLIENTE:', margin, yPos);
     doc.setFont(undefined, 'normal');
     doc.text(appData.currentClient.name, margin + 25, yPos);
+    
+    // CI/NIT en la misma fila, alineado a la derecha
+    if (appData.currentClient.ci) {
+        doc.setFont(undefined, 'bold');
+        const ciNitText = 'CI/NIT: ';
+        const ciNitWidth = doc.getTextWidth(ciNitText);
+        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(appData.currentClient.ci) - ciNitWidth, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(appData.currentClient.ci, pageWidth - margin, yPos, { align: 'right' });
+    }
+    
     yPos += 6;
 
     if (appData.currentClient.company) {
@@ -119,14 +163,6 @@ function addPDFClientInfo(doc, margin, yPos) {
         doc.text('Empresa:', margin, yPos);
         doc.setFont(undefined, 'normal');
         doc.text(appData.currentClient.company, margin + 25, yPos);
-        yPos += 6;
-    }
-
-    if (appData.currentClient.ci) {
-        doc.setFont(undefined, 'bold');
-        doc.text('CI/CNIT:', margin, yPos);
-        doc.setFont(undefined, 'normal');
-        doc.text(appData.currentClient.ci, margin + 25, yPos);
         yPos += 6;
     }
 
@@ -157,12 +193,13 @@ function addPDFSellerInfo(doc, margin, yPos) {
 function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
     // Header de la tabla
     doc.setFont(undefined, 'bold');
-    doc.setFillColor(52, 152, 219);
+    doc.setFillColor(112, 55, 205);
     doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
     
     doc.setTextColor(255, 255, 255);
     doc.text('#', margin + 2, yPos + 5);
     doc.text('Código', margin + 8, yPos + 5);
+    doc.text('IMG', margin + 28, yPos + 5);
     doc.text('Descripción', margin + 52, yPos + 5);
     doc.text('Cant.', margin + 108, yPos + 5);
     doc.text('P.Unit.', margin + 122, yPos + 5);
@@ -192,12 +229,12 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
         doc.text((index + 1).toString(), margin + 2, textYCenter);
         doc.text(item.product.code || '-', margin + 8, textYCenter);
         
-        // Imagen del producto
+        // Imagen del producto en su propia columna
         if (item.product.image) {
             try {
                 const imgHeight = 24;
                 const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
-                doc.addImage(item.product.image, 'PNG', margin + 25, imgY, 24, imgHeight);
+                doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
             } catch(e) {
                 console.log('Error al cargar imagen del producto:', e);
             }
@@ -222,6 +259,7 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
         // Líneas verticales entre columnas
         doc.line(margin + 6, yPos - 3, margin + 6, yPos + rowHeight - 3);
         doc.line(margin + 25, yPos - 3, margin + 25, yPos + rowHeight - 3);
+        doc.line(margin + 51, yPos - 3, margin + 51, yPos + rowHeight - 3); // Línea después de IMG
         doc.line(margin + 107, yPos - 3, margin + 107, yPos + rowHeight - 3);
         doc.line(margin + 120, yPos - 3, margin + 120, yPos + rowHeight - 3);
         doc.line(margin + 145, yPos - 3, margin + 145, yPos + rowHeight - 3);
@@ -325,6 +363,7 @@ function saveToHistory(fileName) {
         company: JSON.parse(JSON.stringify({
             name: appData.company.name,
             slogan: appData.company.slogan,
+            nit: appData.company.nit || '',
             logo: appData.company.logo
         })),
         fileName: fileName

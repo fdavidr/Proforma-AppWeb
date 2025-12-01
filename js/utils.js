@@ -11,6 +11,16 @@ function closeModal(modalId) {
 function updateUI() {
     document.getElementById('companyName').textContent = appData.company.name;
     document.getElementById('companySlogan').textContent = appData.company.slogan;
+    const companyNitEl = document.getElementById('companyNit');
+    if (companyNitEl) {
+        if (appData.company.nit) {
+            companyNitEl.textContent = 'NIT: ' + appData.company.nit;
+            companyNitEl.style.display = 'block';
+        } else {
+            companyNitEl.textContent = '';
+            companyNitEl.style.display = 'none';
+        }
+    }
     if (appData.company.logo) {
         document.getElementById('companyLogo').src = appData.company.logo;
     }

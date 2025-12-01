@@ -45,6 +45,8 @@ function initLogin() {
 
 function logout() {
     if (confirm('¿Está seguro de cerrar sesión?')) {
+        saveData();
+        
         appData.userRole = null;
         selectedLoginRole = 'admin';
         document.getElementById('loginScreen').style.display = 'flex';

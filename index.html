@@ -48,6 +48,7 @@
                 <div class="company-details">
                     <h2 id="companyName">Nombre de la Empresa</h2>
                     <p id="companySlogan">Eslogan de la empresa</p>
+                    <p id="companyNit" class="company-nit" style="display: none;"></p>
                 </div>
             </div>
             <div class="header-actions">
@@ -216,6 +217,10 @@
                     <input type="text" id="modalCompanySlogan">
                 </div>
                 <div class="form-group">
+                    <label>NIT</label>
+                    <input type="text" id="modalCompanyNit">
+                </div>
+                <div class="form-group">
                     <label>Logo</label>
                     <label for="logoInput" class="file-input-label">📁 Cargar Logo</label>
                     <input type="file" id="logoInput" accept="image/*" onchange="handleLogoUpload(event)">
@@ -245,7 +250,7 @@
                     <input type="text" id="modalClientPhone">
                 </div>
                 <div class="form-group">
-                    <label>CI/CNIT</label>
+                    <label>CI/NIT</label>
                     <input type="text" id="modalClientCI">
                 </div>
                 <div class="form-group">
@@ -318,9 +323,10 @@
 
     <!-- History Modal -->
     <div id="historyModal" class="modal">
-        <div class="modal-content" style="max-width: 1000px;">
-            <div class="modal-header">
+        <div class="modal-content" style="max-width: 95%; width: 95%;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>Historial de PDFs Generados</h3>
+                <button class="btn btn-secondary" onclick="closeModal('historyModal')" style="margin: 0;">✕ Cerrar</button>
             </div>
             <div class="modal-body">
                 <div id="historyContent">
@@ -345,9 +351,6 @@
                     <span id="pageInfo" style="font-weight: bold;">Página 1</span>
                     <button class="btn btn-secondary" onclick="nextHistoryPage()" id="nextPageBtn">Siguiente ▶</button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('historyModal')">Cerrar</button>
             </div>
         </div>
     </div>

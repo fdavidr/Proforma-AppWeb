@@ -3,6 +3,7 @@ let appData = {
     company: {
         name: 'Nombre de la Empresa',
         slogan: 'Eslogan de la empresa',
+        nit: '',
         logo: ''
     },
     clients: [],
@@ -43,13 +44,19 @@ let selectedLoginRole = 'admin';
 // ==================== FUNCIONES DE PERSISTENCIA ====================
 function loadData() {
     const saved = localStorage.getItem('proformaAppData');
+    
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
-            const currentRole = appData.userRole; // Preservar el rol actual
+            const currentRole = appData.userRole;
             
-            // Cargar solo los datos persistentes, no reemplazar todo appData
-            if (parsed.company) appData.company = parsed.company;
+            if (parsed.company) {
+                appData.company.name = parsed.company.name || 'Nombre de la Empresa';
+                appData.company.slogan = parsed.company.slogan || 'Eslogan de la empresa';
+                appData.company.nit = parsed.company.nit || '';
+                appData.company.logo = parsed.company.logo || '';
+            }
+            
             if (parsed.clients) appData.clients = parsed.clients;
             if (parsed.sellers) appData.sellers = parsed.sellers;
             if (parsed.products) appData.products = parsed.products;
@@ -58,9 +65,8 @@ function loadData() {
             if (parsed.terms) appData.terms = parsed.terms;
             if (parsed.documentType) appData.documentType = parsed.documentType;
             
-            appData.userRole = currentRole; // Restaurar el rol actual
+            appData.userRole = currentRole;
             
-            // Asegurar que los datos temporales estén limpios
             appData.currentClient = null;
             appData.currentSeller = null;
             appData.currentProduct = null;
@@ -72,13 +78,16 @@ function loadData() {
 }
 
 function saveData() {
-    const dataToSave = { ...appData };
-    // No guardar datos temporales
-    delete dataToSave.userRole;
-    delete dataToSave.currentClient;
-    delete dataToSave.currentSeller;
-    delete dataToSave.currentProduct;
-    delete dataToSave.currentQuoteItems;
+    const dataToSave = {
+        company: { ...appData.company },
+        clients: appData.clients,
+        sellers: appData.sellers,
+        products: appData.products,
+        pdfHistory: appData.pdfHistory,
+        currentQuoteNumber: appData.currentQuoteNumber,
+        terms: appData.terms,
+        documentType: appData.documentType
+    };
     
     localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
 }

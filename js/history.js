@@ -105,6 +105,11 @@ function redownloadPDF(entryId) {
         return;
     }
 
+    const company = entry.company || {};
+    const client = typeof entry.client === 'object' ? entry.client : { name: entry.client };
+    const seller = typeof entry.seller === 'object' ? entry.seller : { name: entry.seller };
+    const items = Array.isArray(entry.items) ? entry.items : [];
+
     // Regenerar PDF con los datos guardados
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -113,36 +118,56 @@ function redownloadPDF(entryId) {
     const pageHeight = doc.internal.pageSize.height;
     const margin = 10;
     let yPos = margin;
+    const docTitle = entry.type === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
 
-    // Logo y Header
-    if (entry.company.logo) {
-        try {
-            doc.addImage(entry.company.logo, 'PNG', margin, yPos - 10, 30, 30);
-        } catch(e) {
-            console.log('Error al cargar logo:', e);
+    const drawHeader = () => {
+        doc.setTextColor(0, 0, 0);
+        if (company.logo) {
+            try {
+                doc.addImage(company.logo, 'PNG', margin, yPos - 4, 30, 30);
+            } catch(e) {
+                console.log('Error al cargar logo:', e);
+            }
         }
-    }
-    
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text(entry.company.name, margin + (entry.company.logo ? 35 : 0), yPos + 5);
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'italic');
-    doc.text(entry.company.slogan, margin + (entry.company.logo ? 35 : 0), yPos + 12);
-    
-    yPos += entry.company.logo ? 25 : 0;
+
+        const infoX = margin + (company.logo ? 35 : 0);
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text(company.name || '', infoX, yPos + 6);
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'italic');
+        doc.text(company.slogan || '', infoX, yPos + 13);
+
+        if (company.nit) {
+            doc.setFont(undefined, 'normal');
+            const nitText = 'NIT: ' + company.nit;
+            doc.setTextColor(0, 0, 0);
+            doc.text(nitText, infoX, yPos + 20);
+        }
+
+        let headerHeight = 12;
+        if (company.logo) {
+            headerHeight = company.nit ? 30 : 28;
+        } else if (company.nit) {
+            headerHeight = 24;
+        }
+
+        return headerHeight;
+    };
+
+    const headerHeight = drawHeader();
+    yPos += headerHeight;
 
     // Tipo de documento y número
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
-    const docTitle = entry.type === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
-    doc.text(docTitle, pageWidth - margin, 15, { align: 'right' });
+    doc.text(docTitle, pageWidth - margin, 20, { align: 'right' });
     doc.setFontSize(12);
-    doc.text('Nº ' + entry.number, pageWidth - margin, 22, { align: 'right' });
+    doc.text('Nº ' + entry.number, pageWidth - margin, 27, { align: 'right' });
     
     doc.setFontSize(10);
-    doc.text('Fecha: ' + entry.date, pageWidth - margin, 29, { align: 'right' });
+    doc.text('Fecha: ' + entry.date, pageWidth - margin, 34, { align: 'right' });
 
     // Línea separadora
     doc.setLineWidth(0.5);
@@ -153,30 +178,33 @@ function redownloadPDF(entryId) {
     doc.setFont(undefined, 'bold');
     doc.text('CLIENTE:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(entry.client.name || entry.client, margin + 25, yPos);
+    doc.text(client.name || '', margin + 25, yPos);
+    
+    // CI/NIT en la misma fila, alineado a la derecha
+    if (client.ci) {
+        doc.setFont(undefined, 'bold');
+        const ciNitText = 'CI/NIT: ';
+        const ciNitWidth = doc.getTextWidth(ciNitText);
+        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(client.ci) - ciNitWidth, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(client.ci, pageWidth - margin, yPos, { align: 'right' });
+    }
+    
     yPos += 6;
 
-    if (entry.client.company) {
+    if (client.company) {
         doc.setFont(undefined, 'bold');
         doc.text('Empresa:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(entry.client.company, margin + 25, yPos);
+        doc.text(client.company, margin + 25, yPos);
         yPos += 6;
     }
 
-    if (entry.client.ci) {
-        doc.setFont(undefined, 'bold');
-        doc.text('CI/CNIT:', margin, yPos);
-        doc.setFont(undefined, 'normal');
-        doc.text(entry.client.ci, margin + 25, yPos);
-        yPos += 6;
-    }
-
-    if (entry.client.phone) {
+    if (client.phone) {
         doc.setFont(undefined, 'bold');
         doc.text('Teléfono:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(entry.client.phone, margin + 25, yPos);
+        doc.text(client.phone, margin + 25, yPos);
         yPos += 6;
     }
 
@@ -186,21 +214,22 @@ function redownloadPDF(entryId) {
     doc.setFont(undefined, 'bold');
     doc.text('VENDEDOR:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(entry.seller.name || entry.seller, margin + 25, yPos);
+    doc.text(seller.name || '', margin + 25, yPos);
     
-    if (entry.seller.phone) {
-        doc.text('Tel: ' + entry.seller.phone, margin + 80, yPos);
+    if (seller.phone) {
+        doc.text('Tel: ' + seller.phone, margin + 80, yPos);
     }
     yPos += 8;
 
     // Tabla de productos
     doc.setFont(undefined, 'bold');
-    doc.setFillColor(52, 152, 219);
+    doc.setFillColor(112, 55, 205);
     doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
     
     doc.setTextColor(255, 255, 255);
     doc.text('#', margin + 2, yPos + 5);
     doc.text('Código', margin + 8, yPos + 5);
+    doc.text('IMG', margin + 28, yPos + 5);
     doc.text('Descripción', margin + 52, yPos + 5);
     doc.text('Cant.', margin + 108, yPos + 5);
     doc.text('P.Unit.', margin + 122, yPos + 5);
@@ -214,7 +243,7 @@ function redownloadPDF(entryId) {
     const tableLeft = margin;
     const tableRight = pageWidth - margin;
 
-    entry.items.forEach((item, index) => {
+    items.forEach((item, index) => {
         if (yPos > pageHeight - 50) {
             doc.addPage();
             yPos = margin;
@@ -229,12 +258,12 @@ function redownloadPDF(entryId) {
         doc.text((index + 1).toString(), margin + 2, textYCenter);
         doc.text(item.product.code || '-', margin + 8, textYCenter);
         
-        // Imagen del producto
+        // Imagen del producto en su propia columna
         if (item.product.image) {
             try {
                 const imgHeight = 24;
                 const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
-                doc.addImage(item.product.image, 'PNG', margin + 25, imgY, 24, imgHeight);
+                doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
             } catch(e) {
                 console.log('Error al cargar imagen del producto:', e);
             }
@@ -259,6 +288,7 @@ function redownloadPDF(entryId) {
         // Líneas verticales entre columnas
         doc.line(margin + 6, yPos - 3, margin + 6, yPos + rowHeight - 3);
         doc.line(margin + 25, yPos - 3, margin + 25, yPos + rowHeight - 3);
+        doc.line(margin + 51, yPos - 3, margin + 51, yPos + rowHeight - 3); // Línea después de IMG
         doc.line(margin + 107, yPos - 3, margin + 107, yPos + rowHeight - 3);
         doc.line(margin + 120, yPos - 3, margin + 120, yPos + rowHeight - 3);
         doc.line(margin + 145, yPos - 3, margin + 145, yPos + rowHeight - 3);
@@ -273,6 +303,24 @@ function redownloadPDF(entryId) {
 
     yPos += 5;
     doc.line(margin, yPos, pageWidth - margin, yPos);
+
+    const pagesAfterTable = doc.internal.getNumberOfPages();
+    if (items.length >= 7 && pagesAfterTable === 1) {
+        doc.addPage();
+        yPos = margin;
+        const nextHeaderHeight = drawHeader();
+        yPos += nextHeaderHeight;
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text(docTitle, pageWidth - margin, 20, { align: 'right' });
+        doc.setFontSize(12);
+        doc.text('Nº ' + entry.number, pageWidth - margin, 27, { align: 'right' });
+        doc.setFontSize(10);
+        doc.text('Fecha: ' + entry.date, pageWidth - margin, 34, { align: 'right' });
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+    }
+
     yPos += 8;
 
     // Totales
