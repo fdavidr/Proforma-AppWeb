@@ -95,8 +95,8 @@ function addPDFHeader(doc, margin, yPos, pageWidth) {
     if (appData.company.logo) {
         try {
             doc.addImage(appData.company.logo, 'PNG', margin, yPos - 4, 30, 30);
-        } catch(e) {
-            console.log('Error al cargar logo:', e);
+        } catch (e) {
+            // Logo no disponible
         }
     }
     

@@ -1,7 +1,12 @@
 // ==================== INICIALIZACIÓN DE LA APLICACIÓN ====================
 
-function init() {
-    loadData();
+async function init() {
+    // Inicializar Firebase (si está configurado)
+    if (typeof initFirebase === 'function') {
+        await initFirebase();
+    }
+    
+    await loadData();
     updateUI();
     loadTerms();
 }

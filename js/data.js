@@ -42,28 +42,28 @@ const itemsPerPage = 20;
 let selectedLoginRole = 'admin';
 
 // ==================== FUNCIONES DE PERSISTENCIA ====================
-function loadData() {
-    const saved = localStorage.getItem('proformaAppData');
+async function loadData() {
+    // Intentar cargar desde Firebase/localStorage
+    const saved = await loadAllData();
     
     if (saved) {
         try {
-            const parsed = JSON.parse(saved);
             const currentRole = appData.userRole;
             
-            if (parsed.company) {
-                appData.company.name = parsed.company.name || 'Nombre de la Empresa';
-                appData.company.slogan = parsed.company.slogan || 'Eslogan de la empresa';
-                appData.company.nit = parsed.company.nit || '';
-                appData.company.logo = parsed.company.logo || '';
+            if (saved.company) {
+                appData.company.name = saved.company.name || 'Nombre de la Empresa';
+                appData.company.slogan = saved.company.slogan || 'Eslogan de la empresa';
+                appData.company.nit = saved.company.nit || '';
+                appData.company.logo = saved.company.logo || '';
             }
             
-            if (parsed.clients) appData.clients = parsed.clients;
-            if (parsed.sellers) appData.sellers = parsed.sellers;
-            if (parsed.products) appData.products = parsed.products;
-            if (parsed.pdfHistory) appData.pdfHistory = parsed.pdfHistory;
-            if (parsed.currentQuoteNumber) appData.currentQuoteNumber = parsed.currentQuoteNumber;
-            if (parsed.terms) appData.terms = parsed.terms;
-            if (parsed.documentType) appData.documentType = parsed.documentType;
+            if (saved.clients) appData.clients = saved.clients;
+            if (saved.sellers) appData.sellers = saved.sellers;
+            if (saved.products) appData.products = saved.products;
+            if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
+            if (saved.currentQuoteNumber) appData.currentQuoteNumber = saved.currentQuoteNumber;
+            if (saved.terms) appData.terms = saved.terms;
+            if (saved.documentType) appData.documentType = saved.documentType;
             
             appData.userRole = currentRole;
             
@@ -77,17 +77,6 @@ function loadData() {
     }
 }
 
-function saveData() {
-    const dataToSave = {
-        company: { ...appData.company },
-        clients: appData.clients,
-        sellers: appData.sellers,
-        products: appData.products,
-        pdfHistory: appData.pdfHistory,
-        currentQuoteNumber: appData.currentQuoteNumber,
-        terms: appData.terms,
-        documentType: appData.documentType
-    };
-    
-    localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
+async function saveData() {
+    await saveAllData(appData);
 }

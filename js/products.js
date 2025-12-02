@@ -70,13 +70,56 @@ function handleProductAction() {
 function handleProductImageUpload(event) {
     const file = event.target.files[0];
     if (file) {
+        // Validar tamaño (máximo 500KB)
+        if (file.size > 500000) {
+            alert('La imagen es muy grande. Máximo 500KB. Intenta con una imagen más pequeña o comprimida.');
+            event.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('productImagePreview').src = e.target.result;
-            document.getElementById('productImagePreview').style.display = 'block';
+            // Comprimir imagen antes de guardar
+            compressImage(e.target.result, 300, 300, (compressedImage) => {
+                document.getElementById('productImagePreview').src = compressedImage;
+                document.getElementById('productImagePreview').style.display = 'block';
+            });
         };
         reader.readAsDataURL(file);
     }
+}
+
+// Función para comprimir imágenes
+function compressImage(base64, maxWidth, maxHeight, callback) {
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calcular nuevas dimensiones manteniendo aspecto
+        if (width > height) {
+            if (width > maxWidth) {
+                height *= maxWidth / width;
+                width = maxWidth;
+            }
+        } else {
+            if (height > maxHeight) {
+                width *= maxHeight / height;
+                height = maxHeight;
+            }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Comprimir a JPEG con calidad 0.7 (70%)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        callback(compressedBase64);
+    };
+    img.src = base64;
 }
 
 function saveProduct() {
@@ -123,3 +166,4 @@ window.selectProduct = selectProduct;
 window.handleProductAction = handleProductAction;
 window.handleProductImageUpload = handleProductImageUpload;
 window.saveProduct = saveProduct;
+window.compressImage = compressImage;

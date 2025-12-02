@@ -19,10 +19,25 @@ function openCompanySettings() {
 function handleLogoUpload(event) {
     const file = event.target.files[0];
     if (file) {
+        // Validar tamaño (máximo 500KB)
+        if (file.size > 500000) {
+            alert('El logo es muy grande. Máximo 500KB. Intenta con una imagen más pequeña o comprimida.');
+            event.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('logoPreview').src = e.target.result;
-            document.getElementById('logoPreview').style.display = 'block';
+            // Comprimir logo (200x200 px máximo)
+            if (typeof window.compressImage === 'function') {
+                window.compressImage(e.target.result, 200, 200, (compressedImage) => {
+                    document.getElementById('logoPreview').src = compressedImage;
+                    document.getElementById('logoPreview').style.display = 'block';
+                });
+            } else {
+                document.getElementById('logoPreview').src = e.target.result;
+                document.getElementById('logoPreview').style.display = 'block';
+            }
         };
         reader.readAsDataURL(file);
     }

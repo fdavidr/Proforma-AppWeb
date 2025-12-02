@@ -125,8 +125,8 @@ function redownloadPDF(entryId) {
         if (company.logo) {
             try {
                 doc.addImage(company.logo, 'PNG', margin, yPos - 4, 30, 30);
-            } catch(e) {
-                console.log('Error al cargar logo:', e);
+            } catch (e) {
+                // Logo no disponible
             }
         }
 
