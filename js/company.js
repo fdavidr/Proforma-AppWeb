@@ -28,16 +28,19 @@ function handleLogoUpload(event) {
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            // Comprimir logo (200x200 px máximo)
-            if (typeof window.compressImage === 'function') {
-                window.compressImage(e.target.result, 200, 200, (compressedImage) => {
-                    document.getElementById('logoPreview').src = compressedImage;
+            // Convertir PNG transparente a fondo blanco para compatibilidad con PDF
+            convertTransparentToWhite(e.target.result, (convertedImage) => {
+                // Comprimir logo (200x200 px máximo)
+                if (typeof window.compressImage === 'function') {
+                    window.compressImage(convertedImage, 200, 200, (compressedImage) => {
+                        document.getElementById('logoPreview').src = compressedImage;
+                        document.getElementById('logoPreview').style.display = 'block';
+                    });
+                } else {
+                    document.getElementById('logoPreview').src = convertedImage;
                     document.getElementById('logoPreview').style.display = 'block';
-                });
-            } else {
-                document.getElementById('logoPreview').src = e.target.result;
-                document.getElementById('logoPreview').style.display = 'block';
-            }
+                }
+            });
         };
         reader.readAsDataURL(file);
     }
@@ -64,7 +67,31 @@ function saveCompanySettings() {
     alert('Configuración guardada correctamente');
 }
 
+// Función para convertir transparencia a fondo blanco
+function convertTransparentToWhite(base64, callback) {
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        // Rellenar con blanco primero
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar imagen encima
+        ctx.drawImage(img, 0, 0);
+        
+        // Convertir a JPEG (sin transparencia)
+        const result = canvas.toDataURL('image/jpeg', 0.95);
+        callback(result);
+    };
+    img.src = base64;
+}
+
 // Exponer funciones globalmente
 window.openCompanySettings = openCompanySettings;
 window.handleLogoUpload = handleLogoUpload;
 window.saveCompanySettings = saveCompanySettings;
+window.convertTransparentToWhite = convertTransparentToWhite;
