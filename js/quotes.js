@@ -42,13 +42,18 @@ function addProductToQuote() {
     const discountType = document.getElementById('discountType').value;
 
     let discountAmount = 0;
+    let subtotal = 0;
+    
     if (discountType === '%') {
+        // Descuento porcentual: se aplica al total
         discountAmount = (price * quantity * discount) / 100;
+        subtotal = (price * quantity) - discountAmount;
     } else {
-        discountAmount = discount;
+        // Descuento en Bs: se aplica por unidad antes de multiplicar
+        const priceWithDiscount = price - discount;
+        subtotal = priceWithDiscount * quantity;
+        discountAmount = discount * quantity;
     }
-
-    const subtotal = (price * quantity) - discountAmount;
 
     const item = {
         id: appData.currentProduct.id, // Usar el ID original del producto
