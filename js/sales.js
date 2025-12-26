@@ -28,8 +28,11 @@ function filterSalesByMonth() {
     let filteredSales = sales;
     if (selectedMonth) {
         filteredSales = sales.filter(sale => {
-            const saleDate = sale.date.split('/').reverse().join('-'); // Convertir DD/MM/YYYY a YYYY-MM-DD
-            return saleDate.startsWith(selectedMonth);
+            // Extraer solo la fecha de la cadena "DD/MM/YYYY, HH:MM:SS" o "DD/MM/YYYY"
+            const datePart = sale.date.split(',')[0].trim(); // Obtener solo DD/MM/YYYY
+            const [day, month, year] = datePart.split('/');
+            const saleDate = `${year}-${month.padStart(2, '0')}`; // Formato YYYY-MM
+            return saleDate === selectedMonth;
         });
     }
 
@@ -155,8 +158,10 @@ function generateSalesPDF() {
     // Filtrar ventas del mes
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa') return false;
-        const saleDate = entry.date.split('/').reverse().join('-');
-        return saleDate.startsWith(selectedMonth);
+        const datePart = entry.date.split(',')[0].trim();
+        const [day, month, year] = datePart.split('/');
+        const saleDate = `${year}-${month.padStart(2, '0')}`;
+        return saleDate === selectedMonth;
     });
 
     // Calcular totales
@@ -341,3 +346,9 @@ function generateSalesPDF() {
 window.openSales = openSales;
 window.filterSalesByMonth = filterSalesByMonth;
 window.generateSalesPDF = generateSalesPDF;
+window.showAllSales = showAllSales;
+
+function showAllSales() {
+    document.getElementById('salesMonthFilter').value = '';
+    filterSalesByMonth();
+}
