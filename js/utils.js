@@ -26,16 +26,24 @@ function updateUI() {
     }
     document.getElementById('quoteNumber').textContent = 'Nº ' + appData.currentQuoteNumber;
     
-    // Ocultar botones para vendedores
+    // Ocultar/mostrar botones según rol
     const historyBtn = document.getElementById('historyBtn');
     const configBtn = document.getElementById('configBtn');
+    const inventoryBtn = document.getElementById('inventoryBtn');
+    const salesBtn = document.getElementById('salesBtn');
     
     if (appData.userRole === 'vendedor') {
+        // Vendedor solo ve Ventas
         if (historyBtn) historyBtn.style.display = 'none';
         if (configBtn) configBtn.style.display = 'none';
+        if (inventoryBtn) inventoryBtn.style.display = 'none';
+        if (salesBtn) salesBtn.style.display = '';
     } else {
+        // Admin ve todo
         if (historyBtn) historyBtn.style.display = '';
         if (configBtn) configBtn.style.display = '';
+        if (inventoryBtn) inventoryBtn.style.display = '';
+        if (salesBtn) salesBtn.style.display = '';
     }
 }
 
