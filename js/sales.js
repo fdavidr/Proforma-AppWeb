@@ -1,0 +1,343 @@
+// ==================== GESTIÓN DE VENTAS ====================
+
+function openSales() {
+    // Establecer mes actual por defecto
+    const today = new Date();
+    const currentMonth = today.toISOString().slice(0, 7);
+    document.getElementById('salesMonthFilter').value = currentMonth;
+    
+    filterSalesByMonth();
+    openModal('salesModal');
+}
+
+function filterSalesByMonth() {
+    const selectedMonth = document.getElementById('salesMonthFilter').value;
+    const tbody = document.getElementById('salesTableBody');
+    tbody.innerHTML = '';
+
+    // Filtrar solo notas de venta
+    const sales = appData.pdfHistory.filter(entry => entry.type === 'notaventa');
+
+    if (sales.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';
+        updateSalesTotals([], []);
+        return;
+    }
+
+    // Filtrar por mes si hay selección
+    let filteredSales = sales;
+    if (selectedMonth) {
+        filteredSales = sales.filter(sale => {
+            const saleDate = sale.date.split('/').reverse().join('-'); // Convertir DD/MM/YYYY a YYYY-MM-DD
+            return saleDate.startsWith(selectedMonth);
+        });
+    }
+
+    if (filteredSales.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>';
+        updateSalesTotals([], []);
+        return;
+    }
+
+    let totalCost = 0;
+    let totalPrice = 0;
+
+    filteredSales.forEach((sale, index) => {
+        const tr = document.createElement('tr');
+        
+        // Calcular costo y precio de esta venta
+        let saleCost = 0;
+        let salePrice = sale.total || 0;
+        
+        // Calcular costo basado en los productos de la venta
+        if (sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                const product = appData.products.find(p => p.id === item.id);
+                if (product && product.cost) {
+                    saleCost += (product.cost * item.quantity);
+                }
+            });
+        }
+        
+        const profit = salePrice - saleCost;
+        totalCost += saleCost;
+        totalPrice += salePrice;
+
+        // Resumen de productos
+        const productCount = sale.items ? sale.items.length : 0;
+        const productSummary = `${productCount} producto${productCount !== 1 ? 's' : ''}`;
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${sale.number}</td>
+            <td>${sale.client.name || sale.client}</td>
+            <td>${sale.seller.name || sale.seller}</td>
+            <td>${productSummary}</td>
+            <td style="color: #e74c3c;">Bs ${saleCost.toFixed(2)}</td>
+            <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
+            <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
+            <td>${sale.date}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    updateSalesTotals(filteredSales, [totalCost, totalPrice]);
+}
+
+function updateSalesTotals(sales, totals) {
+    const [totalCost, totalPrice] = totals;
+    const balance = totalPrice - totalCost;
+
+    document.getElementById('totalCostSales').textContent = `Bs ${(totalCost || 0).toFixed(2)}`;
+    document.getElementById('totalPriceSales').textContent = `Bs ${(totalPrice || 0).toFixed(2)}`;
+    document.getElementById('balanceSales').textContent = `Bs ${(balance || 0).toFixed(2)}`;
+    
+    // Cambiar color del balance según sea positivo o negativo
+    const balanceElement = document.getElementById('balanceSales');
+    if (balance >= 0) {
+        balanceElement.style.color = '#3498db';
+    } else {
+        balanceElement.style.color = '#e74c3c';
+    }
+}
+
+function generateSalesPDF() {
+    const selectedMonth = document.getElementById('salesMonthFilter').value;
+    if (!selectedMonth) {
+        alert('Seleccione un mes para generar el reporte');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPos = margin;
+
+    // Header - Logo y datos de empresa
+    if (appData.company.logo) {
+        try {
+            doc.addImage(appData.company.logo, 'JPEG', margin, yPos, 30, 30);
+        } catch (e) {
+            // Logo no disponible
+        }
+    }
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(appData.company.name, margin + 35, yPos + 8);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(appData.company.slogan || '', margin + 35, yPos + 15);
+    
+    if (appData.company.nit) {
+        doc.text(`NIT: ${appData.company.nit}`, margin + 35, yPos + 21);
+    }
+
+    // Título del documento
+    yPos += 40;
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REPORTE DE VENTAS', pageWidth / 2, yPos, { align: 'center' });
+
+    // Mes seleccionado
+    yPos += 8;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    const [year, month] = selectedMonth.split('-');
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const monthName = monthNames[parseInt(month) - 1];
+    doc.text(`Período: ${monthName} ${year}`, pageWidth / 2, yPos, { align: 'center' });
+
+    // Filtrar ventas del mes
+    const sales = appData.pdfHistory.filter(entry => {
+        if (entry.type !== 'notaventa') return false;
+        const saleDate = entry.date.split('/').reverse().join('-');
+        return saleDate.startsWith(selectedMonth);
+    });
+
+    // Calcular totales
+    let totalCost = 0;
+    let totalPrice = 0;
+    
+    sales.forEach(sale => {
+        let saleCost = 0;
+        if (sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                const product = appData.products.find(p => p.id === item.id);
+                if (product && product.cost) {
+                    saleCost += (product.cost * item.quantity);
+                }
+            });
+        }
+        totalCost += saleCost;
+        totalPrice += (sale.total || 0);
+    });
+
+    const balance = totalPrice - totalCost;
+
+    // Totales en recuadros
+    yPos += 12;
+    const boxWidth = 55;
+    const boxHeight = 18;
+    const spacing = 5;
+    const totalBoxesWidth = (boxWidth * 3) + (spacing * 2);
+    const startX = (pageWidth - totalBoxesWidth) / 2;
+
+    // Cuadro de costo total
+    doc.setFillColor(231, 76, 60);
+    doc.rect(startX, yPos, boxWidth, boxHeight, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text('COSTO TOTAL', startX + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Bs ${totalCost.toFixed(2)}`, startX + boxWidth / 2, yPos + 13, { align: 'center' });
+
+    // Cuadro de precio total
+    doc.setFillColor(39, 174, 96);
+    doc.rect(startX + boxWidth + spacing, yPos, boxWidth, boxHeight, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PRECIO TOTAL', startX + boxWidth + spacing + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Bs ${totalPrice.toFixed(2)}`, startX + boxWidth + spacing + boxWidth / 2, yPos + 13, { align: 'center' });
+
+    // Cuadro de balance
+    doc.setFillColor(52, 152, 219);
+    doc.rect(startX + (boxWidth + spacing) * 2, yPos, boxWidth, boxHeight, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('BALANCE', startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Bs ${balance.toFixed(2)}`, startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 13, { align: 'center' });
+
+    // Tabla de ventas
+    yPos += boxHeight + 12;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+
+    // Encabezado de tabla
+    doc.setFillColor(112, 55, 205);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    
+    const colWidths = {
+        num: 10,
+        sale: 25,
+        client: 40,
+        products: 20,
+        cost: 25,
+        price: 25,
+        profit: 25,
+        date: 25
+    };
+
+    let xPos = margin + 2;
+    doc.text('#', xPos, yPos + 5);
+    xPos += colWidths.num;
+    doc.text('Nº Venta', xPos, yPos + 5);
+    xPos += colWidths.sale;
+    doc.text('Cliente', xPos, yPos + 5);
+    xPos += colWidths.client;
+    doc.text('Prods', xPos, yPos + 5);
+    xPos += colWidths.products;
+    doc.text('Costo', xPos, yPos + 5);
+    xPos += colWidths.cost;
+    doc.text('Precio', xPos, yPos + 5);
+    xPos += colWidths.price;
+    doc.text('Ganancia', xPos, yPos + 5);
+    xPos += colWidths.profit;
+    doc.text('Fecha', xPos, yPos + 5);
+
+    yPos += 10;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+
+    // Ventas
+    sales.forEach((sale, index) => {
+        if (yPos > pageHeight - 30) {
+            doc.addPage();
+            yPos = margin;
+        }
+
+        let saleCost = 0;
+        if (sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                const product = appData.products.find(p => p.id === item.id);
+                if (product && product.cost) {
+                    saleCost += (product.cost * item.quantity);
+                }
+            });
+        }
+        
+        const salePrice = sale.total || 0;
+        const profit = salePrice - saleCost;
+        const productCount = sale.items ? sale.items.length : 0;
+
+        xPos = margin + 2;
+        doc.text(`${index + 1}`, xPos, yPos);
+        xPos += colWidths.num;
+        doc.text(sale.number.toString(), xPos, yPos);
+        xPos += colWidths.sale;
+        
+        const clientName = sale.client.name || sale.client;
+        doc.text(clientName.length > 20 ? clientName.substring(0, 20) + '...' : clientName, xPos, yPos);
+        xPos += colWidths.client;
+        
+        doc.text(productCount.toString(), xPos, yPos);
+        xPos += colWidths.products;
+        doc.text(saleCost.toFixed(2), xPos, yPos);
+        xPos += colWidths.cost;
+        doc.text(salePrice.toFixed(2), xPos, yPos);
+        xPos += colWidths.price;
+        doc.text(profit.toFixed(2), xPos, yPos);
+        xPos += colWidths.profit;
+        doc.text(sale.date, xPos, yPos);
+
+        yPos += 7;
+
+        // Línea separadora
+        if (index < sales.length - 1) {
+            doc.setDrawColor(220, 220, 220);
+            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+        }
+    });
+
+    // Resumen final
+    yPos += 10;
+    if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = margin;
+    }
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total de Ventas: ${sales.length}`, margin, yPos);
+    yPos += 7;
+    doc.text(`Costo Total: Bs ${totalCost.toFixed(2)}`, margin, yPos);
+    yPos += 7;
+    doc.text(`Ingreso Total: Bs ${totalPrice.toFixed(2)}`, margin, yPos);
+    yPos += 7;
+    doc.text(`Ganancia Neta: Bs ${balance.toFixed(2)}`, margin, yPos);
+
+    // Guardar PDF
+    const fileName = `Reporte_Ventas_${monthName}_${year}.pdf`;
+    doc.save(fileName);
+}
+
+// Exponer funciones globalmente
+window.openSales = openSales;
+window.filterSalesByMonth = filterSalesByMonth;
+window.generateSalesPDF = generateSalesPDF;

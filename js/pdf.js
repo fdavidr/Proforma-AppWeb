@@ -75,6 +75,18 @@ function generatePDF() {
     // Guardar en historial ANTES de limpiar (usa currentQuoteItems)
     saveToHistory(fileName);
 
+    // Si es nota de venta, descontar del stock
+    if (appData.documentType === 'notaventa') {
+        appData.currentQuoteItems.forEach(item => {
+            const product = appData.products.find(p => p.id === item.id);
+            if (product) {
+                product.stock = (product.stock || 0) - item.quantity;
+                // Evitar stock negativo
+                if (product.stock < 0) product.stock = 0;
+            }
+        });
+    }
+
     // Incrementar número de cotización
     appData.currentQuoteNumber++;
     
@@ -85,7 +97,10 @@ function generatePDF() {
     updateUI();
     
     // Mostrar alerta de éxito
-    alert('PDF generado exitosamente. Use el botón "Nueva Cotización" para limpiar los datos.');
+    const successMsg = appData.documentType === 'notaventa' 
+        ? 'Nota de venta generada exitosamente. Stock actualizado.' 
+        : 'Cotización generada exitosamente.';
+    alert(successMsg + ' Use el botón "Nueva Cotización" para limpiar los datos.');
 }
 
 // ==================== FUNCIONES AUXILIARES DE PDF ====================

@@ -10,24 +10,26 @@ function renderHistory() {
     const tbody = document.getElementById('historyTableBody');
     tbody.innerHTML = '';
 
-    if (appData.pdfHistory.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay PDFs generados en el historial</td></tr>';
-        updateHistoryPagination();
+    // Filtrar solo cotizaciones
+    const cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion');
+
+    if (cotizaciones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay cotizaciones generadas en el historial</td></tr>';
+        updateHistoryPagination(cotizaciones.length);
         return;
     }
 
     const startIndex = (historyPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const pageItems = appData.pdfHistory.slice(startIndex, endIndex);
+    const pageItems = cotizaciones.slice(startIndex, endIndex);
 
     pageItems.forEach((entry, index) => {
         const tr = document.createElement('tr');
         const globalIndex = startIndex + index + 1;
-        const typeLabel = entry.type === 'cotizacion' ? 'Cotización' : 'Nota de Venta';
         
         tr.innerHTML = `
             <td>${globalIndex}</td>
-            <td>${typeLabel}</td>
+            <td>Cotización</td>
             <td>${entry.number}</td>
             <td>${entry.client.name || entry.client}</td>
             <td>${entry.seller.name || entry.seller}</td>
@@ -41,11 +43,11 @@ function renderHistory() {
         tbody.appendChild(tr);
     });
 
-    updateHistoryPagination();
+    updateHistoryPagination(cotizaciones.length);
 }
 
-function updateHistoryPagination() {
-    const totalPages = Math.ceil(appData.pdfHistory.length / itemsPerPage);
+function updateHistoryPagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
     document.getElementById('pageInfo').textContent = `Página ${historyPage} de ${Math.max(1, totalPages)}`;
     
     document.getElementById('prevPageBtn').disabled = historyPage === 1;

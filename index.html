@@ -58,6 +58,7 @@
             <div class="header-actions">
                 <button id="configBtn" class="btn btn-secondary" onclick="openCompanySettings()">⚙️ Configuración</button>
                 <button id="inventoryBtn" class="btn btn-secondary" onclick="openInventory()">📦 Inventario</button>
+                <button id="salesBtn" class="btn btn-secondary" onclick="openSales()">💰 Ventas</button>
                 <button id="historyBtn" class="btn btn-secondary" onclick="openHistory()">📋 Historial</button>
                 <div class="quote-number">
                     <span id="quoteNumber">Nº 100000</span>
@@ -412,6 +413,57 @@
         </div>
     </div>
 
+    <!-- Sales Modal -->
+    <div id="salesModal" class="modal">
+        <div class="modal-content" style="max-width: 95%; width: 95%;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>💰 Reporte de Ventas</h3>
+                <button class="btn btn-secondary" onclick="closeModal('salesModal')" style="margin: 0;">✕ Cerrar</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Mes</label>
+                        <input type="month" id="salesMonthFilter" onchange="filterSalesByMonth()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 14px; color: #666;">Costo Total</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #e74c3c;" id="totalCostSales">Bs 0.00</div>
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 14px; color: #666;">Precio Total</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #27ae60;" id="totalPriceSales">Bs 0.00</div>
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 14px; color: #666;">Balance</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #3498db;" id="balanceSales">Bs 0.00</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="generateSalesPDF()">📄 Descargar Resumen</button>
+                    </div>
+                </div>
+                <div id="salesContent">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nº Venta</th>
+                                <th>Cliente</th>
+                                <th>Vendedor</th>
+                                <th>Productos</th>
+                                <th>Costo</th>
+                                <th>Precio</th>
+                                <th>Ganancia</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== SCRIPTS ==================== -->
     <script src="js/firebase-config.js"></script>
     <script src="js/data.js"></script>
@@ -422,6 +474,7 @@
     <script src="js/sellers.js"></script>
     <script src="js/products.js"></script>
     <script src="js/inventory.js"></script>
+    <script src="js/sales.js"></script>
     <script src="js/quotes.js"></script>
     <script src="js/pdf.js"></script>
     <script src="js/history.js"></script>
