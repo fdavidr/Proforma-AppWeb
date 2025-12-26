@@ -53,6 +53,8 @@ function handleProductAction() {
         document.getElementById('modalProductCode').value = appData.currentProduct.code || '';
         document.getElementById('modalProductDescription').value = appData.currentProduct.description;
         document.getElementById('modalProductPrice').value = appData.currentProduct.price || 0;
+        document.getElementById('modalProductCost').value = appData.currentProduct.cost || 0;
+        document.getElementById('modalProductStock').value = appData.currentProduct.stock || 0;
         if (appData.currentProduct.image) {
             document.getElementById('productImagePreview').src = appData.currentProduct.image;
             document.getElementById('productImagePreview').style.display = 'block';
@@ -62,6 +64,8 @@ function handleProductAction() {
         document.getElementById('modalProductCode').value = '';
         document.getElementById('modalProductDescription').value = '';
         document.getElementById('modalProductPrice').value = 0;
+        document.getElementById('modalProductCost').value = 0;
+        document.getElementById('modalProductStock').value = 0;
         document.getElementById('productImagePreview').style.display = 'none';
     }
     openModal('productModal');
@@ -134,6 +138,8 @@ function saveProduct() {
         code: document.getElementById('modalProductCode').value,
         description: description,
         price: parseFloat(document.getElementById('modalProductPrice').value) || 0,
+        cost: parseFloat(document.getElementById('modalProductCost').value) || 0,
+        stock: parseFloat(document.getElementById('modalProductStock').value) || 0,
         registrationDate: appData.currentProduct ? appData.currentProduct.registrationDate : new Date().toISOString(),
         image: ''
     };
@@ -154,6 +160,13 @@ function saveProduct() {
     saveData();
     selectProduct(product);
     closeModal('productModal');
+    
+    // Si el modal de inventario está abierto, recargar datos
+    const inventoryModal = document.getElementById('inventoryModal');
+    if (inventoryModal && inventoryModal.classList.contains('active')) {
+        loadInventoryData();
+        openModal('inventoryModal');
+    }
 }
 
 function updateProductPreview() {
