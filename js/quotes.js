@@ -51,7 +51,7 @@ function addProductToQuote() {
     const subtotal = (price * quantity) - discountAmount;
 
     const item = {
-        id: Date.now(),
+        id: appData.currentProduct.id, // Usar el ID original del producto
         product: appData.currentProduct,
         quantity: quantity,
         price: price,

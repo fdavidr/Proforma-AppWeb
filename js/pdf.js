@@ -77,12 +77,15 @@ function generatePDF() {
 
     // Si es nota de venta, descontar del stock
     if (appData.documentType === 'notaventa') {
+        let productsUpdated = 0;
         appData.currentQuoteItems.forEach(item => {
             const product = appData.products.find(p => p.id === item.id);
             if (product) {
-                product.stock = (product.stock || 0) - item.quantity;
+                const previousStock = product.stock || 0;
+                product.stock = previousStock - item.quantity;
                 // Evitar stock negativo
                 if (product.stock < 0) product.stock = 0;
+                productsUpdated++;
             }
         });
     }
