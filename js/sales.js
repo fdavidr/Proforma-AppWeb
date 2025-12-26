@@ -238,14 +238,14 @@ function generateSalesPDF() {
     doc.setFont('helvetica', 'bold');
     
     const colWidths = {
-        num: 10,
-        sale: 25,
-        client: 40,
+        num: 12,
+        sale: 28,
+        client: 50,
+        vendor: 35,
         products: 20,
-        cost: 25,
-        price: 25,
-        profit: 25,
-        date: 25
+        cost: 28,
+        price: 28,
+        date: 28
     };
 
     let xPos = margin + 2;
@@ -255,14 +255,14 @@ function generateSalesPDF() {
     xPos += colWidths.sale;
     doc.text('Cliente', xPos, yPos + 5);
     xPos += colWidths.client;
+    doc.text('Vendedor', xPos, yPos + 5);
+    xPos += colWidths.vendor;
     doc.text('Prods', xPos, yPos + 5);
     xPos += colWidths.products;
     doc.text('Costo', xPos, yPos + 5);
     xPos += colWidths.cost;
     doc.text('Precio', xPos, yPos + 5);
     xPos += colWidths.price;
-    doc.text('Ganancia', xPos, yPos + 5);
-    xPos += colWidths.profit;
     doc.text('Fecha', xPos, yPos + 5);
 
     yPos += 10;
@@ -288,7 +288,6 @@ function generateSalesPDF() {
         }
         
         const salePrice = sale.total || 0;
-        const profit = salePrice - saleCost;
         const productCount = sale.items ? sale.items.length : 0;
 
         xPos = margin + 2;
@@ -298,17 +297,16 @@ function generateSalesPDF() {
         xPos += colWidths.sale;
         
         const clientName = sale.client.name || sale.client;
-        doc.text(clientName.length > 20 ? clientName.substring(0, 20) + '...' : clientName, xPos, yPos);
+        doc.text(clientName.length > 25 ? clientName.substring(0, 25) + '...' : clientName, xPos, yPos);
         xPos += colWidths.client;
+        
+        const vendorName = sale.seller.name || sale.seller;
+        doc.text(vendorName.length > 18 ? vendorName.substring(0, 18) + '...' : vendorName, xPos, yPos);
+        xPos += colWidths.vendor;
         
         doc.text(productCount.toString(), xPos, yPos);
         xPos += colWidths.products;
-        doc.text(saleCost.toFixed(2), xPos, yPos);
-        xPos += colWidths.cost;
-        doc.text(salePrice.toFixed(2), xPos, yPos);
         xPos += colWidths.price;
-        doc.text(profit.toFixed(2), xPos, yPos);
-        xPos += colWidths.profit;
         doc.text(sale.date, xPos, yPos);
 
         yPos += 7;

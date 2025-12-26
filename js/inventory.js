@@ -161,13 +161,13 @@ function generateInventoryPDF() {
     doc.setFont('helvetica', 'bold');
     
     const colWidths = {
-        code: 25,
-        desc: 60,
-        stock: 20,
-        cost: 25,
-        price: 25,
-        costTotal: 30,
-        priceTotal: 30
+        code: 18,
+        desc: 45,
+        stock: 18,
+        cost: 22,
+        price: 22,
+        costTotal: 26,
+        priceTotal: 26
     };
 
     let xPos = margin + 2;
@@ -181,9 +181,9 @@ function generateInventoryPDF() {
     xPos += colWidths.cost;
     doc.text('Precio U.', xPos, yPos + 5);
     xPos += colWidths.price;
-    doc.text('Costo Total', xPos, yPos + 5);
+    doc.text('Costo Tot.', xPos, yPos + 5);
     xPos += colWidths.costTotal;
-    doc.text('Precio Total', xPos, yPos + 5);
+    doc.text('Precio Tot.', xPos, yPos + 5);
 
     yPos += 10;
     doc.setTextColor(0, 0, 0);
@@ -208,8 +208,8 @@ function generateInventoryPDF() {
         xPos += colWidths.code;
         
         const description = product.description;
-        if (description.length > 35) {
-            doc.text(description.substring(0, 35) + '...', xPos, yPos);
+        if (description.length > 22) {
+            doc.text(description.substring(0, 22) + '...', xPos, yPos);
         } else {
             doc.text(description, xPos, yPos);
         }
