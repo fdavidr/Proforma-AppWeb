@@ -3,7 +3,13 @@
 let selectedSalesCity = 'cochabamba';
 
 function openSales() {
-    selectedSalesCity = 'cochabamba';
+    // Si es vendedor, establecer su ciudad automáticamente
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        selectedSalesCity = appData.loggedSeller.city;
+    } else {
+        selectedSalesCity = 'cochabamba';
+    }
+    
     // Establecer mes actual por defecto
     const today = new Date();
     const currentMonth = today.toISOString().slice(0, 7);
@@ -11,6 +17,26 @@ function openSales() {
     
     filterSalesByMonth();
     openModal('salesModal');
+    
+    // Si es vendedor, bloquear botones de ciudad
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        document.querySelectorAll('.city-filter-sales').forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.classList.remove('active');
+            if (btn.dataset.city === appData.loggedSeller.city) {
+                btn.classList.add('active');
+            }
+        });
+    } else {
+        // Admin puede cambiar de ciudad
+        document.querySelectorAll('.city-filter-sales').forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        });
+    }
 }
 
 function filterSalesByCity(city) {

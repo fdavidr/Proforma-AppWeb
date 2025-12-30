@@ -11,6 +11,27 @@ function setDocumentType(type) {
     const citySelector = document.getElementById('citySelectorContainer');
     if (type === 'notaventa') {
         citySelector.style.display = 'block';
+        
+        // Si es vendedor, bloquear selección y establecer su ciudad
+        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+            appData.selectedSaleCity = appData.loggedSeller.city;
+            document.querySelectorAll('.city-selector').forEach(btn => {
+                btn.classList.remove('active');
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                if (btn.dataset.city === appData.loggedSeller.city) {
+                    btn.classList.add('active');
+                }
+            });
+        } else {
+            // Admin puede seleccionar cualquier ciudad
+            document.querySelectorAll('.city-selector').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+        }
     } else {
         citySelector.style.display = 'none';
     }

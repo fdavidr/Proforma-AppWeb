@@ -19,6 +19,7 @@ let appData = {
     documentType: 'cotizacion',
     selectedSaleCity: 'cochabamba',
     userRole: null,
+    loggedSeller: null,
     terms: {
         cotizacion: [
             'Precios sujetos a cambio sin previo aviso',

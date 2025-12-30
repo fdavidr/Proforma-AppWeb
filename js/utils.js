@@ -33,8 +33,8 @@ function updateUI() {
     const salesBtn = document.getElementById('salesBtn');
     
     if (appData.userRole === 'vendedor') {
-        // Vendedor solo ve Ventas
-        if (historyBtn) historyBtn.style.display = 'none';
+        // Vendedor solo ve Ventas e Historial
+        if (historyBtn) historyBtn.style.display = '';
         if (configBtn) configBtn.style.display = 'none';
         if (inventoryBtn) inventoryBtn.style.display = 'none';
         if (salesBtn) salesBtn.style.display = '';

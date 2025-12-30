@@ -365,7 +365,7 @@ function saveToHistory(fileName) {
         id: Date.now(),
         type: appData.documentType,
         number: appData.currentQuoteNumber,
-        city: appData.documentType === 'notaventa' ? appData.selectedSaleCity : null,
+        city: appData.selectedSaleCity,
         client: JSON.parse(JSON.stringify({
             name: appData.currentClient.name,
             phone: appData.currentClient.phone || '',

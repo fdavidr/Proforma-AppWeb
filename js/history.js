@@ -10,8 +10,13 @@ function renderHistory() {
     const tbody = document.getElementById('historyTableBody');
     tbody.innerHTML = '';
 
-    // Filtrar solo cotizaciones
-    const cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion');
+    // Filtrar cotizaciones
+    let cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion');
+    
+    // Si es vendedor, filtrar solo las de su ciudad
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        cotizaciones = cotizaciones.filter(entry => entry.city === appData.loggedSeller.city);
+    }
 
     if (cotizaciones.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay cotizaciones generadas en el historial</td></tr>';

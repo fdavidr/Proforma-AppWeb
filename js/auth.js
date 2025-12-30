@@ -16,6 +16,7 @@ function initLogin() {
 
         let isValid = false;
         let userRole = null;
+        let sellerData = null;
 
         // Validar credenciales según el rol seleccionado
         if (selectedLoginRole === 'admin') {
@@ -24,14 +25,27 @@ function initLogin() {
                 userRole = 'admin';
             }
         } else if (selectedLoginRole === 'vendedor') {
-            if (username === 'VendedorX25' && password === 'VendedorX25') {
+            // Buscar vendedor en la base de datos
+            const seller = appData.sellers.find(s => 
+                s.username === username && s.password === password
+            );
+            
+            if (seller) {
                 isValid = true;
                 userRole = 'vendedor';
+                sellerData = seller;
             }
         }
 
         if (isValid) {
             appData.userRole = userRole;
+            appData.loggedSeller = sellerData;
+            
+            // Si es vendedor, configurar ciudad automáticamente
+            if (userRole === 'vendedor' && sellerData) {
+                appData.selectedSaleCity = sellerData.city;
+            }
+            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             init();
@@ -48,6 +62,7 @@ function logout() {
         saveData();
         
         appData.userRole = null;
+        appData.loggedSeller = null;
         selectedLoginRole = 'admin';
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('app').style.display = 'none';

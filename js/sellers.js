@@ -45,29 +45,67 @@ function selectSeller(seller) {
 }
 
 function handleSellerAction() {
+    // Restringir solo a administrador
+    if (appData.userRole !== 'admin') {
+        alert('Solo el administrador puede gestionar vendedores');
+        return;
+    }
+    
     if (appData.currentSeller) {
         document.getElementById('sellerModalTitle').textContent = 'Editar Vendedor';
         document.getElementById('modalSellerName').value = appData.currentSeller.name;
         document.getElementById('modalSellerPhone').value = appData.currentSeller.phone || '';
+        document.getElementById('modalSellerUsername').value = appData.currentSeller.username || '';
+        document.getElementById('modalSellerPassword').value = appData.currentSeller.password || '';
+        document.getElementById('modalSellerCity').value = appData.currentSeller.city || 'cochabamba';
     } else {
         document.getElementById('sellerModalTitle').textContent = 'Agregar Vendedor';
         document.getElementById('modalSellerName').value = '';
         document.getElementById('modalSellerPhone').value = '';
+        document.getElementById('modalSellerUsername').value = '';
+        document.getElementById('modalSellerPassword').value = '';
+        document.getElementById('modalSellerCity').value = 'cochabamba';
     }
     openModal('sellerModal');
 }
 
 function saveSeller() {
     const name = document.getElementById('modalSellerName').value.trim();
+    const username = document.getElementById('modalSellerUsername').value.trim();
+    const password = document.getElementById('modalSellerPassword').value.trim();
+    const city = document.getElementById('modalSellerCity').value;
+    
     if (!name) {
         alert('El nombre es obligatorio');
+        return;
+    }
+    
+    if (!username) {
+        alert('El usuario es obligatorio');
+        return;
+    }
+    
+    if (!password) {
+        alert('La contraseña es obligatoria');
+        return;
+    }
+
+    // Validar que el usuario no exista (excepto si es edición)
+    const existingSeller = appData.sellers.find(s => 
+        s.username === username && s.id !== (appData.currentSeller ? appData.currentSeller.id : null)
+    );
+    if (existingSeller) {
+        alert('El usuario ya existe');
         return;
     }
 
     const seller = {
         id: appData.currentSeller ? appData.currentSeller.id : Date.now(),
         name: name,
-        phone: document.getElementById('modalSellerPhone').value
+        phone: document.getElementById('modalSellerPhone').value,
+        username: username,
+        password: password,
+        city: city
     };
 
     if (appData.currentSeller) {
