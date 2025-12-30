@@ -496,6 +496,36 @@ input[type="file"] {
     background: #2c3e50;
 }
 
+/* ==================== SELECTORES DE CIUDAD ==================== */
+.city-selector.active,
+.city-filter.active,
+.city-filter-sales.active {
+    background: #27ae60 !important;
+    box-shadow: 0 0 15px rgba(39, 174, 96, 0.4);
+    transform: scale(1.05);
+    font-weight: bold;
+}
+
+.city-selector,
+.city-filter,
+.city-filter-sales {
+    transition: all 0.3s ease;
+}
+
+.city-selector:not(.active),
+.city-filter:not(.active),
+.city-filter-sales:not(.active) {
+    background: #95a5a6;
+    opacity: 0.7;
+}
+
+.city-selector:hover,
+.city-filter:hover,
+.city-filter-sales:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
 /* ==================== UTILIDADES ==================== */
 .error-message {
     color: #e74c3c;
