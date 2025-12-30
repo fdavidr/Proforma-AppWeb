@@ -1,6 +1,6 @@
 // ==================== GENERACIÓN DE PDF ====================
 
-function generatePDF() {
+async function generatePDF() {
     if (!appData.currentClient) {
         alert('Debe seleccionar un cliente');
         return;
@@ -96,8 +96,8 @@ function generatePDF() {
     // Incrementar número de cotización
     appData.currentQuoteNumber++;
     
-    // Guardar datos
-    saveData();
+    // Guardar datos (esperar a que termine)
+    await saveData();
     
     // Actualizar UI
     updateUI();

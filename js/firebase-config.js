@@ -89,10 +89,11 @@ async function saveAllData(appData) {
     const cotizaciones = limitedHistory.filter(entry => entry.type === 'cotizacion');
     const ventas = limitedHistory.filter(entry => entry.type === 'notaventa');
     
-    // Limitar cotizaciones a 20
-    const limitedCotizaciones = cotizaciones.slice(-20);
+    // Ordenar cotizaciones por ID descendente (más recientes primero) y tomar las 20 más recientes
+    const sortedCotizaciones = cotizaciones.sort((a, b) => b.id - a.id);
+    const limitedCotizaciones = sortedCotizaciones.slice(0, 20);
     
-    // Combinar cotizaciones limitadas con todas las ventas
+    // Combinar cotizaciones limitadas con todas las ventas y ordenar por ID
     limitedHistory = [...limitedCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
     
     const dataToSave = {
