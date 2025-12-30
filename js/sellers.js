@@ -1,6 +1,11 @@
 // ==================== GESTIÓN DE VENDEDORES ====================
 
 function filterSellers(query) {
+    // Si es vendedor, no permitir búsqueda
+    if (appData.userRole === 'vendedor') {
+        return;
+    }
+    
     const list = document.getElementById('sellerList');
     list.innerHTML = '';
     
@@ -23,6 +28,10 @@ function filterSellers(query) {
 }
 
 function showSellerList() {
+    // Si es vendedor, no mostrar lista
+    if (appData.userRole === 'vendedor') {
+        return;
+    }
     filterSellers('');
 }
 
@@ -35,6 +44,11 @@ function addSellerToList(seller, list) {
 }
 
 function selectSeller(seller) {
+    // Si es vendedor, no permitir cambio
+    if (appData.userRole === 'vendedor') {
+        return;
+    }
+    
     appData.currentSeller = seller;
     const input = document.getElementById('sellerSelect');
     input.value = seller.name;
