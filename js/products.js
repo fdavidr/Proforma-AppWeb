@@ -54,7 +54,8 @@ function handleProductAction() {
         document.getElementById('modalProductDescription').value = appData.currentProduct.description;
         document.getElementById('modalProductPrice').value = appData.currentProduct.price || 0;
         document.getElementById('modalProductCost').value = appData.currentProduct.cost || 0;
-        document.getElementById('modalProductStock').value = appData.currentProduct.stock || 0;
+        document.getElementById('modalProductStockCochabamba').value = appData.currentProduct.stockCochabamba || 0;
+        document.getElementById('modalProductStockSantaCruz').value = appData.currentProduct.stockSantaCruz || 0;
         if (appData.currentProduct.image) {
             document.getElementById('productImagePreview').src = appData.currentProduct.image;
             document.getElementById('productImagePreview').style.display = 'block';
@@ -65,7 +66,8 @@ function handleProductAction() {
         document.getElementById('modalProductDescription').value = '';
         document.getElementById('modalProductPrice').value = 0;
         document.getElementById('modalProductCost').value = 0;
-        document.getElementById('modalProductStock').value = 0;
+        document.getElementById('modalProductStockCochabamba').value = 0;
+        document.getElementById('modalProductStockSantaCruz').value = 0;
         document.getElementById('productImagePreview').style.display = 'none';
     }
     openModal('productModal');
@@ -139,7 +141,9 @@ function saveProduct() {
         description: description,
         price: parseFloat(document.getElementById('modalProductPrice').value) || 0,
         cost: parseFloat(document.getElementById('modalProductCost').value) || 0,
-        stock: parseFloat(document.getElementById('modalProductStock').value) || 0,
+        stockCochabamba: parseFloat(document.getElementById('modalProductStockCochabamba').value) || 0,
+        stockSantaCruz: parseFloat(document.getElementById('modalProductStockSantaCruz').value) || 0,
+        stock: 0,
         registrationDate: appData.currentProduct ? appData.currentProduct.registrationDate : new Date().toISOString(),
         image: ''
     };

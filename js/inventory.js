@@ -1,8 +1,25 @@
 // ==================== GESTIÓN DE INVENTARIO ====================
 
+let selectedInventoryCity = 'cochabamba';
+
 function openInventory() {
+    selectedInventoryCity = 'cochabamba';
     loadInventoryData();
     openModal('inventoryModal');
+}
+
+function filterInventoryByCity(city) {
+    selectedInventoryCity = city;
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.city-filter').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.city === city) {
+            btn.classList.add('active');
+        }
+    });
+    
+    loadInventoryData();
 }
 
 function loadInventoryData() {
@@ -13,7 +30,9 @@ function loadInventoryData() {
     let totalPrice = 0;
 
     appData.products.forEach((product, index) => {
-        const stock = product.stock || 0;
+        const stock = selectedInventoryCity === 'cochabamba' 
+            ? (product.stockCochabamba || 0) 
+            : (product.stockSantaCruz || 0);
         const cost = product.cost || 0;
         const price = product.price || 0;
         const costTotal = stock * cost;
@@ -96,7 +115,8 @@ function generateInventoryPDF() {
     yPos += 40;
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('INVENTARIO DE PRODUCTOS', pageWidth / 2, yPos, { align: 'center' });
+    const cityTitle = selectedInventoryCity === 'cochabamba' ? 'COCHABAMBA' : 'SANTA CRUZ';
+    doc.text(`INVENTARIO DE PRODUCTOS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
     // Fecha
     yPos += 8;
@@ -113,7 +133,9 @@ function generateInventoryPDF() {
     let totalCost = 0;
     let totalPrice = 0;
     appData.products.forEach(product => {
-        const stock = product.stock || 0;
+        const stock = selectedInventoryCity === 'cochabamba' 
+            ? (product.stockCochabamba || 0) 
+            : (product.stockSantaCruz || 0);
         const cost = product.cost || 0;
         const price = product.price || 0;
         totalCost += stock * cost;
@@ -197,7 +219,9 @@ function generateInventoryPDF() {
             yPos = margin;
         }
 
-        const stock = product.stock || 0;
+        const stock = selectedInventoryCity === 'cochabamba' 
+            ? (product.stockCochabamba || 0) 
+            : (product.stockSantaCruz || 0);
         const cost = product.cost || 0;
         const price = product.price || 0;
         const costTotal = stock * cost;
@@ -235,12 +259,14 @@ function generateInventoryPDF() {
     });
 
     // Guardar PDF
-    const fileName = `Inventario_${new Date().toISOString().split('T')[0]}.pdf`;
+    const cityName = selectedInventoryCity === 'cochabamba' ? 'Cochabamba' : 'SantaCruz';
+    const fileName = `Inventario_${cityName}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
 }
 
 // Exponer funciones globalmente
 window.openInventory = openInventory;
+window.filterInventoryByCity = filterInventoryByCity;
 window.loadInventoryData = loadInventoryData;
 window.editProductFromInventory = editProductFromInventory;
 window.deleteProductFromInventory = deleteProductFromInventory;

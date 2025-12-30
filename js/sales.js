@@ -1,6 +1,9 @@
 // ==================== GESTIÓN DE VENTAS ====================
 
+let selectedSalesCity = 'cochabamba';
+
 function openSales() {
+    selectedSalesCity = 'cochabamba';
     // Establecer mes actual por defecto
     const today = new Date();
     const currentMonth = today.toISOString().slice(0, 7);
@@ -10,13 +13,29 @@ function openSales() {
     openModal('salesModal');
 }
 
+function filterSalesByCity(city) {
+    selectedSalesCity = city;
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.city-filter-sales').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.city === city) {
+            btn.classList.add('active');
+        }
+    });
+    
+    filterSalesByMonth();
+}
+
 function filterSalesByMonth() {
     const selectedMonth = document.getElementById('salesMonthFilter').value;
     const tbody = document.getElementById('salesTableBody');
     tbody.innerHTML = '';
 
-    // Filtrar solo notas de venta
-    const sales = appData.pdfHistory.filter(entry => entry.type === 'notaventa');
+    // Filtrar solo notas de venta y por ciudad
+    const sales = appData.pdfHistory.filter(entry => 
+        entry.type === 'notaventa' && entry.city === selectedSalesCity
+    );
 
     if (sales.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';
@@ -144,7 +163,8 @@ function generateSalesPDF() {
     yPos += 40;
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('REPORTE DE VENTAS', pageWidth / 2, yPos, { align: 'center' });
+    const cityTitle = selectedSalesCity === 'cochabamba' ? 'COCHABAMBA' : 'SANTA CRUZ';
+    doc.text(`REPORTE DE VENTAS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
     // Mes seleccionado
     yPos += 8;
@@ -155,9 +175,10 @@ function generateSalesPDF() {
     const monthName = monthNames[parseInt(month) - 1];
     doc.text(`Período: ${monthName} ${year}`, pageWidth / 2, yPos, { align: 'center' });
 
-    // Filtrar ventas del mes
+    // Filtrar ventas del mes y ciudad
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa') return false;
+        if (entry.city !== selectedSalesCity) return false;
         const datePart = entry.date.split(',')[0].trim();
         const [day, month, year] = datePart.split('/');
         const saleDate = `${year}-${month.padStart(2, '0')}`;
@@ -336,12 +357,14 @@ function generateSalesPDF() {
     doc.text(`Ganancia Neta: Bs ${balance.toFixed(2)}`, margin, yPos);
 
     // Guardar PDF
-    const fileName = `Reporte_Ventas_${monthName}_${year}.pdf`;
+    const cityName = selectedSalesCity === 'cochabamba' ? 'Cochabamba' : 'SantaCruz';
+    const fileName = `Reporte_Ventas_${cityName}_${monthName}_${year}.pdf`;
     doc.save(fileName);
 }
 
 // Exponer funciones globalmente
 window.openSales = openSales;
+window.filterSalesByCity = filterSalesByCity;
 window.filterSalesByMonth = filterSalesByMonth;
 window.generateSalesPDF = generateSalesPDF;
 window.showAllSales = showAllSales;

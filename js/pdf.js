@@ -81,10 +81,13 @@ function generatePDF() {
         appData.currentQuoteItems.forEach(item => {
             const product = appData.products.find(p => p.id === item.id);
             if (product) {
-                const previousStock = product.stock || 0;
-                product.stock = previousStock - item.quantity;
+                const stockField = appData.selectedSaleCity === 'cochabamba' 
+                    ? 'stockCochabamba' 
+                    : 'stockSantaCruz';
+                const previousStock = product[stockField] || 0;
+                product[stockField] = previousStock - item.quantity;
                 // Evitar stock negativo
-                if (product.stock < 0) product.stock = 0;
+                if (product[stockField] < 0) product[stockField] = 0;
                 productsUpdated++;
             }
         });
@@ -362,6 +365,7 @@ function saveToHistory(fileName) {
         id: Date.now(),
         type: appData.documentType,
         number: appData.currentQuoteNumber,
+        city: appData.documentType === 'notaventa' ? appData.selectedSaleCity : null,
         client: JSON.parse(JSON.stringify({
             name: appData.currentClient.name,
             phone: appData.currentClient.phone || '',

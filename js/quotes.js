@@ -6,7 +6,28 @@ function setDocumentType(type) {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
+    
+    // Mostrar/ocultar selector de ciudad
+    const citySelector = document.getElementById('citySelectorContainer');
+    if (type === 'notaventa') {
+        citySelector.style.display = 'block';
+    } else {
+        citySelector.style.display = 'none';
+    }
+    
     loadTerms();
+}
+
+function selectSaleCity(city) {
+    appData.selectedSaleCity = city;
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.city-selector').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.city === city) {
+            btn.classList.add('active');
+        }
+    });
 }
 
 function loadTerms() {
@@ -171,6 +192,7 @@ function newQuote() {
 
 // Exponer funciones globalmente
 window.setDocumentType = setDocumentType;
+window.selectSaleCity = selectSaleCity;
 window.addProductToQuote = addProductToQuote;
 window.removeQuoteItem = removeQuoteItem;
 window.newQuote = newQuote;

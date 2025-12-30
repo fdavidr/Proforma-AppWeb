@@ -17,6 +17,7 @@ let appData = {
     currentProduct: null,
     currentQuoteItems: [],
     documentType: 'cotizacion',
+    selectedSaleCity: 'cochabamba',
     userRole: null,
     terms: {
         cotizacion: [
