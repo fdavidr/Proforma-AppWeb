@@ -392,6 +392,17 @@ function saveToHistory(fileName) {
     };
     
     appData.pdfHistory.unshift(historyEntry);
+    
+    // Limitar historial a últimas 20 cotizaciones
+    const cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion');
+    if (cotizaciones.length > 20) {
+        // Encontrar y eliminar la cotización más antigua
+        const oldestCotizacion = cotizaciones[cotizaciones.length - 1];
+        const indexToRemove = appData.pdfHistory.findIndex(entry => entry.id === oldestCotizacion.id);
+        if (indexToRemove !== -1) {
+            appData.pdfHistory.splice(indexToRemove, 1);
+        }
+    }
 }
 
 // Exponer funciones globalmente para eventos onclick

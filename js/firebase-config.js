@@ -84,8 +84,16 @@ async function loadFromFirestore(collection) {
 
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
-    // Limitar historial a últimas 50 cotizaciones para evitar exceder límites
-    const limitedHistory = appData.pdfHistory ? appData.pdfHistory.slice(-50) : [];
+    // Limitar cotizaciones a 20 y mantener todas las ventas
+    let limitedHistory = appData.pdfHistory || [];
+    const cotizaciones = limitedHistory.filter(entry => entry.type === 'cotizacion');
+    const ventas = limitedHistory.filter(entry => entry.type === 'notaventa');
+    
+    // Limitar cotizaciones a 20
+    const limitedCotizaciones = cotizaciones.slice(-20);
+    
+    // Combinar cotizaciones limitadas con todas las ventas
+    limitedHistory = [...limitedCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
     
     const dataToSave = {
         company: { ...appData.company },
@@ -107,9 +115,10 @@ async function saveAllData(appData) {
         localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
     } catch (error) {
         if (error.name === 'QuotaExceededError') {
-            // Reducir aún más el historial
-            const minimalHistory = appData.pdfHistory.slice(-20);
-            dataToSave.pdfHistory = minimalHistory;
+            // Reducir historial manteniendo estructura
+            const cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion').slice(-10);
+            const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa').slice(-30);
+            dataToSave.pdfHistory = [...cotizaciones, ...ventas].sort((a, b) => b.id - a.id);
             localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
         }
     }
@@ -118,7 +127,9 @@ async function saveAllData(appData) {
     if (isFirebaseEnabled) {
         // Si el documento es muy grande (>900KB), reducir historial
         if (dataSize > 900000) {
-            dataToSave.pdfHistory = appData.pdfHistory.slice(-20);
+            const cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion').slice(-10);
+            const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa').slice(-30);
+            dataToSave.pdfHistory = [...cotizaciones, ...ventas].sort((a, b) => b.id - a.id);
         }
         await saveToFirestore('proformaApp', dataToSave);
     }
