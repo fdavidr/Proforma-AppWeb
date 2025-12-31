@@ -125,6 +125,9 @@ function filterSalesByMonth() {
             <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
             <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
             <td>${sale.date}</td>
+            <td>
+                <button class="btn btn-delete" onclick="deleteSale(${sale.id})" style="background: #e74c3c; color: white; padding: 6px 12px; font-size: 12px;">Eliminar</button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -388,12 +391,22 @@ function generateSalesPDF() {
     doc.save(fileName);
 }
 
+// Función para eliminar una venta
+async function deleteSale(saleId) {
+    if (confirm('¿Está seguro de eliminar esta venta?')) {
+        appData.pdfHistory = appData.pdfHistory.filter(entry => entry.id !== saleId);
+        await saveData();
+        filterSalesByMonth();
+    }
+}
+
 // Exponer funciones globalmente
 window.openSales = openSales;
 window.filterSalesByCity = filterSalesByCity;
 window.filterSalesByMonth = filterSalesByMonth;
 window.generateSalesPDF = generateSalesPDF;
 window.showAllSales = showAllSales;
+window.deleteSale = deleteSale;
 
 function showAllSales() {
     document.getElementById('salesMonthFilter').value = '';
