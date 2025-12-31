@@ -125,7 +125,8 @@ function filterSalesByMonth() {
             <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
             <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
             <td>${sale.date}</td>
-            <td>
+            <td style="display: flex; gap: 5px;">
+                <button class="btn btn-primary" onclick="viewSalePDF(${sale.id})" style="background: #3498db; color: white; padding: 6px 12px; font-size: 12px;">Ver PDF</button>
                 <button class="btn btn-delete" onclick="deleteSale(${sale.id})" style="background: #e74c3c; color: white; padding: 6px 12px; font-size: 12px;">Eliminar</button>
             </td>
         `;
@@ -393,11 +394,248 @@ function generateSalesPDF() {
 
 // Función para eliminar una venta
 async function deleteSale(saleId) {
-    if (confirm('¿Está seguro de eliminar esta venta?')) {
+    if (confirm('¿Está seguro de eliminar esta venta? Se repondrá el stock de los productos.')) {
+        // Buscar la venta a eliminar
+        const sale = appData.pdfHistory.find(entry => entry.id === saleId);
+        if (!sale) {
+            alert('No se encontró la venta');
+            return;
+        }
+        
+        // Reponer stock de los productos según la ciudad de la venta
+        if (sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                const product = appData.products.find(p => p.id === item.id);
+                if (product) {
+                    // Reponer stock según la ciudad
+                    if (sale.city === 'cochabamba') {
+                        product.stockCochabamba = (product.stockCochabamba || 0) + item.quantity;
+                    } else if (sale.city === 'santacruz') {
+                        product.stockSantaCruz = (product.stockSantaCruz || 0) + item.quantity;
+                    }
+                }
+            });
+        }
+        
+        // Eliminar la venta del historial
         appData.pdfHistory = appData.pdfHistory.filter(entry => entry.id !== saleId);
         await saveData();
         filterSalesByMonth();
     }
+}
+
+// Función para ver el PDF de una venta
+function viewSalePDF(saleId) {
+    const sale = appData.pdfHistory.find(e => e.id === saleId);
+    if (!sale) {
+        alert('No se encontró la venta');
+        return;
+    }
+
+    const company = sale.company || {};
+    const client = typeof sale.client === 'object' ? sale.client : { name: sale.client };
+    const seller = typeof sale.seller === 'object' ? sale.seller : { name: sale.seller };
+    const items = Array.isArray(sale.items) ? sale.items : [];
+
+    // Regenerar PDF con los datos guardados
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 10;
+    let yPos = margin;
+    const docTitle = 'NOTA DE VENTA';
+
+    // Header
+    doc.setTextColor(0, 0, 0);
+    if (company.logo) {
+        try {
+            doc.addImage(company.logo, 'PNG', margin, yPos - 4, 30, 30);
+        } catch (e) {}
+    }
+
+    const infoX = margin + (company.logo ? 35 : 0);
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text(company.name || '', infoX, yPos + 6);
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'italic');
+    doc.text(company.slogan || '', infoX, yPos + 13);
+
+    if (company.nit) {
+        doc.setFont(undefined, 'normal');
+        doc.text('NIT: ' + company.nit, infoX, yPos + 20);
+    }
+
+    let headerHeight = company.logo ? (company.nit ? 30 : 28) : (company.nit ? 24 : 12);
+    yPos += headerHeight;
+
+    // Tipo de documento y número
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text(docTitle, pageWidth - margin, 20, { align: 'right' });
+    doc.setFontSize(12);
+    doc.text('Nº ' + sale.number, pageWidth - margin, 27, { align: 'right' });
+    doc.setFontSize(10);
+    doc.text('Fecha: ' + sale.date, pageWidth - margin, 34, { align: 'right' });
+
+    // Ciudad
+    const cityName = sale.city === 'cochabamba' ? 'COCHABAMBA' : 'SANTA CRUZ';
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+
+    // Línea separadora
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+
+    // Cliente
+    doc.setFont(undefined, 'bold');
+    doc.text('CLIENTE:', margin, yPos);
+    doc.setFont(undefined, 'normal');
+    doc.text(client.name || '', margin + 25, yPos);
+    
+    if (client.ci) {
+        doc.setFont(undefined, 'bold');
+        const ciNitText = 'CI/NIT: ';
+        const ciNitWidth = doc.getTextWidth(ciNitText);
+        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(client.ci) - ciNitWidth, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(client.ci, pageWidth - margin, yPos, { align: 'right' });
+    }
+    yPos += 6;
+
+    if (client.company) {
+        doc.setFont(undefined, 'bold');
+        doc.text('Empresa:', margin, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(client.company, margin + 25, yPos);
+        yPos += 6;
+    }
+
+    if (client.phone) {
+        doc.setFont(undefined, 'bold');
+        doc.text('Teléfono:', margin, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.text(client.phone, margin + 25, yPos);
+        yPos += 6;
+    }
+
+    yPos += 3;
+
+    // Vendedor
+    doc.setFont(undefined, 'bold');
+    doc.text('VENDEDOR:', margin, yPos);
+    doc.setFont(undefined, 'normal');
+    doc.text(seller.name || '', margin + 25, yPos);
+    if (seller.phone) {
+        doc.text('Tel: ' + seller.phone, margin + 80, yPos);
+    }
+    yPos += 8;
+
+    // Tabla de productos
+    doc.setFont(undefined, 'bold');
+    doc.setFillColor(112, 55, 205);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.text('#', margin + 2, yPos + 5);
+    doc.text('Código', margin + 8, yPos + 5);
+    doc.text('IMG', margin + 28, yPos + 5);
+    doc.text('Descripción', margin + 52, yPos + 5);
+    doc.text('Cant.', margin + 108, yPos + 5);
+    doc.text('P.Unit.', margin + 122, yPos + 5);
+    doc.text('Desc.', margin + 147, yPos + 5);
+    doc.text('Subtotal', pageWidth - margin - 2, yPos + 5, { align: 'right' });
+    
+    yPos += 10;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+
+    let subtotal = 0;
+    let totalDiscount = 0;
+
+    items.forEach((item, idx) => {
+        if (yPos > pageHeight - 40) {
+            doc.addPage();
+            yPos = margin;
+        }
+
+        const itemSubtotal = item.price * item.quantity;
+        const itemDiscount = item.discountType === '%' ? 
+            (itemSubtotal * item.discount / 100) : 
+            item.discount;
+        const itemTotal = itemSubtotal - itemDiscount;
+
+        subtotal += itemSubtotal;
+        totalDiscount += itemDiscount;
+
+        doc.text(String(idx + 1), margin + 2, yPos);
+        doc.text(item.code || '-', margin + 8, yPos);
+
+        if (item.image) {
+            try {
+                doc.addImage(item.image, 'PNG', margin + 28, yPos - 3, 8, 8);
+            } catch (e) {}
+        }
+
+        const desc = item.description.length > 40 ? item.description.substring(0, 40) + '...' : item.description;
+        doc.text(desc, margin + 40, yPos);
+        doc.text(String(item.quantity), margin + 108, yPos);
+        doc.text(`Bs ${item.price.toFixed(2)}`, margin + 122, yPos);
+        
+        const discountText = item.discountType === '%' ? 
+            `${item.discount}%` : 
+            `Bs ${item.discount.toFixed(2)}`;
+        doc.text(discountText, margin + 147, yPos);
+        doc.text(`Bs ${itemTotal.toFixed(2)}`, pageWidth - margin - 2, yPos, { align: 'right' });
+
+        yPos += 10;
+    });
+
+    // Totales
+    yPos += 5;
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 7;
+
+    const totalsX = pageWidth - margin - 50;
+    doc.setFont(undefined, 'normal');
+    doc.text('Subtotal:', totalsX, yPos);
+    doc.text(`Bs ${subtotal.toFixed(2)}`, pageWidth - margin - 2, yPos, { align: 'right' });
+    yPos += 6;
+
+    doc.text('Descuento:', totalsX, yPos);
+    doc.text(`Bs ${totalDiscount.toFixed(2)}`, pageWidth - margin - 2, yPos, { align: 'right' });
+    yPos += 8;
+
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
+    doc.text('TOTAL:', totalsX, yPos);
+    doc.text(`Bs ${sale.total.toFixed(2)}`, pageWidth - margin - 2, yPos, { align: 'right' });
+
+    // Términos y condiciones
+    if (sale.terms && sale.terms.length > 0) {
+        yPos += 12;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('Términos y Condiciones:', margin, yPos);
+        yPos += 6;
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        sale.terms.forEach((term, idx) => {
+            if (term && term.trim()) {
+                doc.text(`${idx + 1}. ${term}`, margin + 3, yPos);
+                yPos += 5;
+            }
+        });
+    }
+
+    doc.save(`Nota_Venta_${sale.number}.pdf`);
 }
 
 // Exponer funciones globalmente
@@ -407,6 +645,7 @@ window.filterSalesByMonth = filterSalesByMonth;
 window.generateSalesPDF = generateSalesPDF;
 window.showAllSales = showAllSales;
 window.deleteSale = deleteSale;
+window.viewSalePDF = viewSalePDF;
 
 function showAllSales() {
     document.getElementById('salesMonthFilter').value = '';
