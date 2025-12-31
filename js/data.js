@@ -12,6 +12,7 @@ let appData = {
     quotes: [],
     pdfHistory: [],
     currentQuoteNumber: 100000,
+    currentSaleNumber: 100000,
     currentClient: null,
     currentSeller: null,
     currentProduct: null,
@@ -64,6 +65,7 @@ async function loadData() {
             if (saved.products) appData.products = saved.products;
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
             if (saved.currentQuoteNumber) appData.currentQuoteNumber = saved.currentQuoteNumber;
+            if (saved.currentSaleNumber) appData.currentSaleNumber = saved.currentSaleNumber;
             if (saved.terms) appData.terms = saved.terms;
             if (saved.documentType) appData.documentType = saved.documentType;
             

@@ -69,7 +69,8 @@ async function generatePDF() {
 
     // Guardar PDF
     const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
-    const fileName = `${docTitle}_${appData.currentQuoteNumber}_${appData.currentClient.name.replace(/\s+/g, '_')}.pdf`;
+    const docNumber = appData.documentType === 'cotizacion' ? appData.currentQuoteNumber : appData.currentSaleNumber;
+    const fileName = `${docTitle}_${docNumber}_${appData.currentClient.name.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
 
     // Guardar en historial ANTES de limpiar (usa currentQuoteItems)
@@ -93,8 +94,12 @@ async function generatePDF() {
         });
     }
 
-    // Incrementar número de cotización
-    appData.currentQuoteNumber++;
+    // Incrementar número según tipo de documento
+    if (appData.documentType === 'cotizacion') {
+        appData.currentQuoteNumber++;
+    } else {
+        appData.currentSaleNumber++;
+    }
     
     // Guardar datos (esperar a que termine)
     await saveData();
@@ -155,7 +160,8 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
     doc.text(docTitle, pageWidth - margin, 20, { align: 'right' });
     doc.setFontSize(12);
-    doc.text('Nº ' + appData.currentQuoteNumber, pageWidth - margin, 27, { align: 'right' });
+    const docNumber = appData.documentType === 'cotizacion' ? appData.currentQuoteNumber : appData.currentSaleNumber;
+    doc.text('Nº ' + docNumber, pageWidth - margin, 27, { align: 'right' });
     
     doc.setFontSize(10);
     doc.text('Fecha: ' + new Date().toLocaleDateString('es-BO'), pageWidth - margin, 34, { align: 'right' });
@@ -364,7 +370,7 @@ function saveToHistory(fileName) {
     const historyEntry = {
         id: Date.now(),
         type: appData.documentType,
-        number: appData.currentQuoteNumber,
+        number: appData.documentType === 'cotizacion' ? appData.currentQuoteNumber : appData.currentSaleNumber,
         city: appData.documentType === 'notaventa' ? appData.selectedSaleCity : appData.selectedSaleCity,
         client: JSON.parse(JSON.stringify({
             name: appData.currentClient.name,
@@ -393,9 +399,9 @@ function saveToHistory(fileName) {
     
     appData.pdfHistory.unshift(historyEntry);
     
-    // Limitar historial a últimas 20 cotizaciones
+    // Limitar historial a últimas 10 cotizaciones
     const cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion');
-    if (cotizaciones.length > 20) {
+    if (cotizaciones.length > 10) {
         // Encontrar y eliminar la cotización más antigua
         const oldestCotizacion = cotizaciones[cotizaciones.length - 1];
         const indexToRemove = appData.pdfHistory.findIndex(entry => entry.id === oldestCotizacion.id);

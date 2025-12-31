@@ -89,9 +89,9 @@ async function saveAllData(appData) {
     const cotizaciones = limitedHistory.filter(entry => entry.type === 'cotizacion');
     const ventas = limitedHistory.filter(entry => entry.type === 'notaventa');
     
-    // Ordenar cotizaciones por ID descendente (más recientes primero) y tomar las 20 más recientes
+    // Ordenar cotizaciones por ID descendente (más recientes primero) y tomar las 10 más recientes
     const sortedCotizaciones = cotizaciones.sort((a, b) => b.id - a.id);
-    const limitedCotizaciones = sortedCotizaciones.slice(0, 20);
+    const limitedCotizaciones = sortedCotizaciones.slice(0, 10);
     
     // Combinar cotizaciones limitadas con todas las ventas y ordenar por ID
     limitedHistory = [...limitedCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
@@ -103,6 +103,7 @@ async function saveAllData(appData) {
         products: appData.products,
         pdfHistory: limitedHistory,
         currentQuoteNumber: appData.currentQuoteNumber,
+        currentSaleNumber: appData.currentSaleNumber,
         terms: appData.terms,
         documentType: appData.documentType,
         lastUpdated: new Date().toISOString()
@@ -116,8 +117,8 @@ async function saveAllData(appData) {
         localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
     } catch (error) {
         if (error.name === 'QuotaExceededError') {
-            // Reducir solo ventas, mantener las 20 cotizaciones
-            const cotizaciones = limitedCotizaciones; // Ya están limitadas a 20
+            // Reducir solo ventas, mantener las 10 cotizaciones
+            const cotizaciones = limitedCotizaciones; // Ya están limitadas a 10
             const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa')
                 .sort((a, b) => b.id - a.id)
                 .slice(0, 30); // Reducir ventas a 30
@@ -130,7 +131,7 @@ async function saveAllData(appData) {
     if (isFirebaseEnabled) {
         // Si el documento es muy grande (>900KB), reducir solo ventas
         if (dataSize > 900000) {
-            const cotizaciones = limitedCotizaciones; // Ya están limitadas a 20
+            const cotizaciones = limitedCotizaciones; // Ya están limitadas a 10
             const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa')
                 .sort((a, b) => b.id - a.id)
                 .slice(0, 30); // Reducir ventas a 30
@@ -174,10 +175,10 @@ async function loadAllData() {
                 cotizacionesMap.set(cot.id, cot);
             });
             
-            // Tomar las 20 más recientes
+            // Tomar las 10 más recientes
             const allCotizaciones = Array.from(cotizacionesMap.values())
                 .sort((a, b) => b.id - a.id)
-                .slice(0, 20);
+                .slice(0, 10);
             
             // Usar ventas de Firestore (son las más actualizadas)
             const ventas = firestoreData.pdfHistory.filter(entry => entry.type === 'notaventa');
