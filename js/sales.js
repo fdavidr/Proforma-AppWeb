@@ -87,6 +87,18 @@ function filterSalesByMonth() {
         return;
     }
 
+    // Ordenar por fecha (más recientes primero)
+    filteredSales.sort((a, b) => {
+        // Convertir fechas al formato comparable
+        const parseDate = (dateStr) => {
+            const datePart = dateStr.split(',')[0].trim(); // Obtener DD/MM/YYYY
+            const timePart = dateStr.split(',')[1]?.trim() || '00:00:00'; // Obtener HH:MM:SS
+            const [day, month, year] = datePart.split('/');
+            return new Date(`${year}-${month}-${day}T${timePart}`);
+        };
+        return parseDate(b.date) - parseDate(a.date); // Orden descendente (más reciente primero)
+    });
+
     let totalCost = 0;
     let totalPrice = 0;
 
