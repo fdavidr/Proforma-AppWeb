@@ -1,5 +1,27 @@
 // ==================== GENERACIÓN DE PDF ====================
 
+// Función para obtener la fecha seleccionada o actual
+function getSelectedPdfDate() {
+    const dateInput = document.getElementById('pdfDate');
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value + 'T00:00:00');
+        return selectedDate.toLocaleDateString('es-BO');
+    }
+    return new Date().toLocaleDateString('es-BO');
+}
+
+// Función para obtener fecha completa con hora
+function getSelectedPdfDateTime() {
+    const dateInput = document.getElementById('pdfDate');
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value + 'T00:00:00');
+        const dateStr = selectedDate.toLocaleDateString('es-BO');
+        const timeStr = new Date().toLocaleTimeString('es-BO');
+        return `${dateStr}, ${timeStr}`;
+    }
+    return new Date().toLocaleString('es-BO');
+}
+
 async function generatePDF() {
     if (!appData.currentClient) {
         alert('Debe seleccionar un cliente');
@@ -164,7 +186,7 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     doc.text('Nº ' + docNumber, pageWidth - margin, 27, { align: 'right' });
     
     doc.setFontSize(10);
-    doc.text('Fecha: ' + new Date().toLocaleDateString('es-BO'), pageWidth - margin, 34, { align: 'right' });
+    doc.text('Fecha: ' + getSelectedPdfDate(), pageWidth - margin, 34, { align: 'right' });
 }
 
 function addPDFClientInfo(doc, margin, yPos, pageWidth) {
@@ -386,7 +408,7 @@ function saveToHistory(fileName) {
         subtotal: subtotal,
         totalDiscount: totalDiscount,
         total: total,
-        date: new Date().toLocaleString('es-BO'),
+        date: getSelectedPdfDateTime(),
         terms: JSON.parse(JSON.stringify(appData.terms[appData.documentType])),
         company: JSON.parse(JSON.stringify({
             name: appData.company.name,

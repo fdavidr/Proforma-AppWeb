@@ -208,8 +208,16 @@
 
             <!-- Action Buttons -->
             <div class="action-buttons">
-                <button class="btn btn-secondary" onclick="newQuote()">Nueva Cotización</button>
-                <button class="btn btn-primary" onclick="generatePDF()">Generar PDF</button>
+                <div style="display: flex; gap: 20px; align-items: flex-end;">
+                    <div class="form-group" style="margin: 0; flex: 0 0 auto;">
+                        <label for="pdfDate">Fecha del Documento</label>
+                        <input type="date" id="pdfDate" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="newQuote()">Nueva Cotización</button>
+                        <button class="btn btn-primary" onclick="generatePDF()">Generar PDF</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

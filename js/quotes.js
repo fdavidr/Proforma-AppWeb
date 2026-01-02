@@ -206,6 +206,12 @@ function newQuote() {
         document.getElementById('productActionBtn').textContent = 'Nuevo Producto';
         document.getElementById('productActionBtn').className = 'btn btn-warning';
 
+        // Restablecer fecha a hoy
+        const dateInput = document.getElementById('pdfDate');
+        if (dateInput) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+
         renderQuoteItems();
         calculateTotals();
     }
