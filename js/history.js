@@ -1,7 +1,6 @@
 // ==================== GESTIÓN DE HISTORIAL ====================
 
 function openHistory() {
-    historyPage = 1;
     renderHistory();
     openModal('historyModal');
 }
@@ -20,20 +19,14 @@ function renderHistory() {
 
     if (cotizaciones.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay cotizaciones generadas en el historial</td></tr>';
-        updateHistoryPagination(cotizaciones.length);
         return;
     }
 
-    const startIndex = (historyPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageItems = cotizaciones.slice(startIndex, endIndex);
-
-    pageItems.forEach((entry, index) => {
+    cotizaciones.forEach((entry, index) => {
         const tr = document.createElement('tr');
-        const globalIndex = startIndex + index + 1;
         
         tr.innerHTML = `
-            <td>${globalIndex}</td>
+            <td>${index + 1}</td>
             <td>Cotización</td>
             <td>${entry.number}</td>
             <td>${entry.client.name || entry.client}</td>
@@ -47,60 +40,12 @@ function renderHistory() {
         `;
         tbody.appendChild(tr);
     });
-
-    updateHistoryPagination(cotizaciones.length);
-}
-
-function updateHistoryPagination(totalItems) {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    document.getElementById('pageInfo').textContent = `Página ${historyPage} de ${Math.max(1, totalPages)}`;
-    
-    document.getElementById('prevPageBtn').disabled = historyPage === 1;
-    document.getElementById('nextPageBtn').disabled = historyPage >= totalPages || totalPages === 0;
-    
-    if (historyPage === 1) {
-        document.getElementById('prevPageBtn').style.opacity = '0.5';
-        document.getElementById('prevPageBtn').style.cursor = 'not-allowed';
-    } else {
-        document.getElementById('prevPageBtn').style.opacity = '1';
-        document.getElementById('prevPageBtn').style.cursor = 'pointer';
-    }
-    
-    if (historyPage >= totalPages || totalPages === 0) {
-        document.getElementById('nextPageBtn').style.opacity = '0.5';
-        document.getElementById('nextPageBtn').style.cursor = 'not-allowed';
-    } else {
-        document.getElementById('nextPageBtn').style.opacity = '1';
-        document.getElementById('nextPageBtn').style.cursor = 'pointer';
-    }
-}
-
-function nextHistoryPage() {
-    const totalPages = Math.ceil(appData.pdfHistory.length / itemsPerPage);
-    if (historyPage < totalPages) {
-        historyPage++;
-        renderHistory();
-    }
-}
-
-function prevHistoryPage() {
-    if (historyPage > 1) {
-        historyPage--;
-        renderHistory();
-    }
 }
 
 function deleteHistoryEntry(entryId) {
     if (confirm('¿Está seguro de eliminar este registro del historial?')) {
         appData.pdfHistory = appData.pdfHistory.filter(entry => entry.id !== entryId);
         saveData();
-        
-        // Ajustar página si es necesario
-        const totalPages = Math.ceil(appData.pdfHistory.length / itemsPerPage);
-        if (historyPage > totalPages && historyPage > 1) {
-            historyPage = totalPages;
-        }
-        
         renderHistory();
     }
 }
@@ -384,7 +329,5 @@ function redownloadPDF(entryId) {
 
 // Exponer funciones globalmente
 window.openHistory = openHistory;
-window.nextHistoryPage = nextHistoryPage;
-window.prevHistoryPage = prevHistoryPage;
 window.deleteHistoryEntry = deleteHistoryEntry;
 window.redownloadPDF = redownloadPDF;
