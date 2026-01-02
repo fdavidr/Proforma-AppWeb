@@ -7,6 +7,9 @@ function setDocumentType(type) {
     });
     event.target.classList.add('active');
     
+    // Actualizar número mostrado
+    updateDocumentNumber();
+    
     // Mostrar/ocultar selector de ciudad
     const citySelector = document.getElementById('citySelectorContainer');
     if (type === 'notaventa') {

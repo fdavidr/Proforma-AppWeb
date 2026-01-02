@@ -126,8 +126,9 @@ async function generatePDF() {
     // Guardar datos (esperar a que termine)
     await saveData();
     
-    // Actualizar UI
+    // Actualizar UI y número de documento
     updateUI();
+    updateDocumentNumber();
     
     // Mostrar alerta de éxito
     const successMsg = appData.documentType === 'notaventa' 

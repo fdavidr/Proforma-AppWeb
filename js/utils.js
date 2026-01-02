@@ -25,6 +25,7 @@ function updateUI() {
         document.getElementById('companyLogo').src = appData.company.logo;
     }
     document.getElementById('quoteNumber').textContent = 'Nº ' + appData.currentQuoteNumber;
+    updateDocumentNumber();
     
     // Ocultar/mostrar botones según rol
     const historyBtn = document.getElementById('historyBtn');
@@ -91,7 +92,20 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// Actualizar número de documento según el tipo
+function updateDocumentNumber() {
+    const quoteNumberEl = document.getElementById('quoteNumber');
+    if (quoteNumberEl) {
+        if (appData.documentType === 'cotizacion') {
+            quoteNumberEl.textContent = 'Nº ' + appData.currentQuoteNumber;
+        } else {
+            quoteNumberEl.textContent = 'Nº ' + appData.currentSaleNumber;
+        }
+    }
+}
+
 // Exponer funciones globalmente
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.updateUI = updateUI;
+window.updateDocumentNumber = updateDocumentNumber;
