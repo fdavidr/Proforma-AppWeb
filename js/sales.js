@@ -89,8 +89,31 @@ function filterSalesByMonth() {
 
     // Ordenar por fecha (más recientes primero)
     filteredSales.sort((a, b) => {
-        // Usar el ID que es timestamp para ordenar (más confiable que parsear fecha)
-        return b.id - a.id; // Orden descendente (más reciente primero)
+        // Convertir fecha string "DD/MM/YYYY, HH:MM:SS" a timestamp
+        const parseDate = (dateStr) => {
+            try {
+                const parts = dateStr.split(',');
+                const datePart = parts[0].trim(); // DD/MM/YYYY
+                const timePart = parts[1] ? parts[1].trim() : '00:00:00'; // HH:MM:SS
+                
+                const [day, month, year] = datePart.split('/');
+                const [hours, minutes, seconds] = timePart.split(':');
+                
+                // Crear objeto Date con los valores parseados
+                return new Date(
+                    parseInt(year),
+                    parseInt(month) - 1, // Los meses en JS van de 0-11
+                    parseInt(day),
+                    parseInt(hours) || 0,
+                    parseInt(minutes) || 0,
+                    parseInt(seconds) || 0
+                ).getTime();
+            } catch (e) {
+                return 0;
+            }
+        };
+        
+        return parseDate(b.date) - parseDate(a.date); // Orden descendente (más reciente primero)
     });
 
     let totalCost = 0;
