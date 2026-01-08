@@ -306,8 +306,22 @@ select:focus {
     border-bottom: 1px solid #ecf0f1;
 }
 
-.products-table tr:hover {
+.products-table tbody tr {
+    cursor: move;
+    transition: background-color 0.2s;
+}
+
+.products-table tbody tr:hover {
     background: #f8f9fa;
+}
+
+.products-table tbody tr.dragging {
+    opacity: 0.5;
+    background: #e3f2fd;
+}
+
+.products-table tbody tr.drag-over {
+    border-top: 3px solid #3498db;
 }
 
 .product-image {

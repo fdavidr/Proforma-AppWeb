@@ -140,6 +140,8 @@ function renderQuoteItems() {
 
     appData.currentQuoteItems.forEach((item, index) => {
         const tr = document.createElement('tr');
+        tr.draggable = true;
+        tr.dataset.index = index;
         tr.innerHTML = `
             <td><img src="${item.product.image || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'25\' height=\'25\'%3E%3Crect fill=\'%23ecf0f1\' width=\'25\' height=\'25\'/%3E%3C/svg%3E'}" class="product-image" alt=""></td>
             <td>${index + 1}</td>
@@ -151,7 +153,63 @@ function renderQuoteItems() {
             <td>Bs ${item.subtotal.toFixed(2)}</td>
             <td><button class="btn btn-delete" onclick="removeQuoteItem(${item.id})">Eliminar</button></td>
         `;
+        
+        // Eventos de drag & drop
+        tr.addEventListener('dragstart', handleDragStart);
+        tr.addEventListener('dragover', handleDragOver);
+        tr.addEventListener('drop', handleDrop);
+        tr.addEventListener('dragend', handleDragEnd);
+        
         tbody.appendChild(tr);
+    });
+}
+
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+    return false;
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    if (draggedElement !== this) {
+        const draggedIndex = parseInt(draggedElement.dataset.index);
+        const targetIndex = parseInt(this.dataset.index);
+        
+        // Reordenar el array
+        const [movedItem] = appData.currentQuoteItems.splice(draggedIndex, 1);
+        appData.currentQuoteItems.splice(targetIndex, 0, movedItem);
+        
+        // Re-renderizar
+        renderQuoteItems();
+        calculateTotals();
+    }
+    
+    return false;
+}
+
+function handleDragEnd(e) {
+    // Limpiar estilos
+    document.querySelectorAll('.products-table tbody tr').forEach(tr => {
+        tr.classList.remove('dragging', 'drag-over');
     });
 }
 
