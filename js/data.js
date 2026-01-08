@@ -37,47 +37,45 @@ let appData = {
     }
 };
 
-// Variables de paginación para historial
-let historyPage = 1;
-const itemsPerPage = 20;
-
 // Variable para el rol seleccionado durante el login
 let selectedLoginRole = 'admin';
 
 // ==================== FUNCIONES DE PERSISTENCIA ====================
 async function loadData() {
-    // Intentar cargar desde Firebase/localStorage
-    const saved = await loadAllData();
-    
-    if (saved) {
-        try {
-            const currentRole = appData.userRole;
-            
+    try {
+        // Intentar cargar desde Firebase/localStorage
+        const saved = await loadAllData();
+        
+        if (saved) {
+            // Cargar datos de la empresa
             if (saved.company) {
-                appData.company.name = saved.company.name || 'Nombre de la Empresa';
-                appData.company.slogan = saved.company.slogan || 'Eslogan de la empresa';
-                appData.company.nit = saved.company.nit || '';
-                appData.company.logo = saved.company.logo || '';
+                appData.company = saved.company;
             }
             
+            // Cargar listas de datos
             if (saved.clients) appData.clients = saved.clients;
             if (saved.sellers) appData.sellers = saved.sellers;
             if (saved.products) appData.products = saved.products;
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
+            
+            // Cargar números de documentos
             if (saved.currentQuoteNumber) appData.currentQuoteNumber = saved.currentQuoteNumber;
             if (saved.currentSaleNumber) appData.currentSaleNumber = saved.currentSaleNumber;
+            
+            // Cargar términos
             if (saved.terms) appData.terms = saved.terms;
-            if (saved.documentType) appData.documentType = saved.documentType;
             
-            appData.userRole = currentRole;
-            
-            appData.currentClient = null;
-            appData.currentSeller = null;
-            appData.currentProduct = null;
-            appData.currentQuoteItems = [];
-        } catch (e) {
-            console.error('Error al cargar datos:', e);
+            console.log('Datos cargados correctamente:', {
+                clientes: appData.clients.length,
+                vendedores: appData.sellers.length,
+                productos: appData.products.length,
+                historial: appData.pdfHistory.length
+            });
+        } else {
+            console.log('No hay datos guardados, usando valores por defecto');
         }
+    } catch (e) {
+        console.error('Error al cargar datos:', e);
     }
 }
 
