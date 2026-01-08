@@ -9,10 +9,15 @@ function selectRole(role) {
 }
 
 function initLogin() {
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+
+        // Cargar datos antes de validar (necesario para verificar vendedores)
+        if (!appData.sellers || appData.sellers.length === 0) {
+            await loadData();
+        }
 
         let isValid = false;
         let userRole = null;
