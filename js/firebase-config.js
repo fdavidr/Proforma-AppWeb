@@ -21,31 +21,10 @@ let db = null;
 let isFirebaseEnabled = false;
 
 function initFirebase() {
-    // Verificar si Firebase está configurado
-    if (firebaseConfig.apiKey === "TU_API_KEY_AQUI") {
-        console.log('Firebase no configurado. Usando localStorage como respaldo.');
-        isFirebaseEnabled = false;
-        return false;
-    }
-
-    try {
-        // Inicializar Firebase
-        if (typeof firebase !== 'undefined') {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isFirebaseEnabled = true;
-            console.log('Firebase inicializado correctamente');
-            return true;
-        } else {
-            console.warn('Firebase SDK no cargado. Usando localStorage.');
-            isFirebaseEnabled = false;
-            return false;
-        }
-    } catch (error) {
-        console.error('Error al inicializar Firebase:', error);
-        isFirebaseEnabled = false;
-        return false;
-    }
+    // Desactivar Firebase temporalmente - usar solo localStorage
+    console.log('Usando solo localStorage (Firebase desactivado)');
+    isFirebaseEnabled = false;
+    return false;
 }
 
 // ==================== FUNCIONES DE BASE DE DATOS ====================
@@ -109,78 +88,56 @@ async function saveAllData(appData) {
         lastUpdated: new Date().toISOString()
     };
 
-    console.log('Guardando datos:', {
+    console.log('💾 Guardando datos:', {
         company: dataToSave.company.name,
         clientes: dataToSave.clients.length,
         vendedores: dataToSave.sellers.length,
         productos: dataToSave.products.length,
-        historial: dataToSave.pdfHistory.length
+        cotizaciones: limitedCotizaciones.length,
+        ventas: ventas.length
     });
 
-    // Calcular tamaño aproximado
-    const dataSize = JSON.stringify(dataToSave).length;
-
-    // Guardar en localStorage siempre (respaldo)
+    // Guardar en localStorage
     try {
         localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
+        console.log('✅ Datos guardados exitosamente en localStorage');
     } catch (error) {
+        console.error('❌ Error guardando en localStorage:', error);
         if (error.name === 'QuotaExceededError') {
-            // Reducir solo ventas, mantener las 10 cotizaciones
-            const cotizaciones = limitedCotizaciones; // Ya están limitadas a 10
+            alert('Espacio de almacenamiento lleno. Eliminando datos antiguos...');
+            // Reducir ventas si hay problemas de espacio
             const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa')
                 .sort((a, b) => b.id - a.id)
-                .slice(0, 30); // Reducir ventas a 30
-            dataToSave.pdfHistory = [...cotizaciones, ...ventas].sort((a, b) => b.id - a.id);
+                .slice(0, 50); // Solo mantener 50 ventas más recientes
+            dataToSave.pdfHistory = [...limitedCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
             localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
         }
-    }
-
-    // Intentar guardar en Firestore si está habilitado
-    if (isFirebaseEnabled) {
-        // Si el documento es muy grande (>900KB), reducir solo ventas
-        if (dataSize > 900000) {
-            const cotizaciones = limitedCotizaciones; // Ya están limitadas a 10
-            const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa')
-                .sort((a, b) => b.id - a.id)
-                .slice(0, 30); // Reducir ventas a 30
-            dataToSave.pdfHistory = [...cotizaciones, ...ventas].sort((a, b) => b.id - a.id);
-        }
-        await saveToFirestore('proformaApp', dataToSave);
     }
 }
 
 // Función para cargar todos los datos
 async function loadAllData() {
-    // Priorizar localStorage como fuente principal
+    // Solo usar localStorage (Firebase desactivado)
     const localDataStr = localStorage.getItem('proformaAppData');
     if (localDataStr) {
         try {
             const localData = JSON.parse(localDataStr);
-            console.log('Datos cargados desde localStorage:', {
-                company: localData.company?.name,
+            console.log('📂 Datos cargados desde localStorage:', {
+                company: localData.company?.name || 'Sin nombre',
                 clientes: localData.clients?.length || 0,
                 vendedores: localData.sellers?.length || 0,
                 productos: localData.products?.length || 0,
-                historial: localData.pdfHistory?.length || 0
+                cotizaciones: localData.pdfHistory?.filter(e => e.type === 'cotizacion').length || 0,
+                ventas: localData.pdfHistory?.filter(e => e.type === 'notaventa').length || 0
             });
             return localData;
         } catch (e) {
-            console.error('Error parseando localStorage:', e);
-        }
-    }
-    
-    // Si no hay datos en localStorage, intentar cargar desde Firestore
-    if (isFirebaseEnabled) {
-        const firestoreData = await loadFromFirestore('proformaApp');
-        if (firestoreData) {
-            console.log('Datos cargados desde Firestore');
-            // Guardar en localStorage para próximas cargas
-            localStorage.setItem('proformaAppData', JSON.stringify(firestoreData));
-            return firestoreData;
+            console.error('❌ Error parseando localStorage:', e);
+            return null;
         }
     }
 
-    console.log('No hay datos guardados');
+    console.log('ℹ️ No hay datos guardados - iniciando con valores por defecto');
     return null;
 }
 
