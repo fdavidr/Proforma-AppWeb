@@ -60,6 +60,9 @@
                 <button id="inventoryBtn" class="btn btn-secondary" onclick="openInventory()">📦 Inventario</button>
                 <button id="salesBtn" class="btn btn-secondary" onclick="openSales()">💰 Ventas</button>
                 <button id="historyBtn" class="btn btn-secondary" onclick="openHistory()">📋 Historial</button>
+                <button id="exportBtn" class="btn btn-secondary" onclick="exportData()" style="display: none;">📤 Exportar</button>
+                <button id="importBtn" class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()" style="display: none;">📥 Importar</button>
+                <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
                 <div class="quote-number">
                     <span id="quoteNumber">Nº 100000</span>
                 </div>
