@@ -84,7 +84,7 @@ async function loadFromFirestore(collection) {
 
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
-    // Limitar cotizaciones a 20 y mantener todas las ventas
+    // Limitar cotizaciones a 10 y mantener todas las ventas
     let limitedHistory = appData.pdfHistory || [];
     const cotizaciones = limitedHistory.filter(entry => entry.type === 'cotizacion');
     const ventas = limitedHistory.filter(entry => entry.type === 'notaventa');
@@ -98,9 +98,9 @@ async function saveAllData(appData) {
     
     const dataToSave = {
         company: { ...appData.company },
-        clients: appData.clients,
-        sellers: appData.sellers,
-        products: appData.products,
+        clients: appData.clients || [],
+        sellers: appData.sellers || [],
+        products: appData.products || [],
         pdfHistory: limitedHistory,
         currentQuoteNumber: appData.currentQuoteNumber,
         currentSaleNumber: appData.currentSaleNumber,
@@ -108,6 +108,14 @@ async function saveAllData(appData) {
         documentType: appData.documentType,
         lastUpdated: new Date().toISOString()
     };
+
+    console.log('Guardando datos:', {
+        company: dataToSave.company.name,
+        clientes: dataToSave.clients.length,
+        vendedores: dataToSave.sellers.length,
+        productos: dataToSave.products.length,
+        historial: dataToSave.pdfHistory.length
+    });
 
     // Calcular tamaño aproximado
     const dataSize = JSON.stringify(dataToSave).length;
@@ -143,60 +151,36 @@ async function saveAllData(appData) {
 
 // Función para cargar todos los datos
 async function loadAllData() {
-    let firestoreData = null;
-    let localData = null;
-    
-    // Cargar datos de localStorage primero
+    // Priorizar localStorage como fuente principal
     const localDataStr = localStorage.getItem('proformaAppData');
     if (localDataStr) {
         try {
-            localData = JSON.parse(localDataStr);
+            const localData = JSON.parse(localDataStr);
+            console.log('Datos cargados desde localStorage:', {
+                company: localData.company?.name,
+                clientes: localData.clients?.length || 0,
+                vendedores: localData.sellers?.length || 0,
+                productos: localData.products?.length || 0,
+                historial: localData.pdfHistory?.length || 0
+            });
+            return localData;
         } catch (e) {
             console.error('Error parseando localStorage:', e);
         }
     }
     
-    // Intentar cargar desde Firestore
+    // Si no hay datos en localStorage, intentar cargar desde Firestore
     if (isFirebaseEnabled) {
-        firestoreData = await loadFromFirestore('proformaApp');
-    }
-    
-    // Si hay datos en Firestore, usarlos pero sin sobrescribir localStorage
-    // (para no perder cotizaciones que puedan estar solo localmente)
-    if (firestoreData) {
-        // Si hay datos locales, combinar cotizaciones de ambos
-        if (localData && localData.pdfHistory) {
-            const localCotizaciones = localData.pdfHistory.filter(entry => entry.type === 'cotizacion');
-            const firestoreCotizaciones = firestoreData.pdfHistory.filter(entry => entry.type === 'cotizacion');
-            
-            // Combinar cotizaciones eliminando duplicados por ID
-            const cotizacionesMap = new Map();
-            [...localCotizaciones, ...firestoreCotizaciones].forEach(cot => {
-                cotizacionesMap.set(cot.id, cot);
-            });
-            
-            // Tomar las 10 más recientes
-            const allCotizaciones = Array.from(cotizacionesMap.values())
-                .sort((a, b) => b.id - a.id)
-                .slice(0, 10);
-            
-            // Usar ventas de Firestore (son las más actualizadas)
-            const ventas = firestoreData.pdfHistory.filter(entry => entry.type === 'notaventa');
-            
-            // Combinar y actualizar
-            firestoreData.pdfHistory = [...allCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
+        const firestoreData = await loadFromFirestore('proformaApp');
+        if (firestoreData) {
+            console.log('Datos cargados desde Firestore');
+            // Guardar en localStorage para próximas cargas
+            localStorage.setItem('proformaAppData', JSON.stringify(firestoreData));
+            return firestoreData;
         }
-        
-        // Actualizar localStorage con los datos combinados
-        localStorage.setItem('proformaAppData', JSON.stringify(firestoreData));
-        return firestoreData;
     }
 
-    // Si no hay datos en Firestore, usar localStorage
-    if (localData) {
-        return localData;
-    }
-
+    console.log('No hay datos guardados');
     return null;
 }
 
