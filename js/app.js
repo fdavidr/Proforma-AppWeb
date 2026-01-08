@@ -1,12 +1,8 @@
 // ==================== INICIALIZACIÓN DE LA APLICACIÓN ====================
 
 async function init() {
-    // Inicializar Firebase (si está configurado)
-    if (typeof initFirebase === 'function') {
-        await initFirebase();
-    }
-    
-    await loadData();
+    // Los datos ya fueron cargados en DOMContentLoaded
+    // Solo actualizar UI y configuraciones
     updateUI();
     loadTerms();
     initPdfDatePicker();
@@ -46,6 +42,15 @@ function initPdfDatePicker() {
 }
 
 // Inicializar el sistema de login cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Inicializar Firebase primero
+    if (typeof initFirebase === 'function') {
+        await initFirebase();
+    }
+    
+    // Cargar datos antes del login (necesario para verificar vendedores)
+    await loadData();
+    
+    // Inicializar sistema de login
     initLogin();
 });
