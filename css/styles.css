@@ -291,6 +291,7 @@ select:focus {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    min-width: 800px;
 }
 
 .products-table th {
@@ -299,11 +300,43 @@ select:focus {
     padding: 12px;
     text-align: left;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .products-table td {
     padding: 12px;
     border-bottom: 1px solid #ecf0f1;
+    white-space: nowrap;
+}
+
+/* Contenedor con scroll para la tabla */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Personalizar scrollbar para mejor UX */
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
 }
 
 .products-table tbody tr {
@@ -567,5 +600,138 @@ input[type="file"] {
 
     .selection-area .form-group {
         width: 100%;
+    }
+
+    /* Ajustes para la tabla de productos en móviles */
+    .products-table {
+        min-width: 700px;
+        font-size: 13px;
+    }
+
+    .products-table th,
+    .products-table td {
+        padding: 8px 6px;
+    }
+
+    /* Reducir tamaño de columnas menos importantes */
+    .products-table th:nth-child(1),
+    .products-table td:nth-child(1) {
+        width: 35px;
+        padding: 4px;
+    }
+
+    .products-table th:nth-child(2),
+    .products-table td:nth-child(2) {
+        width: 30px;
+    }
+
+    .products-table th:nth-child(3),
+    .products-table td:nth-child(3) {
+        width: 70px;
+    }
+
+    .products-table th:nth-child(5),
+    .products-table td:nth-child(5) {
+        width: 60px;
+    }
+
+    .products-table th:nth-child(7),
+    .products-table td:nth-child(7) {
+        width: 70px;
+    }
+
+    .products-table th:nth-child(9),
+    .products-table td:nth-child(9) {
+        width: 70px;
+    }
+
+    .product-image {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Ajustar header para móviles */
+    .app-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .header-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .header-actions .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .company-info {
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+    }
+
+    .company-logo {
+        margin-bottom: 10px;
+    }
+
+    /* Ajustar sección de totales */
+    .totals-section {
+        max-width: 100%;
+        margin: 20px 0;
+    }
+
+    /* Ajustar botones de tipo de documento */
+    .type-toggle {
+        flex-direction: column;
+    }
+
+    .type-toggle .btn {
+        width: 100%;
+    }
+}
+
+/* Responsive para pantallas muy pequeñas (smartphones en modo retrato) */
+@media (max-width: 480px) {
+    .products-table {
+        min-width: 650px;
+        font-size: 12px;
+    }
+
+    .products-table th,
+    .products-table td {
+        padding: 6px 4px;
+    }
+
+    .section {
+        padding: 15px;
+    }
+
+    .main-content {
+        padding: 10px;
+    }
+
+    .company-details h2 {
+        font-size: 18px;
+    }
+
+    .company-details p {
+        font-size: 12px;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .totals-section {
+        padding: 15px;
+    }
+
+    .total-row {
+        font-size: 14px;
     }
 }
