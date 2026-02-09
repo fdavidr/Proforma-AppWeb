@@ -47,7 +47,6 @@ function updateUI() {
         // Bloquear campo de vendedor y establecer vendedor logueado
         if (appData.loggedSeller) {
             const sellerInput = document.getElementById('sellerSelect');
-            const sellerActionBtn = document.getElementById('sellerActionBtn');
             
             if (sellerInput) {
                 sellerInput.value = appData.loggedSeller.name;
@@ -55,10 +54,6 @@ function updateUI() {
                 sellerInput.style.backgroundColor = '#e9ecef';
                 sellerInput.style.cursor = 'not-allowed';
                 sellerInput.classList.add('valid-selection');
-            }
-            
-            if (sellerActionBtn) {
-                sellerActionBtn.style.display = 'none';
             }
             
             // Establecer vendedor actual automáticamente
@@ -75,16 +70,11 @@ function updateUI() {
         
         // Admin puede cambiar vendedor
         const sellerInput = document.getElementById('sellerSelect');
-        const sellerActionBtn = document.getElementById('sellerActionBtn');
         
         if (sellerInput) {
             sellerInput.disabled = false;
             sellerInput.style.backgroundColor = '';
             sellerInput.style.cursor = '';
-        }
-        
-        if (sellerActionBtn) {
-            sellerActionBtn.style.display = '';
         }
     }
 }
