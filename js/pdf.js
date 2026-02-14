@@ -22,6 +22,8 @@ function getSelectedPdfDateTime() {
     return new Date().toLocaleString('es-BO');
 }
 
+let isGeneratingPDF = false;
+
 async function generatePDF() {
     if (!appData.currentClient) {
         alert('Debe seleccionar un cliente');
@@ -36,105 +38,115 @@ async function generatePDF() {
         return;
     }
 
-    saveTerms();
-    console.log('generatePDF: company.nit =', appData.company.nit);
+    if (isGeneratingPDF) {
+        alert('Ya se está generando el PDF. Espere un momento.');
+        return;
+    }
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    const margin = 15;
-    let yPos = margin;
+    isGeneratingPDF = true;
+    try {
+        saveTerms();
+        console.log('generatePDF: company.nit =', appData.company.nit);
 
-    // Logo y Header
-    const headerHeight = addPDFHeader(doc, margin, yPos, pageWidth);
-    yPos += headerHeight;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+        const margin = 15;
+        let yPos = margin;
 
-    // Tipo de documento y número
-    addPDFDocumentInfo(doc, margin, pageWidth);
+        // Logo y Header
+        const headerHeight = addPDFHeader(doc, margin, yPos, pageWidth);
+        yPos += headerHeight;
 
-    // Línea separadora
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 8;
-
-    // Información del cliente
-    yPos = addPDFClientInfo(doc, margin, yPos, pageWidth);
-
-    // Información del vendedor
-    yPos = addPDFSellerInfo(doc, margin, yPos);
-
-    // Tabla de productos
-    yPos = addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight);
-
-    const pagesAfterTable = doc.internal.getNumberOfPages();
-    if (appData.currentQuoteItems.length >= 7 && pagesAfterTable === 1) {
-        doc.addPage();
-        yPos = margin;
-        const newHeaderHeight = addPDFHeader(doc, margin, yPos, pageWidth);
-        yPos += newHeaderHeight;
+        // Tipo de documento y número
         addPDFDocumentInfo(doc, margin, pageWidth);
+
+        // Línea separadora
         doc.setLineWidth(0.5);
         doc.line(margin, yPos, pageWidth - margin, yPos);
         yPos += 8;
+
+        // Información del cliente
+        yPos = addPDFClientInfo(doc, margin, yPos, pageWidth);
+
+        // Información del vendedor
+        yPos = addPDFSellerInfo(doc, margin, yPos);
+
+        // Tabla de productos
+        yPos = addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight);
+
+        const pagesAfterTable = doc.internal.getNumberOfPages();
+        if (appData.currentQuoteItems.length >= 7 && pagesAfterTable === 1) {
+            doc.addPage();
+            yPos = margin;
+            const newHeaderHeight = addPDFHeader(doc, margin, yPos, pageWidth);
+            yPos += newHeaderHeight;
+            addPDFDocumentInfo(doc, margin, pageWidth);
+            doc.setLineWidth(0.5);
+            doc.line(margin, yPos, pageWidth - margin, yPos);
+            yPos += 8;
+        }
+
+        // Totales
+        yPos = addPDFTotals(doc, margin, yPos, pageWidth);
+
+        // Términos y condiciones
+        addPDFTerms(doc, margin, yPos, pageWidth, pageHeight);
+
+        // Numeración de páginas
+        addPDFPageNumbers(doc, pageWidth, pageHeight);
+
+        // Guardar PDF
+        const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
+        const docNumber = appData.documentType === 'cotizacion' ? appData.currentQuoteNumber : appData.currentSaleNumber;
+        const fileName = `${docTitle}_${docNumber}_${appData.currentClient.name.replace(/\s+/g, '_')}.pdf`;
+        doc.save(fileName);
+
+        // Guardar en historial ANTES de limpiar (usa currentQuoteItems)
+        saveToHistory(fileName);
+
+        // Si es nota de venta, descontar del stock
+        if (appData.documentType === 'notaventa') {
+            let productsUpdated = 0;
+            appData.currentQuoteItems.forEach(item => {
+                const product = appData.products.find(p => p.id === item.id);
+                if (product) {
+                    const stockField = appData.selectedSaleCity === 'cochabamba' 
+                        ? 'stockCochabamba' 
+                        : 'stockSantaCruz';
+                    const previousStock = product[stockField] || 0;
+                    product[stockField] = previousStock - item.quantity;
+                    // Evitar stock negativo
+                    if (product[stockField] < 0) product[stockField] = 0;
+                    productsUpdated++;
+                }
+            });
+        }
+
+        // Incrementar número según tipo de documento
+        if (appData.documentType === 'cotizacion') {
+            appData.currentQuoteNumber++;
+        } else {
+            appData.currentSaleNumber++;
+        }
+        
+        // Guardar datos (esperar a que termine)
+        await saveData();
+        
+        // Actualizar UI y número de documento
+        updateUI();
+        updateDocumentNumber();
+        
+        // Mostrar alerta de éxito
+        const successMsg = appData.documentType === 'notaventa' 
+            ? 'Nota de venta generada exitosamente. Stock actualizado.' 
+            : 'Cotización generada exitosamente.';
+        alert(successMsg + ' Use el botón "Nueva Cotización" para limpiar los datos.');
+    } finally {
+        isGeneratingPDF = false;
     }
-
-    // Totales
-    yPos = addPDFTotals(doc, margin, yPos, pageWidth);
-
-    // Términos y condiciones
-    addPDFTerms(doc, margin, yPos, pageWidth, pageHeight);
-
-    // Numeración de páginas
-    addPDFPageNumbers(doc, pageWidth, pageHeight);
-
-    // Guardar PDF
-    const docTitle = appData.documentType === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
-    const docNumber = appData.documentType === 'cotizacion' ? appData.currentQuoteNumber : appData.currentSaleNumber;
-    const fileName = `${docTitle}_${docNumber}_${appData.currentClient.name.replace(/\s+/g, '_')}.pdf`;
-    doc.save(fileName);
-
-    // Guardar en historial ANTES de limpiar (usa currentQuoteItems)
-    saveToHistory(fileName);
-
-    // Si es nota de venta, descontar del stock
-    if (appData.documentType === 'notaventa') {
-        let productsUpdated = 0;
-        appData.currentQuoteItems.forEach(item => {
-            const product = appData.products.find(p => p.id === item.id);
-            if (product) {
-                const stockField = appData.selectedSaleCity === 'cochabamba' 
-                    ? 'stockCochabamba' 
-                    : 'stockSantaCruz';
-                const previousStock = product[stockField] || 0;
-                product[stockField] = previousStock - item.quantity;
-                // Evitar stock negativo
-                if (product[stockField] < 0) product[stockField] = 0;
-                productsUpdated++;
-            }
-        });
-    }
-
-    // Incrementar número según tipo de documento
-    if (appData.documentType === 'cotizacion') {
-        appData.currentQuoteNumber++;
-    } else {
-        appData.currentSaleNumber++;
-    }
-    
-    // Guardar datos (esperar a que termine)
-    await saveData();
-    
-    // Actualizar UI y número de documento
-    updateUI();
-    updateDocumentNumber();
-    
-    // Mostrar alerta de éxito
-    const successMsg = appData.documentType === 'notaventa' 
-        ? 'Nota de venta generada exitosamente. Stock actualizado.' 
-        : 'Cotización generada exitosamente.';
-    alert(successMsg + ' Use el botón "Nueva Cotización" para limpiar los datos.');
 }
 
 // ==================== FUNCIONES AUXILIARES DE PDF ====================
