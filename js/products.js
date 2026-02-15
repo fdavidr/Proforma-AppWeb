@@ -2,7 +2,16 @@
 
 function filterProducts(query) {
     const list = document.getElementById('productList');
+    const input = document.getElementById('productSelect');
     list.innerHTML = '';
+    
+    // Si el campo está vacío, remover la validación visual y limpiar producto actual
+    if (!query || query.trim() === '') {
+        input.classList.remove('valid-selection');
+        appData.currentProduct = null;
+        document.getElementById('productActionBtn').textContent = 'Nuevo Producto';
+        document.getElementById('productActionBtn').className = 'btn btn-warning';
+    }
     
     if (!query) {
         appData.products.forEach(product => {

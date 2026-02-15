@@ -2,7 +2,16 @@
 
 function filterClients(query) {
     const list = document.getElementById('clientList');
+    const input = document.getElementById('clientSelect');
     list.innerHTML = '';
+    
+    // Si el campo está vacío, remover la validación visual y limpiar cliente actual
+    if (!query || query.trim() === '') {
+        input.classList.remove('valid-selection');
+        appData.currentClient = null;
+        document.getElementById('clientActionBtn').textContent = 'Agregar Cliente';
+        document.getElementById('clientActionBtn').className = 'btn btn-success';
+    }
     
     if (!query) {
         appData.clients.forEach(client => {
