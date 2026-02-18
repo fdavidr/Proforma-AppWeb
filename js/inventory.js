@@ -43,6 +43,7 @@ function loadInventoryData() {
 
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td>${index + 1}</td>
             <td style="width: 60px;">
                 ${product.image ? `<img src="${product.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">` : '—'}
             </td>
