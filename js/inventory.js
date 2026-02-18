@@ -47,18 +47,35 @@ function loadInventoryData() {
             <td style="width: 60px;">
                 ${product.image ? `<img src="${product.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">` : '—'}
             </td>
-            <td>${product.code || '—'}</td>
-            <td>${product.description}</td>
-            <td>${stock.toFixed(2)}</td>
-            <td>Bs ${cost.toFixed(2)}</td>
-            <td>Bs ${price.toFixed(2)}</td>
+            <td>
+                <input type="text" class="inventory-inline-input inventory-code" placeholder="Código">
+            </td>
+            <td>
+                <input type="text" class="inventory-inline-input inventory-description" placeholder="Descripción" required>
+            </td>
+            <td>
+                <input type="number" class="inventory-inline-input inventory-stock" min="0" step="0.01">
+            </td>
+            <td>
+                <input type="number" class="inventory-inline-input inventory-cost" min="0" step="0.01">
+            </td>
+            <td>
+                <input type="number" class="inventory-inline-input inventory-price" min="0" step="0.01">
+            </td>
             <td>Bs ${costTotal.toFixed(2)}</td>
             <td>Bs ${priceTotal.toFixed(2)}</td>
             <td>
-                <button class="btn btn-warning btn-sm" onclick="editProductFromInventory(${index})" style="padding: 5px 10px; margin: 2px;">✏️</button>
+                <button class="btn btn-success btn-sm" onclick="saveInventoryRowChanges(${index}, this)" style="padding: 5px 10px; margin: 2px;">💾 GUARDAR CAMBIOS</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteProductFromInventory(${index})" style="padding: 5px 10px; margin: 2px;">🗑️</button>
             </td>
         `;
+
+        row.querySelector('.inventory-code').value = product.code || '';
+        row.querySelector('.inventory-description').value = product.description || '';
+        row.querySelector('.inventory-stock').value = stock.toFixed(2);
+        row.querySelector('.inventory-cost').value = cost.toFixed(2);
+        row.querySelector('.inventory-price').value = price.toFixed(2);
+
         tbody.appendChild(row);
     });
 
@@ -67,10 +84,57 @@ function loadInventoryData() {
     document.getElementById('totalPriceInventory').textContent = `Bs ${totalPrice.toFixed(2)}`;
 }
 
-function editProductFromInventory(index) {
-    appData.currentProduct = appData.products[index];
-    closeModal('inventoryModal');
-    handleProductAction();
+async function saveInventoryRowChanges(index, buttonElement) {
+    const row = buttonElement.closest('tr');
+    const product = appData.products[index];
+
+    if (!row || !product) {
+        return;
+    }
+
+    const code = row.querySelector('.inventory-code').value.trim();
+    const description = row.querySelector('.inventory-description').value.trim();
+    const stockValue = parseFloat(row.querySelector('.inventory-stock').value);
+    const costValue = parseFloat(row.querySelector('.inventory-cost').value);
+    const priceValue = parseFloat(row.querySelector('.inventory-price').value);
+
+    if (!description) {
+        alert('La descripción es obligatoria');
+        return;
+    }
+
+    const stock = Math.max(0, isNaN(stockValue) ? 0 : stockValue);
+    const cost = Math.max(0, isNaN(costValue) ? 0 : costValue);
+    const price = Math.max(0, isNaN(priceValue) ? 0 : priceValue);
+
+    product.code = code;
+    product.description = description;
+    product.cost = cost;
+    product.price = price;
+
+    if (selectedInventoryCity === 'cochabamba') {
+        product.stockCochabamba = stock;
+    } else {
+        product.stockSantaCruz = stock;
+    }
+
+    if (appData.currentProduct && appData.currentProduct.id === product.id) {
+        appData.currentProduct = product;
+    }
+
+    buttonElement.disabled = true;
+    const previousText = buttonElement.textContent;
+    buttonElement.textContent = 'Guardando...';
+
+    try {
+        await saveData();
+        loadInventoryData();
+    } catch (error) {
+        console.error('Error al guardar cambios del inventario:', error);
+        alert('No se pudo guardar los cambios. Intenta nuevamente.');
+        buttonElement.disabled = false;
+        buttonElement.textContent = previousText;
+    }
 }
 
 function deleteProductFromInventory(index) {
@@ -269,6 +333,6 @@ function generateInventoryPDF() {
 window.openInventory = openInventory;
 window.filterInventoryByCity = filterInventoryByCity;
 window.loadInventoryData = loadInventoryData;
-window.editProductFromInventory = editProductFromInventory;
+window.saveInventoryRowChanges = saveInventoryRowChanges;
 window.deleteProductFromInventory = deleteProductFromInventory;
 window.generateInventoryPDF = generateInventoryPDF;

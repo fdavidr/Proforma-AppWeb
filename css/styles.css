@@ -309,6 +309,24 @@ select:focus {
     white-space: nowrap;
 }
 
+.inventory-inline-input {
+    width: 100%;
+    min-width: 95px;
+    padding: 6px 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.inventory-inline-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.inventory-description {
+    min-width: 180px;
+}
+
 /* Contenedor con scroll para la tabla */
 .table-container {
     width: 100%;
