@@ -144,9 +144,24 @@ function saveProduct() {
         return;
     }
 
+    const code = document.getElementById('modalProductCode').value.trim();
+    
+    // Validar código duplicado
+    if (code) {
+        const duplicateProduct = appData.products.find(p => 
+            p.code.toLowerCase() === code.toLowerCase() && 
+            (!appData.currentProduct || p.id !== appData.currentProduct.id)
+        );
+        
+        if (duplicateProduct) {
+            alert(`El código "${code}" ya está en uso por otro producto: ${duplicateProduct.description}`);
+            return;
+        }
+    }
+
     const product = {
         id: appData.currentProduct ? appData.currentProduct.id : Date.now(),
-        code: document.getElementById('modalProductCode').value,
+        code: code,
         description: description,
         price: parseFloat(document.getElementById('modalProductPrice').value) || 0,
         cost: parseFloat(document.getElementById('modalProductCost').value) || 0,
