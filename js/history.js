@@ -184,14 +184,23 @@ function redownloadPDF(entryId) {
     doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
     
     doc.setTextColor(255, 255, 255);
-    doc.text('#', margin + 2, yPos + 5);
-    doc.text('Código', margin + 8, yPos + 5);
-    doc.text('IMG', margin + 28, yPos + 5);
-    doc.text('Descripción', margin + 52, yPos + 5);
-    doc.text('Cant.', margin + 108, yPos + 5);
-    doc.text('P.Unit.', margin + 122, yPos + 5);
-    doc.text('Desc.', margin + 147, yPos + 5);
-    doc.text('Subtotal', pageWidth - margin - 2, yPos + 5, { align: 'right' });
+    
+    // Header diferente para nota de entrega
+    if (entry.type === 'notaentrega') {
+        doc.text('#', margin + 2, yPos + 5);
+        doc.text('Código', margin + 10, yPos + 5);
+        doc.text('Descripción', margin + 45, yPos + 5);
+        doc.text('Cantidad', pageWidth - margin - 25, yPos + 5, { align: 'right' });
+    } else {
+        doc.text('#', margin + 2, yPos + 5);
+        doc.text('Código', margin + 8, yPos + 5);
+        doc.text('IMG', margin + 28, yPos + 5);
+        doc.text('Descripción', margin + 52, yPos + 5);
+        doc.text('Cant.', margin + 108, yPos + 5);
+        doc.text('P.Unit.', margin + 122, yPos + 5);
+        doc.text('Desc.', margin + 147, yPos + 5);
+        doc.text('Subtotal', pageWidth - margin - 2, yPos + 5, { align: 'right' });
+    }
     
     yPos += 10;
     doc.setTextColor(0, 0, 0);
@@ -206,52 +215,78 @@ function redownloadPDF(entryId) {
             yPos = margin;
         }
 
-        // Calcular altura de la fila primero
-        const description = doc.splitTextToSize(item.product.description, 56);
-        const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
-        const textYCenter = yPos + (rowHeight / 2); // Centro vertical de la fila
+        // Tabla simplificada para nota de entrega
+        if (entry.type === 'notaentrega') {
+            const description = doc.splitTextToSize(item.product.description, 120);
+            const rowHeight = Math.max(7, description.length * 5);
+            const textYCenter = yPos + (rowHeight / 2);
 
-        // Textos centrados verticalmente
-        doc.text((index + 1).toString(), margin + 2, textYCenter);
-        doc.text(item.product.code || '-', margin + 8, textYCenter);
-        
-        // Imagen del producto en su propia columna
-        if (item.product.image) {
-            try {
-                const imgHeight = 24;
-                const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
-                doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
-            } catch(e) {
-                console.log('Error al cargar imagen del producto:', e);
+            doc.text((index + 1).toString(), margin + 2, textYCenter);
+            doc.text(item.product.code || '-', margin + 10, textYCenter);
+            
+            const descHeight = description.length * 5;
+            const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
+            doc.text(description, margin + 45, descYCenter);
+            
+            doc.text(item.quantity.toString(), pageWidth - margin - 25, textYCenter, { align: 'right' });
+            
+            // Bordes de la fila
+            doc.setDrawColor(200, 200, 200);
+            doc.line(tableLeft, yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
+            doc.line(tableLeft, yPos - 3, tableLeft, yPos + rowHeight - 3);
+            doc.line(tableRight, yPos - 3, tableRight, yPos + rowHeight - 3);
+            
+            // Líneas verticales entre columnas
+            doc.line(margin + 8, yPos - 3, margin + 8, yPos + rowHeight - 3);
+            doc.line(margin + 40, yPos - 3, margin + 40, yPos + rowHeight - 3);
+            
+            yPos += rowHeight;
+        } else {
+            // Tabla completa para cotización y nota de venta
+            const description = doc.splitTextToSize(item.product.description, 56);
+            const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
+            const textYCenter = yPos + (rowHeight / 2);
+
+            doc.text((index + 1).toString(), margin + 2, textYCenter);
+            doc.text(item.product.code || '-', margin + 8, textYCenter);
+            
+            // Imagen del producto
+            if (item.product.image) {
+                try {
+                    const imgHeight = 24;
+                    const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
+                    doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
+                } catch(e) {
+                    console.log('Error al cargar imagen del producto:', e);
+                }
             }
+            
+            const descHeight = description.length * 5;
+            const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
+            doc.text(description, margin + 52, descYCenter);
+            
+            doc.text(item.quantity.toString(), margin + 108, textYCenter);
+            doc.text('Bs ' + item.price.toFixed(2), margin + 122, textYCenter);
+            doc.text(item.discount + ' ' + item.discountType, margin + 147, textYCenter);
+            doc.text('Bs ' + item.subtotal.toFixed(2), pageWidth - margin - 2, textYCenter, { align: 'right' });
+            
+            // Bordes de la fila
+            doc.setDrawColor(200, 200, 200);
+            doc.line(tableLeft, yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
+            doc.line(tableLeft, yPos - 3, tableLeft, yPos + rowHeight - 3);
+            doc.line(tableRight, yPos - 3, tableRight, yPos + rowHeight - 3);
+            
+            // Líneas verticales
+            doc.line(margin + 6, yPos - 3, margin + 6, yPos + rowHeight - 3);
+            doc.line(margin + 25, yPos - 3, margin + 25, yPos + rowHeight - 3);
+            doc.line(margin + 51, yPos - 3, margin + 51, yPos + rowHeight - 3);
+            doc.line(margin + 107, yPos - 3, margin + 107, yPos + rowHeight - 3);
+            doc.line(margin + 120, yPos - 3, margin + 120, yPos + rowHeight - 3);
+            doc.line(margin + 145, yPos - 3, margin + 145, yPos + rowHeight - 3);
+            doc.line(margin + 160, yPos - 3, margin + 160, yPos + rowHeight - 3);
+            
+            yPos += rowHeight;
         }
-        
-        // Descripción centrada verticalmente
-        const descHeight = description.length * 5;
-        const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
-        doc.text(description, margin + 52, descYCenter);
-        
-        doc.text(item.quantity.toString(), margin + 108, textYCenter);
-        doc.text('Bs ' + item.price.toFixed(2), margin + 122, textYCenter);
-        doc.text(item.discount + ' ' + item.discountType, margin + 147, textYCenter);
-        doc.text('Bs ' + item.subtotal.toFixed(2), pageWidth - margin - 2, textYCenter, { align: 'right' });
-        
-        // Bordes de la fila
-        doc.setDrawColor(200, 200, 200);
-        doc.line(tableLeft, yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
-        doc.line(tableLeft, yPos - 3, tableLeft, yPos + rowHeight - 3);
-        doc.line(tableRight, yPos - 3, tableRight, yPos + rowHeight - 3);
-        
-        // Líneas verticales entre columnas
-        doc.line(margin + 6, yPos - 3, margin + 6, yPos + rowHeight - 3);
-        doc.line(margin + 25, yPos - 3, margin + 25, yPos + rowHeight - 3);
-        doc.line(margin + 51, yPos - 3, margin + 51, yPos + rowHeight - 3); // Línea después de IMG
-        doc.line(margin + 107, yPos - 3, margin + 107, yPos + rowHeight - 3);
-        doc.line(margin + 120, yPos - 3, margin + 120, yPos + rowHeight - 3);
-        doc.line(margin + 145, yPos - 3, margin + 145, yPos + rowHeight - 3);
-        doc.line(margin + 160, yPos - 3, margin + 160, yPos + rowHeight - 3);
-        
-        yPos += rowHeight;
     });
 
     // Borde inferior de la tabla
@@ -280,22 +315,24 @@ function redownloadPDF(entryId) {
 
     yPos += 8;
 
-    // Totales
-    const totalsX = pageWidth - margin - 60;
-    doc.setFont(undefined, 'normal');
-    doc.text('Subtotal:', totalsX, yPos);
-    doc.text('Bs ' + entry.subtotal.toFixed(2), totalsX + 40, yPos, { align: 'right' });
-    yPos += 6;
+    // Totales (solo para cotización y nota de venta)
+    if (entry.type !== 'notaentrega') {
+        const totalsX = pageWidth - margin - 60;
+        doc.setFont(undefined, 'normal');
+        doc.text('Subtotal:', totalsX, yPos);
+        doc.text('Bs ' + entry.subtotal.toFixed(2), totalsX + 40, yPos, { align: 'right' });
+        yPos += 6;
 
-    doc.text('Descuento:', totalsX, yPos);
-    doc.text('Bs ' + entry.totalDiscount.toFixed(2), totalsX + 40, yPos, { align: 'right' });
-    yPos += 8;
+        doc.text('Descuento:', totalsX, yPos);
+        doc.text('Bs ' + entry.totalDiscount.toFixed(2), totalsX + 40, yPos, { align: 'right' });
+        yPos += 8;
 
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(12);
-    doc.text('TOTAL:', totalsX, yPos);
-    doc.text('Bs ' + entry.total.toFixed(2), totalsX + 40, yPos, { align: 'right' });
-    yPos += 10;
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(12);
+        doc.text('TOTAL:', totalsX, yPos);
+        doc.text('Bs ' + entry.total.toFixed(2), totalsX + 40, yPos, { align: 'right' });
+        yPos += 10;
+    }
 
     // Términos y condiciones
     doc.setFontSize(10);
@@ -319,6 +356,43 @@ function redownloadPDF(entryId) {
             });
         }
     });
+    
+    // Firmas (solo para nota de entrega)
+    if (entry.type === 'notaentrega') {
+        // Verificar si hay espacio suficiente
+        if (yPos > pageHeight - 60) {
+            doc.addPage();
+            yPos = margin + 20;
+        }
+        
+        yPos += 10;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        
+        const centerX = pageWidth / 2;
+        const signatureWidth = 60;
+        const signatureY = yPos;
+        
+        // Firma del Entregador (Izquierda)
+        const leftSignatureX = margin + 20;
+        doc.line(leftSignatureX, signatureY, leftSignatureX + signatureWidth, signatureY);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.text('ENTREGADO POR:', leftSignatureX, signatureY + 6);
+        doc.text('Nombre:', leftSignatureX, signatureY + 12);
+        doc.text('CI:', leftSignatureX, signatureY + 18);
+        doc.text('Fecha:', leftSignatureX, signatureY + 24);
+        
+        // Firma del Receptor (Derecha)
+        const rightSignatureX = pageWidth - margin - signatureWidth - 20;
+        doc.line(rightSignatureX, signatureY, rightSignatureX + signatureWidth, signatureY);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.text('RECIBIDO POR:', rightSignatureX, signatureY + 6);
+        doc.text('Nombre:', rightSignatureX, signatureY + 12);
+        doc.text('CI:', rightSignatureX, signatureY + 18);
+        doc.text('Fecha:', rightSignatureX, signatureY + 24);
+    }
 
     // Numeración de páginas
     const pageCount = doc.internal.getNumberOfPages();

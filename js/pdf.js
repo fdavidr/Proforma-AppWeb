@@ -99,7 +99,12 @@ async function generatePDF() {
         }
 
         // Términos y condiciones
-        addPDFTerms(doc, margin, yPos, pageWidth, pageHeight);
+        yPos = addPDFTerms(doc, margin, yPos, pageWidth, pageHeight);
+
+        // Firmas (solo para nota de entrega)
+        if (appData.documentType === 'notaentrega') {
+            addPDFSignatures(doc, margin, yPos, pageWidth, pageHeight);
+        }
 
         // Numeración de páginas
         addPDFPageNumbers(doc, pageWidth, pageHeight);
@@ -478,6 +483,44 @@ function addPDFTerms(doc, margin, yPos, pageWidth, pageHeight) {
             });
         }
     });
+    
+    return yPos + 10;
+}
+
+function addPDFSignatures(doc, margin, yPos, pageWidth, pageHeight) {
+    // Verificar si hay espacio suficiente, si no, agregar nueva página
+    if (yPos > pageHeight - 60) {
+        doc.addPage();
+        yPos = margin + 20;
+    }
+    
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    
+    const centerX = pageWidth / 2;
+    const signatureWidth = 60;
+    const signatureY = yPos;
+    
+    // Firma del Entregador (Izquierda)
+    const leftSignatureX = margin + 20;
+    doc.line(leftSignatureX, signatureY, leftSignatureX + signatureWidth, signatureY);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text('ENTREGADO POR:', leftSignatureX, signatureY + 6);
+    doc.text('Nombre:', leftSignatureX, signatureY + 12);
+    doc.text('CI:', leftSignatureX, signatureY + 18);
+    doc.text('Fecha:', leftSignatureX, signatureY + 24);
+    
+    // Firma del Receptor (Derecha)
+    const rightSignatureX = pageWidth - margin - signatureWidth - 20;
+    doc.line(rightSignatureX, signatureY, rightSignatureX + signatureWidth, signatureY);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text('RECIBIDO POR:', rightSignatureX, signatureY + 6);
+    doc.text('Nombre:', rightSignatureX, signatureY + 12);
+    doc.text('CI:', rightSignatureX, signatureY + 18);
+    doc.text('Fecha:', rightSignatureX, signatureY + 24);
 }
 
 function addPDFPageNumbers(doc, pageWidth, pageHeight) {
