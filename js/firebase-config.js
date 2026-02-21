@@ -72,17 +72,18 @@ async function loadFromFirestore(collection) {
 
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
-    // Limitar cotizaciones a 10 y mantener todas las ventas
+    // Limitar cotizaciones a 10 y mantener todas las ventas y entregas
     let limitedHistory = appData.pdfHistory || [];
     const cotizaciones = limitedHistory.filter(entry => entry.type === 'cotizacion');
     const ventas = limitedHistory.filter(entry => entry.type === 'notaventa');
+    const entregas = limitedHistory.filter(entry => entry.type === 'notaentrega');
     
     // Ordenar cotizaciones por ID descendente (más recientes primero) y tomar las 10 más recientes
     const sortedCotizaciones = cotizaciones.sort((a, b) => b.id - a.id);
     const limitedCotizaciones = sortedCotizaciones.slice(0, 10);
     
-    // Combinar cotizaciones limitadas con todas las ventas y ordenar por ID
-    limitedHistory = [...limitedCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
+    // Combinar cotizaciones limitadas con todas las ventas y entregas, y ordenar por ID
+    limitedHistory = [...limitedCotizaciones, ...ventas, ...entregas].sort((a, b) => b.id - a.id);
     
     const dataToSave = {
         company: { ...appData.company },
@@ -92,6 +93,7 @@ async function saveAllData(appData) {
         pdfHistory: limitedHistory,
         currentQuoteNumber: appData.currentQuoteNumber,
         currentSaleNumber: appData.currentSaleNumber,
+        currentDeliveryNumber: appData.currentDeliveryNumber,
         terms: appData.terms,
         documentType: appData.documentType,
         lastUpdated: new Date().toISOString()
@@ -130,11 +132,14 @@ async function saveAllData(appData) {
         console.error('❌ Error guardando en localStorage:', error);
         if (error.name === 'QuotaExceededError') {
             alert('Espacio de almacenamiento lleno. Eliminando datos antiguos...');
-            // Reducir ventas si hay problemas de espacio
+            // Reducir ventas y entregas si hay problemas de espacio
             const ventas = appData.pdfHistory.filter(entry => entry.type === 'notaventa')
                 .sort((a, b) => b.id - a.id)
                 .slice(0, 50); // Solo mantener 50 ventas más recientes
-            dataToSave.pdfHistory = [...limitedCotizaciones, ...ventas].sort((a, b) => b.id - a.id);
+            const entregas = appData.pdfHistory.filter(entry => entry.type === 'notaentrega')
+                .sort((a, b) => b.id - a.id)
+                .slice(0, 30); // Solo mantener 30 entregas más recientes
+            dataToSave.pdfHistory = [...limitedCotizaciones, ...ventas, ...entregas].sort((a, b) => b.id - a.id);
             localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
         }
         return false;

@@ -76,6 +76,7 @@
             <div class="type-toggle">
                 <button class="btn btn-primary active" onclick="setDocumentType('cotizacion')">Cotización</button>
                 <button class="btn btn-primary" onclick="setDocumentType('notaventa')">Nota de Venta</button>
+                <button class="btn btn-primary" onclick="setDocumentType('notaentrega')">Nota de Entrega</button>
             </div>
 
             <!-- City Selection (visible only for Nota de Venta) -->
@@ -148,7 +149,7 @@
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-success" onclick="addProductToQuote()">Agregar a Cotización</button>
+                    <button class="btn btn-success" id="addProductBtn" onclick="addProductToQuote()">Agregar a Cotización</button>
                     <button class="btn btn-warning" id="productActionBtn" onclick="handleProductAction()">Nuevo Producto</button>
                 </div>
 

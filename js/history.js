@@ -70,7 +70,12 @@ function redownloadPDF(entryId) {
     const pageHeight = doc.internal.pageSize.height;
     const margin = 10;
     let yPos = margin;
-    const docTitle = entry.type === 'cotizacion' ? 'COTIZACIÓN' : 'NOTA DE VENTA';
+    let docTitle = 'COTIZACIÓN';
+    if (entry.type === 'notaventa') {
+        docTitle = 'NOTA DE VENTA';
+    } else if (entry.type === 'notaentrega') {
+        docTitle = 'NOTA DE ENTREGA';
+    }
 
     const drawHeader = () => {
         doc.setTextColor(0, 0, 0);

@@ -10,7 +10,19 @@ function setDocumentType(type) {
     // Actualizar número mostrado
     updateDocumentNumber();
     
-    // Mostrar/ocultar selector de ciudad
+    // Actualizar texto del botón de agregar producto
+    const addProductBtn = document.getElementById('addProductBtn');
+    if (addProductBtn) {
+        if (type === 'cotizacion') {
+            addProductBtn.textContent = 'Agregar a Cotización';
+        } else if (type === 'notaventa') {
+            addProductBtn.textContent = 'Agregar a Nota de Venta';
+        } else if (type === 'notaentrega') {
+            addProductBtn.textContent = 'Agregar a Nota de Entrega';
+        }
+    }
+    
+    // Mostrar/ocultar selector de ciudad solo para nota de venta
     const citySelector = document.getElementById('citySelectorContainer');
     if (type === 'notaventa') {
         citySelector.style.display = 'block';

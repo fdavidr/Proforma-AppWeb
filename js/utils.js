@@ -94,8 +94,10 @@ function updateDocumentNumber() {
     if (quoteNumberEl) {
         if (appData.documentType === 'cotizacion') {
             quoteNumberEl.textContent = 'Nº ' + appData.currentQuoteNumber;
-        } else {
+        } else if (appData.documentType === 'notaventa') {
             quoteNumberEl.textContent = 'Nº ' + appData.currentSaleNumber;
+        } else if (appData.documentType === 'notaentrega') {
+            quoteNumberEl.textContent = 'Nº ' + appData.currentDeliveryNumber;
         }
     }
 }

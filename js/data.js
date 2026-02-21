@@ -13,6 +13,7 @@ let appData = {
     pdfHistory: [],
     currentQuoteNumber: 100000,
     currentSaleNumber: 100000,
+    currentDeliveryNumber: 100000,
     currentClient: null,
     currentSeller: null,
     currentProduct: null,
@@ -33,6 +34,12 @@ let appData = {
             'No se aceptan devoluciones',
             'Revisión del producto antes de retirarlo',
             'El cliente acepta el producto en las condiciones presentadas'
+        ],
+        notaentrega: [
+            'El receptor confirma la recepción de los productos en buen estado',
+            'Cualquier daño debe ser reportado en el momento de la entrega',
+            'Esta nota de entrega no constituye factura ni comprobante de pago',
+            'Conservar este documento para futuras consultas'
         ]
     }
 };
@@ -61,6 +68,7 @@ async function loadData() {
             // Cargar números de documentos
             if (saved.currentQuoteNumber) appData.currentQuoteNumber = saved.currentQuoteNumber;
             if (saved.currentSaleNumber) appData.currentSaleNumber = saved.currentSaleNumber;
+            if (saved.currentDeliveryNumber) appData.currentDeliveryNumber = saved.currentDeliveryNumber;
             
             // Cargar términos
             if (saved.terms) appData.terms = saved.terms;
