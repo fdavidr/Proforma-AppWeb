@@ -178,14 +178,11 @@ select:focus {
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 15px;    position: sticky;
-    top: 0;
-    z-index: 1000;
-    transition: box-shadow 0.3s ease;    position: sticky;
+    gap: 15px;
+    position: sticky;
     top: 0;
     z-index: 1000;
     transition: box-shadow 0.3s ease;
-    position: relative;
 }
 
 /* Efecto de sombra cuando se hace scroll */
