@@ -110,6 +110,16 @@ function showMainContent() {
     document.getElementById('salesSection').style.display = 'none';
 }
 
+// Toggle de selector de tipo de documento
+function toggleDocuments() {
+    const typeToggle = document.querySelector('.type-toggle');
+    if (typeToggle.style.display === 'none') {
+        typeToggle.style.display = 'flex';
+    } else {
+        typeToggle.style.display = 'none';
+    }
+}
+
 // ==================== FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN ====================
 
 function exportData() {

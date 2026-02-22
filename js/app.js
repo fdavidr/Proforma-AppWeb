@@ -6,6 +6,12 @@ async function init() {
     updateUI();
     loadTerms();
     initPdfDatePicker();
+    
+    // Mostrar selector de documentos por defecto
+    const typeToggle = document.querySelector('.type-toggle');
+    if (typeToggle) {
+        typeToggle.style.display = 'flex';
+    }
 }
 
 // Inicializar selector de fecha para PDF
