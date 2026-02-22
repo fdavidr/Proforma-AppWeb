@@ -12,6 +12,23 @@ async function init() {
     if (typeToggle) {
         typeToggle.style.display = 'flex';
     }
+    
+    // Inicializar efecto de scroll en el header
+    initHeaderScrollEffect();
+}
+
+// Efecto visual del header al hacer scroll
+function initHeaderScrollEffect() {
+    const headerMenu = document.querySelector('.app-header-menu');
+    if (!headerMenu) return;
+    
+    window.addEventListener('scroll', function() {
+        if (window.scrollY > 10) {
+            headerMenu.classList.add('scrolled');
+        } else {
+            headerMenu.classList.remove('scrolled');
+        }
+    });
 }
 
 // Inicializar selector de fecha para PDF

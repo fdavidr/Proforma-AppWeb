@@ -168,17 +168,26 @@ select:focus {
 }
 
 /* ==================== HEADER ==================== */
-.app-header {
+/* Header Top - Información de empresa (no sticky) */
+.app-header-top {
     background: white;
     padding: 20px;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
+    position: relative;
+}
+
+/* Header Menu - Botones de navegación (sticky) */
+.app-header-menu {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -186,33 +195,25 @@ select:focus {
 }
 
 /* Efecto de sombra cuando se hace scroll */
-.app-header.scrolled {
+.app-header-menu.scrolled {
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 .btn-config {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     background: #3498db;
     color: white;
     border: none;
-    padding: 8px 12px;
-    border-radius: 50%;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 18px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 16px;
     transition: all 0.3s ease;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .btn-config:hover {
     background: #2980b9;
-    transform: scale(1.05);
+    transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
@@ -725,19 +726,15 @@ input[type="file"] {
     }
 
     /* Ajustar header para móviles */
-    .app-header {
+    .app-header-top {
         flex-direction: column;
         gap: 15px;
         padding: 15px;
-        padding-top: 50px;
+        text-align: center;
     }
     
-    .btn-config {
-        top: 5px;
-        right: 5px;
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
+    .app-header-menu {
+        padding: 10px 15px;
     }
 
     .header-actions {
