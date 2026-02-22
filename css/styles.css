@@ -233,6 +233,11 @@ select:focus {
     box-shadow: 0 5px 15px rgba(0,0,0,0.08);
 }
 
+.content-section {
+    background: white;
+    min-height: calc(100vh - 140px);
+}
+
 .section {
     margin-bottom: 30px;
     padding-bottom: 30px;

@@ -16,7 +16,12 @@ function openSales() {
     document.getElementById('salesMonthFilter').value = currentMonth;
     
     filterSalesByMonth();
-    openModal('salesModal');
+    
+    // Mostrar sección de ventas
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('historySection').style.display = 'none';
+    document.getElementById('inventorySection').style.display = 'none';
+    document.getElementById('salesSection').style.display = 'block';
     
     // Si es vendedor, bloquear botones de ciudad
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {

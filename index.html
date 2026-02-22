@@ -71,7 +71,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="main-content">
+        <div id="mainContent" class="main-content">
             <!-- Document Type Toggle -->
             <div class="type-toggle">
                 <button class="btn btn-primary active" onclick="setDocumentType('cotizacion')">Cotización</button>
@@ -377,16 +377,15 @@
         </div>
     </div>
 
-    <!-- History Modal -->
-    <div id="historyModal" class="modal">
-        <div class="modal-content" style="max-width: 95%; width: 95%;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>Historial de PDFs Generados</h3>
-                <button class="btn btn-secondary" onclick="closeModal('historyModal')" style="margin: 0;">✕ Cerrar</button>
+    <!-- History Section -->
+    <div id="historySection" class="content-section" style="display: none;">
+        <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>📋 Historial de PDFs Generados</h2>
+                <button class="btn btn-secondary" onclick="showMainContent()">← Volver</button>
             </div>
-            <div class="modal-body">
-                <div id="historyContent">
-                    <table class="products-table">
+            <div id="historyContent">
+                <table class="products-table">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -402,19 +401,17 @@
                         <tbody id="historyTableBody"></tbody>
                     </table>
                 </div>
-            </div>
         </div>
     </div>
 
-    <!-- Inventory Modal -->
-    <div id="inventoryModal" class="modal">
-        <div class="modal-content" style="max-width: 95%; width: 95%;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>📦 Inventario de Productos</h3>
-                <button class="btn btn-secondary" onclick="closeModal('inventoryModal')" style="margin: 0;">✕ Cerrar</button>
+    <!-- Inventory Section -->
+    <div id="inventorySection" class="content-section" style="display: none;">
+        <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>📦 Inventario de Productos</h2>
+                <button class="btn btn-secondary" onclick="showMainContent()">← Volver</button>
             </div>
-            <div class="modal-body">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="flex: 1;">
                         <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Ciudad</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
@@ -454,19 +451,17 @@
                         <tbody id="inventoryTableBody"></tbody>
                     </table>
                 </div>
-            </div>
         </div>
     </div>
 
-    <!-- Sales Modal -->
-    <div id="salesModal" class="modal">
-        <div class="modal-content" style="max-width: 95%; width: 95%;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>💰 Reporte de Ventas</h3>
-                <button class="btn btn-secondary" onclick="closeModal('salesModal')" style="margin: 0;">✕ Cerrar</button>
+    <!-- Sales Section -->
+    <div id="salesSection" class="content-section" style="display: none;">
+        <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>💰 Reporte de Ventas</h2>
+                <button class="btn btn-secondary" onclick="showMainContent()">← Volver</button>
             </div>
-            <div class="modal-body">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="flex: 1;">
                         <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Ciudad</label>
                         <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">

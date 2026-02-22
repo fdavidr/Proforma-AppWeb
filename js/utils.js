@@ -102,6 +102,14 @@ function updateDocumentNumber() {
     }
 }
 
+// Mostrar contenido principal y ocultar secciones
+function showMainContent() {
+    document.getElementById('mainContent').style.display = 'block';
+    document.getElementById('historySection').style.display = 'none';
+    document.getElementById('inventorySection').style.display = 'none';
+    document.getElementById('salesSection').style.display = 'none';
+}
+
 // ==================== FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN ====================
 
 function exportData() {

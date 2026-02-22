@@ -5,7 +5,10 @@ let selectedInventoryCity = 'cochabamba';
 function openInventory() {
     selectedInventoryCity = 'cochabamba';
     loadInventoryData();
-    openModal('inventoryModal');
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('historySection').style.display = 'none';
+    document.getElementById('inventorySection').style.display = 'block';
+    document.getElementById('salesSection').style.display = 'none';
 }
 
 function filterInventoryByCity(city) {

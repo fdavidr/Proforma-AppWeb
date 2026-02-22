@@ -189,11 +189,10 @@ function saveProduct() {
     selectProduct(product);
     closeModal('productModal');
     
-    // Si el modal de inventario está abierto, recargar datos
-    const inventoryModal = document.getElementById('inventoryModal');
-    if (inventoryModal && inventoryModal.classList.contains('active')) {
+    // Si la sección de inventario está visible, recargar datos
+    const inventorySection = document.getElementById('inventorySection');
+    if (inventorySection && inventorySection.style.display === 'block') {
         loadInventoryData();
-        openModal('inventoryModal');
     }
 }
 

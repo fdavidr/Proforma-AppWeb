@@ -2,7 +2,10 @@
 
 function openHistory() {
     renderHistory();
-    openModal('historyModal');
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('historySection').style.display = 'block';
+    document.getElementById('inventorySection').style.display = 'none';
+    document.getElementById('salesSection').style.display = 'none';
 }
 
 function renderHistory() {
