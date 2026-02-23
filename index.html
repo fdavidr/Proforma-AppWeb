@@ -23,13 +23,6 @@
             <h1>Sistema de Cotizaciones</h1>
             <form id="loginForm">
                 <div class="form-group">
-                    <label>Tipo de Usuario</label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <button type="button" class="btn btn-primary role-selector active" data-role="admin" onclick="selectRole('admin')">👨‍💼 Administrador</button>
-                        <button type="button" class="btn btn-primary role-selector" data-role="vendedor" onclick="selectRole('vendedor')">👤 Vendedor</button>
-                    </div>
-                </div>
-                <div class="form-group">
                     <label for="username">Usuario</label>
                     <input type="text" id="username" required>
                 </div>
@@ -37,6 +30,7 @@
                     <label for="password">Contraseña</label>
                     <input type="password" id="password" required>
                 </div>
+                <button type="button" class="btn btn-secondary" onclick="handleForgotPassword()" style="margin-bottom: 10px; width: 100%;">Olvidé mi contraseña</button>
                 <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
                 <div id="loginError" class="error-message hidden"></div>
             </form>
@@ -253,6 +247,10 @@
                 <div class="form-group">
                     <label>NIT</label>
                     <input type="text" id="modalCompanyNit">
+                </div>
+                <div class="form-group">
+                    <label>Correo Electrónico de Recuperación (Administrador)</label>
+                    <input type="email" id="modalAdminRecoveryEmail" placeholder="correo@empresa.com">
                 </div>
                 <div class="form-group">
                     <label>Logo</label>

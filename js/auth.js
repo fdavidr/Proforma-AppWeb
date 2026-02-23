@@ -1,13 +1,5 @@
 // ==================== AUTENTICACIÓN ====================
 
-function selectRole(role) {
-    selectedLoginRole = role;
-    document.querySelectorAll('.role-selector').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-}
-
 function initLogin() {
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -18,18 +10,15 @@ function initLogin() {
         let userRole = null;
         let sellerData = null;
 
-        // Validar credenciales según el rol seleccionado
-        if (selectedLoginRole === 'admin') {
-            if (username === 'CiamP25' && password === 'CiamP25') {
-                isValid = true;
-                userRole = 'admin';
-            }
-        } else if (selectedLoginRole === 'vendedor') {
-            // Buscar vendedor en la base de datos
+        // Detectar rol automáticamente por credenciales
+        if (username === 'CiamP25' && password === 'CiamP25') {
+            isValid = true;
+            userRole = 'admin';
+        } else {
             const seller = appData.sellers.find(s => 
                 s.username === username && s.password === password
             );
-            
+
             if (seller) {
                 isValid = true;
                 userRole = 'vendedor';
@@ -51,10 +40,27 @@ function initLogin() {
             init();
         } else {
             const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = 'Usuario o contraseña incorrectos para el rol seleccionado';
+            errorDiv.textContent = 'Usuario o contraseña incorrectos';
             errorDiv.classList.remove('hidden');
         }
     });
+}
+
+function handleForgotPassword() {
+    const username = document.getElementById('username').value.trim();
+
+    if (username === 'CiamP25') {
+        const recoveryEmail = appData.company.adminRecoveryEmail;
+
+        if (recoveryEmail) {
+            alert(`Recuperación de cuenta de administrador:\n${recoveryEmail}`);
+        } else {
+            alert('No hay un correo de recuperación configurado para el administrador');
+        }
+        return;
+    }
+
+    alert('NO ESTA HABILITADO PARA CAMBIAR CONTRASEÑA.');
 }
 
 function logout() {
@@ -63,22 +69,14 @@ function logout() {
         
         appData.userRole = null;
         appData.loggedSeller = null;
-        selectedLoginRole = 'admin';
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('username').value = '';
         document.getElementById('password').value = '';
         document.getElementById('loginError').classList.add('hidden');
-        // Resetear selector de rol
-        document.querySelectorAll('.role-selector').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.role === 'admin') {
-                btn.classList.add('active');
-            }
-        });
     }
 }
 
 // Exponer funciones globalmente
-window.selectRole = selectRole;
 window.logout = logout;
+window.handleForgotPassword = handleForgotPassword;

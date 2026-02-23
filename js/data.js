@@ -4,6 +4,7 @@ let appData = {
         name: 'Nombre de la Empresa',
         slogan: 'Eslogan de la empresa',
         nit: '',
+        adminRecoveryEmail: '',
         logo: ''
     },
     clients: [],
@@ -43,9 +44,6 @@ let appData = {
         ]
     }
 };
-
-// Variable para el rol seleccionado durante el login
-let selectedLoginRole = 'admin';
 
 // ==================== FUNCIONES DE PERSISTENCIA ====================
 async function loadData() {
