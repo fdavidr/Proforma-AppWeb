@@ -648,6 +648,15 @@ input[type="file"] {
     transform: translateY(-2px);
 }
 
+/* Mostrar nombre completo por defecto, ocultar iniciales */
+.city-selector .city-full-name {
+    display: inline;
+}
+
+.city-selector .city-initials {
+    display: none;
+}
+
 /* ==================== UTILIDADES ==================== */
 .error-message {
     color: #e74c3c;
@@ -771,6 +780,28 @@ input[type="file"] {
 
     .type-toggle .btn {
         width: 100%;
+    }
+    
+    /* Mostrar solo iniciales en selectores de ciudad para móviles */
+    .city-selector .city-full-name {
+        display: none;
+    }
+    
+    .city-selector .city-initials {
+        display: inline;
+    }
+    
+    .city-selector {
+        min-width: 50px;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    /* Ajustar contenedor de botones de ciudad */
+    #citySelectorButtons {
+        padding: 5px 0;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling en iOS */
     }
 }
 

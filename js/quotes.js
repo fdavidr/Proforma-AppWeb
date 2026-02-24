@@ -12,7 +12,24 @@ function generateCitySelectorButtons() {
         button.className = 'btn btn-primary city-selector' + (index === 0 ? ' active' : '');
         button.dataset.city = inventory.id;
         button.onclick = () => selectSaleCity(inventory.id);
-        button.textContent = inventory.name;
+        
+        // Agregar nombre completo y iniciales como data attributes
+        const initials = inventory.name.substring(0, 2).toUpperCase();
+        button.dataset.fullName = inventory.name;
+        button.dataset.initials = initials;
+        
+        // Crear span para nombre completo y span para iniciales
+        const fullNameSpan = document.createElement('span');
+        fullNameSpan.className = 'city-full-name';
+        fullNameSpan.textContent = inventory.name;
+        
+        const initialsSpan = document.createElement('span');
+        initialsSpan.className = 'city-initials';
+        initialsSpan.textContent = initials;
+        
+        button.appendChild(fullNameSpan);
+        button.appendChild(initialsSpan);
+        
         container.appendChild(button);
     });
     
