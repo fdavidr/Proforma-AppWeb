@@ -65,22 +65,38 @@ function handleSellerAction() {
         return;
     }
     
+    // Generar opciones de ciudad dinámicamente
+    generateCityOptions();
+    
     if (appData.currentSeller) {
         document.getElementById('sellerModalTitle').textContent = 'Editar Vendedor';
         document.getElementById('modalSellerName').value = appData.currentSeller.name;
         document.getElementById('modalSellerPhone').value = appData.currentSeller.phone || '';
         document.getElementById('modalSellerUsername').value = appData.currentSeller.username || '';
         document.getElementById('modalSellerPassword').value = appData.currentSeller.password || '';
-        document.getElementById('modalSellerCity').value = appData.currentSeller.city || 'cochabamba';
+        document.getElementById('modalSellerCity').value = appData.currentSeller.city || (appData.inventories[0] ? appData.inventories[0].id : 'cochabamba');
     } else {
         document.getElementById('sellerModalTitle').textContent = 'Agregar Vendedor';
         document.getElementById('modalSellerName').value = '';
         document.getElementById('modalSellerPhone').value = '';
         document.getElementById('modalSellerUsername').value = '';
         document.getElementById('modalSellerPassword').value = '';
-        document.getElementById('modalSellerCity').value = 'cochabamba';
+        document.getElementById('modalSellerCity').value = appData.inventories[0] ? appData.inventories[0].id : 'cochabamba';
     }
     openModal('sellerModal');
+}
+
+// Generar opciones de ciudad dinámicamente según inventarios disponibles
+function generateCityOptions() {
+    const select = document.getElementById('modalSellerCity');
+    select.innerHTML = '';
+    
+    appData.inventories.forEach(inventory => {
+        const option = document.createElement('option');
+        option.value = inventory.id;
+        option.textContent = inventory.name;
+        select.appendChild(option);
+    });
 }
 
 function saveSeller() {

@@ -106,3 +106,78 @@ window.openCompanySettings = openCompanySettings;
 window.handleLogoUpload = handleLogoUpload;
 window.saveCompanySettings = saveCompanySettings;
 window.convertTransparentToWhite = convertTransparentToWhite;
+
+// ==================== GESTIÓN DE INVENTARIOS ====================
+
+function openInventoryManagement() {
+    loadInventoryList();
+    openModal('inventoryManagementModal');
+}
+
+function loadInventoryList() {
+    const container = document.getElementById('inventoryList');
+    const countSpan = document.getElementById('inventoryCount');
+    const addButton = document.getElementById('btnAddInventory');
+    
+    container.innerHTML = '';
+    countSpan.textContent = appData.inventories.length;
+    
+    // Mostrar/ocultar botón de agregar según el límite
+    if (appData.inventories.length >= 4) {
+        addButton.style.display = 'none';
+    } else {
+        addButton.style.display = 'block';
+    }
+    
+    appData.inventories.forEach(inventory => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding: 10px; background: white; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = inventory.name;
+        nameSpan.style.fontWeight = 'bold';
+        
+        div.appendChild(nameSpan);
+        container.appendChild(div);
+    });
+}
+
+function showNewInventoryForm() {
+    document.getElementById('newInventoryForm').style.display = 'block';
+    document.getElementById('btnAddInventory').style.display = 'none';
+    document.getElementById('newInventoryName').value = '';
+    document.getElementById('newInventoryName').focus();
+}
+
+function cancelNewInventory() {
+    document.getElementById('newInventoryForm').style.display = 'none';
+    document.getElementById('btnAddInventory').style.display = 'block';
+}
+
+async function confirmNewInventory() {
+    const name = document.getElementById('newInventoryName').value.trim();
+    
+    if (createInventory(name)) {
+        await saveData();
+        
+        // Actualizar lista de inventarios
+        loadInventoryList();
+        
+        // Actualizar filtros de inventario si la sección está abierta
+        const inventorySection = document.getElementById('inventorySection');
+        if (inventorySection && inventorySection.style.display === 'block') {
+            generateInventoryFilters();
+        }
+        
+        // Ocultar formulario
+        cancelNewInventory();
+        
+        alert(`Inventario "${name}" creado exitosamente`);
+    }
+}
+
+// Exponer funciones
+window.openInventoryManagement = openInventoryManagement;
+window.showNewInventoryForm = showNewInventoryForm;
+window.cancelNewInventory = cancelNewInventory;
+window.confirmNewInventory = confirmNewInventory;

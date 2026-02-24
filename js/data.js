@@ -7,6 +7,10 @@ let appData = {
         adminRecoveryEmail: '',
         logo: ''
     },
+    inventories: [
+        { id: 'cochabamba', name: 'Cochabamba' },
+        { id: 'santacruz', name: 'Santa Cruz' }
+    ],
     clients: [],
     sellers: [],
     products: [],
@@ -63,6 +67,14 @@ async function loadData() {
             if (saved.products) appData.products = saved.products;
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
             
+            // Cargar inventarios
+            if (saved.inventories) {
+                appData.inventories = saved.inventories;
+            }
+            
+            // Migrar productos antiguos al nuevo formato si es necesario
+            migrateProductsToNewFormat();
+            
             // Cargar números de documentos
             if (saved.currentQuoteNumber) appData.currentQuoteNumber = saved.currentQuoteNumber;
             if (saved.currentSaleNumber) appData.currentSaleNumber = saved.currentSaleNumber;
@@ -87,4 +99,79 @@ async function loadData() {
 
 async function saveData() {
     await saveAllData(appData);
+}
+
+// ==================== FUNCIONES DE GESTIÓN DE INVENTARIOS ====================
+
+// Migrar productos del formato antiguo (stockCochabamba, stockSantaCruz) al nuevo formato (stock object)
+function migrateProductsToNewFormat() {
+    appData.products.forEach(product => {
+        // Si el producto tiene el formato antiguo, migrarlo
+        if (product.stockCochabamba !== undefined || product.stockSantaCruz !== undefined) {
+            if (!product.stock) {
+                product.stock = {};
+            }
+            
+            // Migrar stocks
+            if (product.stockCochabamba !== undefined) {
+                product.stock['cochabamba'] = product.stockCochabamba;
+                delete product.stockCochabamba;
+            }
+            
+            if (product.stockSantaCruz !== undefined) {
+                product.stock['santacruz'] = product.stockSantaCruz;
+                delete product.stockSantaCruz;
+            }
+        }
+        
+        // Asegurar que existe el objeto stock
+        if (!product.stock) {
+            product.stock = {};
+        }
+        
+        // Inicializar stocks para todos los inventarios si no existen
+        appData.inventories.forEach(inventory => {
+            if (product.stock[inventory.id] === undefined) {
+                product.stock[inventory.id] = 0;
+            }
+        });
+    });
+}
+
+// Crear un nuevo inventario
+function createInventory(name) {
+    if (!name || name.trim() === '') {
+        alert('El nombre del inventario es obligatorio');
+        return false;
+    }
+    
+    if (appData.inventories.length >= 4) {
+        alert('No se pueden crear más de 4 inventarios');
+        return false;
+    }
+    
+    // Crear ID a partir del nombre
+    const id = name.toLowerCase().replace(/\s+/g, '');
+    
+    // Verificar que no exista ya
+    if (appData.inventories.some(inv => inv.id === id)) {
+        alert('Ya existe un inventario con ese nombre');
+        return false;
+    }
+    
+    // Agregar nuevo inventario
+    appData.inventories.push({
+        id: id,
+        name: name.trim()
+    });
+    
+    // Agregar stock = 0 para todos los productos en este nuevo inventario
+    appData.products.forEach(product => {
+        if (!product.stock) {
+            product.stock = {};
+        }
+        product.stock[id] = 0;
+    });
+    
+    return true;
 }

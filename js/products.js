@@ -57,14 +57,27 @@ function selectProduct(product) {
 }
 
 function handleProductAction() {
+    // Generar campos de stock dinámicamente
+    generateStockFields();
+    
     if (appData.currentProduct) {
         document.getElementById('productModalTitle').textContent = 'Modificar Producto';
         document.getElementById('modalProductCode').value = appData.currentProduct.code || '';
         document.getElementById('modalProductDescription').value = appData.currentProduct.description;
         document.getElementById('modalProductPrice').value = appData.currentProduct.price || 0;
         document.getElementById('modalProductCost').value = appData.currentProduct.cost || 0;
-        document.getElementById('modalProductStockCochabamba').value = appData.currentProduct.stockCochabamba || 0;
-        document.getElementById('modalProductStockSantaCruz').value = appData.currentProduct.stockSantaCruz || 0;
+        
+        // Cargar stocks para cada inventario
+        appData.inventories.forEach(inventory => {
+            const stockInput = document.getElementById(`modalProductStock_${inventory.id}`);
+            if (stockInput) {
+                const stockValue = appData.currentProduct.stock && appData.currentProduct.stock[inventory.id]
+                    ? appData.currentProduct.stock[inventory.id]
+                    : 0;
+                stockInput.value = stockValue;
+            }
+        });
+        
         if (appData.currentProduct.image) {
             document.getElementById('productImagePreview').src = appData.currentProduct.image;
             document.getElementById('productImagePreview').style.display = 'block';
@@ -75,11 +88,43 @@ function handleProductAction() {
         document.getElementById('modalProductDescription').value = '';
         document.getElementById('modalProductPrice').value = 0;
         document.getElementById('modalProductCost').value = 0;
-        document.getElementById('modalProductStockCochabamba').value = 0;
-        document.getElementById('modalProductStockSantaCruz').value = 0;
+        
+        // Inicializar todos los stocks en 0
+        appData.inventories.forEach(inventory => {
+            const stockInput = document.getElementById(`modalProductStock_${inventory.id}`);
+            if (stockInput) {
+                stockInput.value = 0;
+            }
+        });
+        
         document.getElementById('productImagePreview').style.display = 'none';
     }
     openModal('productModal');
+}
+
+// Generar campos de stock dinámicamente según inventarios disponibles
+function generateStockFields() {
+    const container = document.getElementById('stockFieldsContainer');
+    container.innerHTML = '';
+    
+    appData.inventories.forEach(inventory => {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        
+        const label = document.createElement('label');
+        label.textContent = `Stock ${inventory.name}`;
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = `modalProductStock_${inventory.id}`;
+        input.min = '0';
+        input.step = '0.01';
+        input.value = '0';
+        
+        formGroup.appendChild(label);
+        formGroup.appendChild(input);
+        container.appendChild(formGroup);
+    });
 }
 
 function handleProductImageUpload(event) {
@@ -159,15 +204,22 @@ function saveProduct() {
         }
     }
 
+    // Recopilar stocks de todos los inventarios
+    const stock = {};
+    appData.inventories.forEach(inventory => {
+        const stockInput = document.getElementById(`modalProductStock_${inventory.id}`);
+        if (stockInput) {
+            stock[inventory.id] = parseFloat(stockInput.value) || 0;
+        }
+    });
+    
     const product = {
         id: appData.currentProduct ? appData.currentProduct.id : Date.now(),
         code: code,
         description: description,
         price: parseFloat(document.getElementById('modalProductPrice').value) || 0,
         cost: parseFloat(document.getElementById('modalProductCost').value) || 0,
-        stockCochabamba: parseFloat(document.getElementById('modalProductStockCochabamba').value) || 0,
-        stockSantaCruz: parseFloat(document.getElementById('modalProductStockSantaCruz').value) || 0,
-        stock: 0,
+        stock: stock,
         registrationDate: appData.currentProduct ? appData.currentProduct.registrationDate : new Date().toISOString(),
         image: ''
     };

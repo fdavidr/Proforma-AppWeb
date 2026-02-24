@@ -49,7 +49,10 @@
                     <p id="companyNit" class="company-nit" style="display: none;"></p>
                 </div>
             </div>
-            <button id="configBtn" class="btn btn-config" onclick="openCompanySettings()" title="Configuración">⚙️</button>
+            <div style="display: flex; gap: 10px;">
+                <button id="manageInventoriesBtn" class="btn btn-config" onclick="openInventoryManagement()" title="Gestionar Inventarios" style="display: none;">🏬 Inventarios</button>
+                <button id="configBtn" class="btn btn-config" onclick="openCompanySettings()" title="Configuración">⚙️ Configuración</button>
+            </div>
         </div>
         
         <!-- Header Menu (Sticky) -->
@@ -81,9 +84,8 @@
             <!-- City Selection (visible only for Nota de Venta) -->
             <div id="citySelectorContainer" class="section" style="display: none;">
                 <h3 class="section-title">Seleccionar Ciudad</h3>
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="btn btn-primary city-selector active" data-city="cochabamba" onclick="selectSaleCity('cochabamba')">Cochabamba</button>
-                    <button class="btn btn-primary city-selector" data-city="santacruz" onclick="selectSaleCity('santacruz')">Santa Cruz</button>
+                <div id="citySelectorButtons" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <!-- Los botones se generarán dinámicamente -->
                 </div>
             </div>
 
@@ -323,8 +325,7 @@
                 <div class="form-group">
                     <label>Ciudad Asignada *</label>
                     <select id="modalSellerCity" required>
-                        <option value="cochabamba">Cochabamba</option>
-                        <option value="santacruz">Santa Cruz</option>
+                        <!-- Las opciones se generarán dinámicamente -->
                     </select>
                 </div>
             </div>
@@ -358,13 +359,8 @@
                     <label>Costo Unitario</label>
                     <input type="number" id="modalProductCost" min="0" step="0.01" value="0">
                 </div>
-                <div class="form-group">
-                    <label>Stock Cochabamba</label>
-                    <input type="number" id="modalProductStockCochabamba" min="0" step="0.01" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Stock Santa Cruz</label>
-                    <input type="number" id="modalProductStockSantaCruz" min="0" step="0.01" value="0">
+                <div id="stockFieldsContainer">
+                    <!-- Los campos de stock se generarán dinámicamente -->
                 </div>
                 <div class="form-group">
                     <label>Imagen del Producto</label>
@@ -467,9 +463,8 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="flex: 1;">
                         <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Ciudad</label>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                            <button class="btn btn-primary city-filter-sales active" data-city="cochabamba" onclick="filterSalesByCity('cochabamba')" style="padding: 8px 20px;">Cochabamba</button>
-                            <button class="btn btn-primary city-filter-sales" data-city="santacruz" onclick="filterSalesByCity('santacruz')" style="padding: 8px 20px;">Santa Cruz</button>
+                        <div id="salesCityFilterButtons" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                            <!-- Los botones se generarán dinámicamente -->
                         </div>
                         <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Mes</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
@@ -512,6 +507,37 @@
                         <tbody id="salesTableBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Management Modal -->
+    <div id="inventoryManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Gestionar Inventarios</h3>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px;">Inventarios Actuales (<span id="inventoryCount">0</span>/4)</h4>
+                    <div id="inventoryList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Lista dinámica de inventarios -->
+                    </div>
+                </div>
+                <div id="newInventoryForm" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div class="form-group">
+                        <label>Nombre del Nuevo Inventario *</label>
+                        <input type="text" id="newInventoryName" placeholder="Ej: La Paz, Tarija, etc." maxlength="30">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="cancelNewInventory()">Cancelar</button>
+                        <button class="btn btn-success" onclick="confirmNewInventory()">Crear Inventario</button>
+                    </div>
+                </div>
+                <button id="btnAddInventory" class="btn btn-primary" onclick="showNewInventoryForm()" style="width: 100%; margin-top: 15px;">➕ Agregar Nuevo Inventario</button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('inventoryManagementModal')">Cerrar</button>
             </div>
         </div>
     </div>

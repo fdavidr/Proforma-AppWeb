@@ -1,5 +1,27 @@
 // ==================== GESTIÓN DE COTIZACIONES ====================
 
+// Generar botones de ciudad dinámicamente según inventarios
+function generateCitySelectorButtons() {
+    const container = document.getElementById('citySelectorButtons');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    appData.inventories.forEach((inventory, index) => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-primary city-selector' + (index === 0 ? ' active' : '');
+        button.dataset.city = inventory.id;
+        button.onclick = () => selectSaleCity(inventory.id);
+        button.textContent = inventory.name;
+        container.appendChild(button);
+    });
+    
+    // Establecer ciudad por defecto
+    if (appData.inventories.length > 0) {
+        appData.selectedSaleCity = appData.inventories[0].id;
+    }
+}
+
 function setDocumentType(type) {
     appData.documentType = type;
     document.querySelectorAll('.type-toggle .btn').forEach(btn => {
@@ -25,6 +47,9 @@ function setDocumentType(type) {
     // Mostrar/ocultar selector de ciudad solo para nota de venta
     const citySelector = document.getElementById('citySelectorContainer');
     if (type === 'notaventa') {
+        // Generar botones de ciudad dinámicamente
+        generateCitySelectorButtons();
+        
         citySelector.style.display = 'block';
         
         // Si es vendedor, bloquear selección y establecer su ciudad

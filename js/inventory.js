@@ -3,7 +3,12 @@
 let selectedInventoryCity = 'cochabamba';
 
 function openInventory() {
-    selectedInventoryCity = 'cochabamba';
+    // Seleccionar el primer inventario disponible
+    selectedInventoryCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
+    
+    // Generar filtros dinámicos
+    generateInventoryFilters();
+    
     loadInventoryData();
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('historySection').style.display = 'none';
@@ -25,6 +30,22 @@ function filterInventoryByCity(city) {
     loadInventoryData();
 }
 
+// Generar botones de filtro de inventarios dinámicamente
+function generateInventoryFilters() {
+    const container = document.querySelector('#inventorySection .city-filter').parentElement;
+    container.innerHTML = '';
+    
+    appData.inventories.forEach((inventory, index) => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-primary city-filter' + (index === 0 ? ' active' : '');
+        button.dataset.city = inventory.id;
+        button.onclick = () => filterInventoryByCity(inventory.id);
+        button.style.padding = '8px 20px';
+        button.textContent = inventory.name;
+        container.appendChild(button);
+    });
+}
+
 function loadInventoryData() {
     const tbody = document.getElementById('inventoryTableBody');
     tbody.innerHTML = '';
@@ -33,9 +54,9 @@ function loadInventoryData() {
     let totalPrice = 0;
 
     appData.products.forEach((product, index) => {
-        const stock = selectedInventoryCity === 'cochabamba' 
-            ? (product.stockCochabamba || 0) 
-            : (product.stockSantaCruz || 0);
+        const stock = product.stock && product.stock[selectedInventoryCity] 
+            ? product.stock[selectedInventoryCity]
+            : 0;
         const cost = product.cost || 0;
         const price = product.price || 0;
         const costTotal = stock * cost;
@@ -115,11 +136,13 @@ async function saveInventoryRowChanges(index, buttonElement) {
     product.cost = cost;
     product.price = price;
 
-    if (selectedInventoryCity === 'cochabamba') {
-        product.stockCochabamba = stock;
-    } else {
-        product.stockSantaCruz = stock;
+    // Asegurar que existe el objeto stock
+    if (!product.stock) {
+        product.stock = {};
     }
+    
+    // Actualizar el stock del inventario seleccionado
+    product.stock[selectedInventoryCity] = stock;
 
     if (appData.currentProduct && appData.currentProduct.id === product.id) {
         appData.currentProduct = product;

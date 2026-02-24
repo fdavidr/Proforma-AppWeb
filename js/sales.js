@@ -2,12 +2,33 @@
 
 let selectedSalesCity = 'cochabamba';
 
+// Generar botones de filtro de ciudad dinámicamente
+function generateSalesCityFilterButtons() {
+    const container = document.getElementById('salesCityFilterButtons');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    appData.inventories.forEach((inventory, index) => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-primary city-filter-sales' + (index === 0 ? ' active' : '');
+        button.dataset.city = inventory.id;
+        button.onclick = () => filterSalesByCity(inventory.id);
+        button.style.padding = '8px 20px';
+        button.textContent = inventory.name;
+        container.appendChild(button);
+    });
+}
+
 function openSales() {
+    // Generar botones de filtro de ciudad
+    generateSalesCityFilterButtons();
+    
     // Si es vendedor, establecer su ciudad automáticamente
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
         selectedSalesCity = appData.loggedSeller.city;
     } else {
-        selectedSalesCity = 'cochabamba';
+        selectedSalesCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
     }
     
     // Establecer mes actual por defecto
