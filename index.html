@@ -49,10 +49,7 @@
                     <p id="companyNit" class="company-nit" style="display: none;"></p>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button id="manageInventoriesBtn" class="btn btn-config" onclick="openInventoryManagement()" title="Gestionar Inventarios" style="display: none;">🏬 Inventarios</button>
-                <button id="configBtn" class="btn btn-config" onclick="openCompanySettings()" title="Configuración">⚙️ Configuración</button>
-            </div>
+            <button id="configBtn" class="btn btn-config" onclick="openCompanySettings()" title="Configuración">⚙️ Configuración</button>
         </div>
         
         <!-- Header Menu (Sticky) -->
@@ -410,12 +407,33 @@
                 <h2>📦 Inventario de Productos</h2>
                 <button class="btn btn-secondary" onclick="showMainContent()">← Volver</button>
             </div>
+            
+            <!-- Gestión de Inventarios -->
+            <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #2c3e50;">📋 Inventarios Disponibles (<span id="inventoryCountInline">0</span>/4)</h3>
+                    <button id="btnAddInventoryInline" class="btn btn-success" onclick="toggleNewInventoryForm()" style="padding: 8px 15px;">➕ Nuevo Inventario</button>
+                </div>
+                <div id="inventoryListInline" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                    <!-- Lista de inventarios se genera dinámicamente -->
+                </div>
+                <div id="newInventoryFormInline" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Nombre del Nuevo Inventario *</label>
+                        <input type="text" id="newInventoryNameInline" placeholder="Ej: La Paz, Tarija, etc." maxlength="30" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="cancelNewInventoryInline()">Cancelar</button>
+                        <button class="btn btn-success" onclick="confirmNewInventoryInline()">✓ Crear Inventario</button>
+                    </div>
+                </div>
+            </div>
+            
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="flex: 1;">
-                        <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Ciudad</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="btn btn-primary city-filter active" data-city="cochabamba" onclick="filterInventoryByCity('cochabamba')" style="padding: 8px 20px;">Cochabamba</button>
-                            <button class="btn btn-primary city-filter" data-city="santacruz" onclick="filterInventoryByCity('santacruz')" style="padding: 8px 20px;">Santa Cruz</button>
+                        <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Inventario</label>
+                        <div id="inventoryFilterButtons" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <!-- Los botones se generarán dinámicamente -->
                         </div>
                     </div>
                     <div>
@@ -507,37 +525,6 @@
                         <tbody id="salesTableBody"></tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Inventory Management Modal -->
-    <div id="inventoryManagementModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Gestionar Inventarios</h3>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 20px;">
-                    <h4 style="margin-bottom: 10px;">Inventarios Actuales (<span id="inventoryCount">0</span>/4)</h4>
-                    <div id="inventoryList" style="display: flex; flex-direction: column; gap: 10px;">
-                        <!-- Lista dinámica de inventarios -->
-                    </div>
-                </div>
-                <div id="newInventoryForm" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <div class="form-group">
-                        <label>Nombre del Nuevo Inventario *</label>
-                        <input type="text" id="newInventoryName" placeholder="Ej: La Paz, Tarija, etc." maxlength="30">
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" onclick="cancelNewInventory()">Cancelar</button>
-                        <button class="btn btn-success" onclick="confirmNewInventory()">Crear Inventario</button>
-                    </div>
-                </div>
-                <button id="btnAddInventory" class="btn btn-primary" onclick="showNewInventoryForm()" style="width: 100%; margin-top: 15px;">➕ Agregar Nuevo Inventario</button>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('inventoryManagementModal')">Cerrar</button>
             </div>
         </div>
     </div>

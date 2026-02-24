@@ -6,6 +6,9 @@ function openInventory() {
     // Seleccionar el primer inventario disponible
     selectedInventoryCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
     
+    // Generar lista de inventarios disponibles
+    loadInventoryListInline();
+    
     // Generar filtros dinámicos
     generateInventoryFilters();
     
@@ -14,6 +17,94 @@ function openInventory() {
     document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'block';
     document.getElementById('salesSection').style.display = 'none';
+}
+
+// Cargar lista de inventarios disponibles en la sección inline
+function loadInventoryListInline() {
+    const container = document.getElementById('inventoryListInline');
+    const countSpan = document.getElementById('inventoryCountInline');
+    const addButton = document.getElementById('btnAddInventoryInline');
+    
+    if (!container || !countSpan) return;
+    
+    container.innerHTML = '';
+    countSpan.textContent = appData.inventories.length;
+    
+    // Mostrar/ocultar botón de agregar según el límite
+    if (addButton) {
+        if (appData.inventories.length >= 4) {
+            addButton.style.display = 'none';
+        } else {
+            addButton.style.display = 'inline-block';
+        }
+    }
+    
+    appData.inventories.forEach(inventory => {
+        const badge = document.createElement('span');
+        badge.style.cssText = 'padding: 8px 15px; background: #3498db; color: white; border-radius: 20px; font-weight: bold; font-size: 14px;';
+        badge.textContent = inventory.name;
+        container.appendChild(badge);
+    });
+}
+
+// Mostrar formulario de nuevo inventario
+function toggleNewInventoryForm() {
+    const form = document.getElementById('newInventoryFormInline');
+    const button = document.getElementById('btnAddInventoryInline');
+    
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        button.style.display = 'none';
+        document.getElementById('newInventoryNameInline').value = '';
+        document.getElementById('newInventoryNameInline').focus();
+    } else {
+        form.style.display = 'none';
+        button.style.display = 'inline-block';
+    }
+}
+
+// Cancelar creación de nuevo inventario
+function cancelNewInventoryInline() {
+    document.getElementById('newInventoryFormInline').style.display = 'none';
+    document.getElementById('btnAddInventoryInline').style.display = 'inline-block';
+}
+
+// Confirmar creación de nuevo inventario
+async function confirmNewInventoryInline() {
+    const name = document.getElementById('newInventoryNameInline').value.trim();
+    
+    if (createInventory(name)) {
+        await saveData();
+        
+        // Actualizar lista de inventarios en línea
+        loadInventoryListInline();
+        
+        // Actualizar filtros de inventario
+        generateInventoryFilters();
+        
+        // Ocultar formulario
+        cancelNewInventoryInline();
+        
+        alert(`Inventario "${name}" creado exitosamente`);
+    }
+}
+
+// Generar botones de filtro de inventarios dinámicamente
+function generateInventoryFilters() {
+    const container = document.getElementById('inventoryFilterButtons');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    appData.inventories.forEach((inventory, index) => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-primary city-filter' + (index === 0 ? ' active' : '');
+        button.dataset.city = inventory.id;
+        button.onclick = () => filterInventoryByCity(inventory.id);
+        button.style.padding = '8px 20px';
+        button.textContent = inventory.name;
+        container.appendChild(button);
+    });
 }
 
 function filterInventoryByCity(city) {
@@ -28,22 +119,6 @@ function filterInventoryByCity(city) {
     });
     
     loadInventoryData();
-}
-
-// Generar botones de filtro de inventarios dinámicamente
-function generateInventoryFilters() {
-    const container = document.querySelector('#inventorySection .city-filter').parentElement;
-    container.innerHTML = '';
-    
-    appData.inventories.forEach((inventory, index) => {
-        const button = document.createElement('button');
-        button.className = 'btn btn-primary city-filter' + (index === 0 ? ' active' : '');
-        button.dataset.city = inventory.id;
-        button.onclick = () => filterInventoryByCity(inventory.id);
-        button.style.padding = '8px 20px';
-        button.textContent = inventory.name;
-        container.appendChild(button);
-    });
 }
 
 function loadInventoryData() {
@@ -362,3 +437,6 @@ window.loadInventoryData = loadInventoryData;
 window.saveInventoryRowChanges = saveInventoryRowChanges;
 window.deleteProductFromInventory = deleteProductFromInventory;
 window.generateInventoryPDF = generateInventoryPDF;
+window.toggleNewInventoryForm = toggleNewInventoryForm;
+window.cancelNewInventoryInline = cancelNewInventoryInline;
+window.confirmNewInventoryInline = confirmNewInventoryInline;
