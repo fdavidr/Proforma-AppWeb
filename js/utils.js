@@ -111,23 +111,9 @@ function showMainContent() {
     document.getElementById('salesSection').style.display = 'none';
 }
 
-// Toggle de visualización de documentos
+// Toggle de visualización de documentos (simplemente muestra la sección de documentos)
 function toggleDocuments() {
-    const mainContent = document.getElementById('mainContent');
-    const historySection = document.getElementById('historySection');
-    const inventorySection = document.getElementById('inventorySection');
-    const salesSection = document.getElementById('salesSection');
-    
-    // Si mainContent está oculto, mostrarlo y ocultar otras secciones
-    if (mainContent.style.display === 'none') {
-        mainContent.style.display = 'block';
-        historySection.style.display = 'none';
-        inventorySection.style.display = 'none';
-        salesSection.style.display = 'none';
-    } else {
-        // Si mainContent está visible, ocultarlo
-        mainContent.style.display = 'none';
-    }
+    showMainContent();
 }
 
 // ==================== FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN ====================
