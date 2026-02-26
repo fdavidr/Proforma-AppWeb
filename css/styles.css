@@ -97,19 +97,6 @@ select:focus {
     background: #2980b9;
 }
 
-/* Botones de selección de rol */
-.role-selector {
-    width: auto !important;
-    flex: 1;
-    opacity: 0.6;
-    transition: all 0.3s;
-}
-
-.role-selector.active {
-    opacity: 1;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
-}
-
 .btn-success {
     background: #27ae60;
     color: white;
