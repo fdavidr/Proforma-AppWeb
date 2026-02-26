@@ -19,6 +19,7 @@ const firebaseConfig = {
 // Inicializar Firebase (solo si está configurado)
 let db = null;
 let isFirebaseEnabled = false;
+const FIREBASE_PRODUCTS_CHUNK_SIZE = 20;
 
 function initFirebase() {
     try {
@@ -70,6 +71,93 @@ async function loadFromFirestore(collection) {
     }
 }
 
+function createLocalCachePayload(data) {
+    return {
+        ...data,
+        products: (data.products || []).map(product => ({
+            ...product,
+            image: ''
+        })),
+        pdfHistory: (data.pdfHistory || []).slice(0, 150)
+    };
+}
+
+function saveLocalCacheSafe(data) {
+    try {
+        localStorage.setItem('proformaAppData', JSON.stringify(data));
+        return true;
+    } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+            try {
+                const compactData = createLocalCachePayload(data);
+                localStorage.setItem('proformaAppData', JSON.stringify(compactData));
+                console.log('⚠️ Cache local guardado en modo compacto por límite de espacio');
+                return true;
+            } catch (compactError) {
+                console.error('❌ Error guardando cache local compacto:', compactError);
+                return false;
+            }
+        }
+
+        console.error('❌ Error guardando cache local:', error);
+        return false;
+    }
+}
+
+async function saveProductsInChunks(products) {
+    if (!isFirebaseEnabled) {
+        return false;
+    }
+
+    const productsCollection = db.collection('proformaProducts');
+    const chunks = [];
+
+    for (let i = 0; i < products.length; i += FIREBASE_PRODUCTS_CHUNK_SIZE) {
+        chunks.push(products.slice(i, i + FIREBASE_PRODUCTS_CHUNK_SIZE));
+    }
+
+    const existingChunksSnapshot = await productsCollection.get();
+    const existingChunkIds = existingChunksSnapshot.docs.map(doc => doc.id);
+
+    for (let index = 0; index < chunks.length; index++) {
+        await productsCollection.doc(`chunk_${index}`).set({
+            index,
+            items: chunks[index],
+            updatedAt: new Date().toISOString()
+        });
+    }
+
+    const validChunkIds = new Set(chunks.map((_, index) => `chunk_${index}`));
+    for (const chunkId of existingChunkIds) {
+        if (!validChunkIds.has(chunkId)) {
+            await productsCollection.doc(chunkId).delete();
+        }
+    }
+
+    return true;
+}
+
+async function loadProductsFromChunks() {
+    if (!isFirebaseEnabled) {
+        return [];
+    }
+
+    const snapshot = await db.collection('proformaProducts').orderBy('index').get();
+    if (snapshot.empty) {
+        return [];
+    }
+
+    const products = [];
+    snapshot.forEach(doc => {
+        const chunkData = doc.data();
+        if (Array.isArray(chunkData.items)) {
+            products.push(...chunkData.items);
+        }
+    });
+
+    return products;
+}
+
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
     // Limitar cotizaciones a 10 y mantener todas las ventas y entregas
@@ -87,6 +175,7 @@ async function saveAllData(appData) {
     
     const dataToSave = {
         company: { ...appData.company },
+        inventories: appData.inventories || [],
         clients: appData.clients || [],
         sellers: appData.sellers || [],
         products: appData.products || [],
@@ -111,11 +200,20 @@ async function saveAllData(appData) {
     // Intentar guardar en Firebase primero
     if (isFirebaseEnabled) {
         try {
-            await db.collection('proformaApp').doc('appData').set(dataToSave);
+            await saveProductsInChunks(dataToSave.products || []);
+
+            const firebasePayload = {
+                ...dataToSave,
+                products: [],
+                productsStorage: 'chunks',
+                productsCount: (dataToSave.products || []).length
+            };
+
+            await db.collection('proformaApp').doc('appData').set(firebasePayload);
             console.log('✅ Datos guardados exitosamente en Firebase');
-            
-            // También guardar en localStorage como respaldo
-            localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
+
+            // Guardar cache local sin bloquear si hay límite de espacio
+            saveLocalCacheSafe(dataToSave);
             return true;
         } catch (error) {
             console.error('❌ Error guardando en Firebase:', error);
@@ -125,9 +223,12 @@ async function saveAllData(appData) {
 
     // Guardar en localStorage (si Firebase falla o no está disponible)
     try {
-        localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
-        console.log('✅ Datos guardados en localStorage');
-        return true;
+        if (saveLocalCacheSafe(dataToSave)) {
+            console.log('✅ Datos guardados en localStorage');
+            return true;
+        }
+
+        throw new Error('No se pudo guardar en localStorage');
     } catch (error) {
         console.error('❌ Error guardando en localStorage:', error);
         if (error.name === 'QuotaExceededError') {
@@ -140,7 +241,7 @@ async function saveAllData(appData) {
                 .sort((a, b) => b.id - a.id)
                 .slice(0, 30); // Solo mantener 30 entregas más recientes
             dataToSave.pdfHistory = [...limitedCotizaciones, ...ventas, ...entregas].sort((a, b) => b.id - a.id);
-            localStorage.setItem('proformaAppData', JSON.stringify(dataToSave));
+            saveLocalCacheSafe(dataToSave);
         }
         return false;
     }
@@ -156,6 +257,13 @@ async function loadAllData() {
             const doc = await db.collection('proformaApp').doc('appData').get();
             if (doc.exists) {
                 firebaseData = doc.data();
+
+                if (firebaseData.productsStorage === 'chunks') {
+                    firebaseData.products = await loadProductsFromChunks();
+                } else {
+                    firebaseData.products = firebaseData.products || [];
+                }
+
                 console.log('📂 Datos cargados desde Firebase:', {
                     company: firebaseData.company?.name || 'Sin nombre',
                     clientes: firebaseData.clients?.length || 0,
@@ -164,9 +272,9 @@ async function loadAllData() {
                     cotizaciones: firebaseData.pdfHistory?.filter(e => e.type === 'cotizacion').length || 0,
                     ventas: firebaseData.pdfHistory?.filter(e => e.type === 'notaventa').length || 0
                 });
-                
-                // Guardar en localStorage como cache
-                localStorage.setItem('proformaAppData', JSON.stringify(firebaseData));
+
+                // Guardar en localStorage como cache (sin romper la carga por límites)
+                saveLocalCacheSafe(firebaseData);
                 return firebaseData;
             } else {
                 console.log('ℹ️ No hay datos en Firebase - buscando en localStorage');
