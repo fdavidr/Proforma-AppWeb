@@ -15,6 +15,11 @@ async function init() {
     
     // Inicializar efecto de scroll en el header
     initHeaderScrollEffect();
+
+    // Sincronizar contadores de documentos entre múltiples equipos
+    if (typeof startCountersSync === 'function') {
+        startCountersSync();
+    }
 }
 
 // Efecto visual del header al hacer scroll

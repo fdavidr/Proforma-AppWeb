@@ -66,6 +66,10 @@ function handleForgotPassword() {
 function logout() {
     if (confirm('¿Está seguro de cerrar sesión?')) {
         saveData();
+
+        if (typeof stopCountersSync === 'function') {
+            stopCountersSync();
+        }
         
         appData.userRole = null;
         appData.loggedSeller = null;

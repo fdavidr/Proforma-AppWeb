@@ -20,6 +20,12 @@ const firebaseConfig = {
 let db = null;
 let isFirebaseEnabled = false;
 const FIREBASE_PRODUCTS_CHUNK_SIZE = 20;
+const DOCUMENT_COUNTER_FIELDS = {
+    cotizacion: 'currentQuoteNumber',
+    notaventa: 'currentSaleNumber',
+    notaentrega: 'currentDeliveryNumber'
+};
+let countersSyncInterval = null;
 
 function initFirebase() {
     try {
@@ -158,6 +164,103 @@ async function loadProductsFromChunks() {
     return products;
 }
 
+async function reserveDocumentNumber(documentType) {
+    const counterField = DOCUMENT_COUNTER_FIELDS[documentType];
+    if (!counterField) {
+        return null;
+    }
+
+    const localCurrent = appData[counterField] || 100000;
+
+    if (!isFirebaseEnabled) {
+        return {
+            number: localCurrent,
+            next: localCurrent + 1,
+            source: 'local'
+        };
+    }
+
+    try {
+        const appDocRef = db.collection('proformaApp').doc('appData');
+        const result = await db.runTransaction(async transaction => {
+            const snapshot = await transaction.get(appDocRef);
+            const existingData = snapshot.exists ? snapshot.data() : {};
+            const currentNumber = existingData[counterField] || localCurrent;
+            const nextNumber = currentNumber + 1;
+
+            transaction.set(appDocRef, {
+                [counterField]: nextNumber,
+                lastUpdated: new Date().toISOString()
+            }, { merge: true });
+
+            return {
+                number: currentNumber,
+                next: nextNumber,
+                source: 'firebase'
+            };
+        });
+
+        return result;
+    } catch (error) {
+        console.error('❌ Error reservando número de documento:', error);
+        return {
+            number: localCurrent,
+            next: localCurrent + 1,
+            source: 'fallback'
+        };
+    }
+}
+
+async function syncDocumentCounters() {
+    if (!isFirebaseEnabled) {
+        return false;
+    }
+
+    try {
+        const doc = await db.collection('proformaApp').doc('appData').get();
+        if (!doc.exists) {
+            return false;
+        }
+
+        const data = doc.data();
+        let hasChanges = false;
+
+        Object.values(DOCUMENT_COUNTER_FIELDS).forEach(field => {
+            if (typeof data[field] === 'number' && data[field] > (appData[field] || 0)) {
+                appData[field] = data[field];
+                hasChanges = true;
+            }
+        });
+
+        if (hasChanges && typeof updateDocumentNumber === 'function') {
+            updateDocumentNumber();
+        }
+
+        return hasChanges;
+    } catch (error) {
+        console.error('❌ Error sincronizando contadores:', error);
+        return false;
+    }
+}
+
+function startCountersSync() {
+    if (countersSyncInterval) {
+        clearInterval(countersSyncInterval);
+    }
+
+    syncDocumentCounters();
+    countersSyncInterval = setInterval(() => {
+        syncDocumentCounters();
+    }, 10000);
+}
+
+function stopCountersSync() {
+    if (countersSyncInterval) {
+        clearInterval(countersSyncInterval);
+        countersSyncInterval = null;
+    }
+}
+
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
     // Limitar cotizaciones a 10 y mantener todas las ventas y entregas
@@ -209,7 +312,30 @@ async function saveAllData(appData) {
                 productsCount: (dataToSave.products || []).length
             };
 
-            await db.collection('proformaApp').doc('appData').set(firebasePayload);
+            const appDocRef = db.collection('proformaApp').doc('appData');
+            await db.runTransaction(async transaction => {
+                const snapshot = await transaction.get(appDocRef);
+                const existingData = snapshot.exists ? snapshot.data() : {};
+
+                firebasePayload.currentQuoteNumber = Math.max(
+                    firebasePayload.currentQuoteNumber || 100000,
+                    existingData.currentQuoteNumber || 100000
+                );
+                firebasePayload.currentSaleNumber = Math.max(
+                    firebasePayload.currentSaleNumber || 100000,
+                    existingData.currentSaleNumber || 100000
+                );
+                firebasePayload.currentDeliveryNumber = Math.max(
+                    firebasePayload.currentDeliveryNumber || 100000,
+                    existingData.currentDeliveryNumber || 100000
+                );
+
+                transaction.set(appDocRef, firebasePayload, { merge: true });
+            });
+
+            appData.currentQuoteNumber = firebasePayload.currentQuoteNumber;
+            appData.currentSaleNumber = firebasePayload.currentSaleNumber;
+            appData.currentDeliveryNumber = firebasePayload.currentDeliveryNumber;
             console.log('✅ Datos guardados exitosamente en Firebase');
 
             // Guardar cache local sin bloquear si hay límite de espacio
@@ -301,9 +427,7 @@ async function loadAllData() {
             
             // Si Firebase está habilitado y tiene datos locales, sincronizarlos
             if (isFirebaseEnabled && !firebaseData) {
-                console.log('🔄 Sincronizando datos locales con Firebase...');
-                await db.collection('proformaApp').doc('appData').set(localData);
-                console.log('✅ Datos sincronizados con Firebase');
+                console.log('⚠️ Usando datos locales temporales. No se sincroniza automáticamente para evitar sobrescribir contadores remotos.');
             }
             
             return localData;
@@ -321,3 +445,7 @@ window.initFirebase = initFirebase;
 window.saveAllData = saveAllData;
 window.loadAllData = loadAllData;
 window.isFirebaseEnabled = () => isFirebaseEnabled;
+window.reserveDocumentNumber = reserveDocumentNumber;
+window.syncDocumentCounters = syncDocumentCounters;
+window.startCountersSync = startCountersSync;
+window.stopCountersSync = stopCountersSync;

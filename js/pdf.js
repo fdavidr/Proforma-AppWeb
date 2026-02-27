@@ -45,6 +45,20 @@ async function generatePDF() {
 
     isGeneratingPDF = true;
     try {
+        const reservedNumber = typeof reserveDocumentNumber === 'function'
+            ? await reserveDocumentNumber(appData.documentType)
+            : null;
+
+        if (reservedNumber) {
+            if (appData.documentType === 'cotizacion') {
+                appData.currentQuoteNumber = reservedNumber.number;
+            } else if (appData.documentType === 'notaventa') {
+                appData.currentSaleNumber = reservedNumber.number;
+            } else if (appData.documentType === 'notaentrega') {
+                appData.currentDeliveryNumber = reservedNumber.number;
+            }
+        }
+
         saveTerms();
         console.log('generatePDF: company.nit =', appData.company.nit);
 
@@ -143,13 +157,23 @@ async function generatePDF() {
             });
         }
 
-        // Incrementar número según tipo de documento
-        if (appData.documentType === 'cotizacion') {
-            appData.currentQuoteNumber++;
-        } else if (appData.documentType === 'notaventa') {
-            appData.currentSaleNumber++;
-        } else if (appData.documentType === 'notaentrega') {
-            appData.currentDeliveryNumber++;
+        // Actualizar contador local al siguiente número reservado
+        if (reservedNumber) {
+            if (appData.documentType === 'cotizacion') {
+                appData.currentQuoteNumber = reservedNumber.next;
+            } else if (appData.documentType === 'notaventa') {
+                appData.currentSaleNumber = reservedNumber.next;
+            } else if (appData.documentType === 'notaentrega') {
+                appData.currentDeliveryNumber = reservedNumber.next;
+            }
+        } else {
+            if (appData.documentType === 'cotizacion') {
+                appData.currentQuoteNumber++;
+            } else if (appData.documentType === 'notaventa') {
+                appData.currentSaleNumber++;
+            } else if (appData.documentType === 'notaentrega') {
+                appData.currentDeliveryNumber++;
+            }
         }
         
         // Guardar datos (esperar a que termine)
