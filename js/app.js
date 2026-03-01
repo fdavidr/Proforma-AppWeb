@@ -5,11 +5,11 @@ async function init() {
     // Solo actualizar UI y configuraciones
     updateUI();
     
-    // Esperar a que el DOM esté completamente listo y los textareas sean accesibles
-    setTimeout(() => {
+    // Esperar a que los elementos de términos estén disponibles antes de cargar
+    waitForTermsElements(() => {
         loadTerms();
         initTermsListeners();
-    }, 100);
+    });
     
     initPdfDatePicker();
     

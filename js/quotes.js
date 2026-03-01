@@ -110,10 +110,16 @@ function selectSaleCity(city) {
 
 function loadTerms() {
     const terms = appData.terms[appData.documentType];
+    
+    console.log('🔄 Intentando cargar términos para:', appData.documentType);
+    
     for (let i = 0; i < 4; i++) {
         const textarea = document.getElementById('term' + (i + 1));
         if (textarea) {
             textarea.value = terms[i] || '';
+            console.log(`✅ Término ${i + 1} cargado:`, terms[i] || '(vacío)');
+        } else {
+            console.warn(`⚠️ No se encontró textarea term${i + 1}`);
         }
     }
 }
@@ -128,6 +134,7 @@ function saveTerms() {
     }
     appData.terms[appData.documentType] = terms;
     saveData();
+    console.log('💾 Términos guardados:', terms);
 }
 
 function initTermsListeners() {
@@ -135,16 +142,53 @@ function initTermsListeners() {
     for (let i = 1; i <= 4; i++) {
         const textarea = document.getElementById('term' + i);
         if (textarea) {
-            // Guardar cuando el usuario termine de escribir (después de 500ms de inactividad)
+            // Remover listeners anteriores si existen
+            const newTextarea = textarea.cloneNode(true);
+            textarea.parentNode.replaceChild(newTextarea, textarea);
+            
+            // Agregar nuevo listener
             let timeout;
-            textarea.addEventListener('input', () => {
+            newTextarea.addEventListener('input', () => {
                 clearTimeout(timeout);
                 timeout = setTimeout(() => {
                     saveTerms();
                 }, 500);
             });
+            console.log(`✅ Listener agregado a term${i}`);
+        } else {
+            console.warn(`⚠️ No se pudo agregar listener a term${i}`);
         }
     }
+}
+
+// Función auxiliar para esperar hasta que los elementos estén disponibles
+function waitForTermsElements(callback, maxAttempts = 20) {
+    let attempts = 0;
+    
+    const checkElements = () => {
+        attempts++;
+        
+        // Verificar si todos los textareas existen
+        const allElementsExist = [1, 2, 3, 4].every(i => {
+            return document.getElementById('term' + i) !== null;
+        });
+        
+        if (allElementsExist) {
+            console.log(`✅ Elementos de términos encontrados en intento ${attempts}`);
+            callback();
+            return true;
+        }
+        
+        if (attempts >= maxAttempts) {
+            console.error('❌ Timeout: No se encontraron los elementos de términos después de', attempts, 'intentos');
+            return false;
+        }
+        
+        // Reintentar en 50ms
+        setTimeout(checkElements, 50);
+    };
+    
+    checkElements();
 }
 
 function addProductToQuote() {
