@@ -5,11 +5,13 @@ async function init() {
     // Solo actualizar UI y configuraciones
     updateUI();
     
-    // Esperar a que los elementos de términos estén disponibles antes de cargar
-    waitForTermsElements(() => {
+    // Forzar carga de términos con reintentos automáticos
+    forceLoadTermsWithRetry();
+    
+    // Reintentar carga adicional después de 500ms por seguridad
+    setTimeout(() => {
         loadTerms();
-        initTermsListeners();
-    });
+    }, 500);
     
     initPdfDatePicker();
     

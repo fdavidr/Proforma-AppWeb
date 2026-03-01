@@ -37,7 +37,18 @@ function initLogin() {
             
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-            init();
+            
+            // Forzar render del DOM antes de init
+            setTimeout(() => {
+                init();
+                
+                // Forzar recarga de términos adicional después del init
+                setTimeout(() => {
+                    if (typeof loadTerms === 'function') {
+                        loadTerms();
+                    }
+                }, 300);
+            }, 0);
         } else {
             const errorDiv = document.getElementById('loginError');
             errorDiv.textContent = 'Usuario o contraseña incorrectos';

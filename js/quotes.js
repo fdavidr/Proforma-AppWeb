@@ -110,18 +110,18 @@ function selectSaleCity(city) {
 
 function loadTerms() {
     const terms = appData.terms[appData.documentType];
-    
-    console.log('🔄 Intentando cargar términos para:', appData.documentType);
+    let loadedCount = 0;
     
     for (let i = 0; i < 4; i++) {
         const textarea = document.getElementById('term' + (i + 1));
         if (textarea) {
             textarea.value = terms[i] || '';
-            console.log(`✅ Término ${i + 1} cargado:`, terms[i] || '(vacío)');
-        } else {
-            console.warn(`⚠️ No se encontró textarea term${i + 1}`);
+            loadedCount++;
         }
     }
+    
+    console.log(`📝 Términos cargados (${loadedCount}/4) para:`, appData.documentType);
+    return loadedCount === 4;
 }
 
 function saveTerms() {
@@ -134,15 +134,13 @@ function saveTerms() {
     }
     appData.terms[appData.documentType] = terms;
     saveData();
-    console.log('💾 Términos guardados:', terms);
 }
 
 function initTermsListeners() {
-    // Agregar listeners a cada textarea para auto-guardar
     for (let i = 1; i <= 4; i++) {
         const textarea = document.getElementById('term' + i);
         if (textarea) {
-            // Remover listeners anteriores si existen
+            // Remover listener anterior si existe
             const newTextarea = textarea.cloneNode(true);
             textarea.parentNode.replaceChild(newTextarea, textarea);
             
@@ -154,41 +152,33 @@ function initTermsListeners() {
                     saveTerms();
                 }, 500);
             });
-            console.log(`✅ Listener agregado a term${i}`);
-        } else {
-            console.warn(`⚠️ No se pudo agregar listener a term${i}`);
         }
     }
 }
 
-// Función auxiliar para esperar hasta que los elementos estén disponibles
-function waitForTermsElements(callback, maxAttempts = 20) {
+// Función para forzar recarga de términos con reintentos
+function forceLoadTermsWithRetry() {
     let attempts = 0;
+    const maxAttempts = 10;
     
-    const checkElements = () => {
+    const tryLoad = () => {
         attempts++;
+        const success = loadTerms();
         
-        // Verificar si todos los textareas existen
-        const allElementsExist = [1, 2, 3, 4].every(i => {
-            return document.getElementById('term' + i) !== null;
-        });
-        
-        if (allElementsExist) {
-            console.log(`✅ Elementos de términos encontrados en intento ${attempts}`);
-            callback();
-            return true;
+        if (success) {
+            console.log(`✅ Términos cargados exitosamente en intento ${attempts}`);
+            initTermsListeners();
+            return;
         }
         
-        if (attempts >= maxAttempts) {
-            console.error('❌ Timeout: No se encontraron los elementos de términos después de', attempts, 'intentos');
-            return false;
+        if (attempts < maxAttempts) {
+            setTimeout(tryLoad, 100);
+        } else {
+            console.error('❌ No se pudieron cargar términos después de', maxAttempts, 'intentos');
         }
-        
-        // Reintentar en 50ms
-        setTimeout(checkElements, 50);
     };
     
-    checkElements();
+    tryLoad();
 }
 
 function addProductToQuote() {
