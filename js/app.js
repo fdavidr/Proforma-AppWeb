@@ -5,10 +5,11 @@ async function init() {
     // Solo actualizar UI y configuraciones
     updateUI();
     
-    // Esperar un frame para asegurar que el DOM esté completamente renderizado
-    requestAnimationFrame(() => {
+    // Esperar a que el DOM esté completamente listo y los textareas sean accesibles
+    setTimeout(() => {
         loadTerms();
-    });
+        initTermsListeners();
+    }, 100);
     
     initPdfDatePicker();
     

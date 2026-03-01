@@ -111,17 +111,40 @@ function selectSaleCity(city) {
 function loadTerms() {
     const terms = appData.terms[appData.documentType];
     for (let i = 0; i < 4; i++) {
-        document.getElementById('term' + (i + 1)).value = terms[i] || '';
+        const textarea = document.getElementById('term' + (i + 1));
+        if (textarea) {
+            textarea.value = terms[i] || '';
+        }
     }
 }
 
 function saveTerms() {
     const terms = [];
     for (let i = 1; i <= 4; i++) {
-        terms.push(document.getElementById('term' + i).value);
+        const textarea = document.getElementById('term' + i);
+        if (textarea) {
+            terms.push(textarea.value);
+        }
     }
     appData.terms[appData.documentType] = terms;
     saveData();
+}
+
+function initTermsListeners() {
+    // Agregar listeners a cada textarea para auto-guardar
+    for (let i = 1; i <= 4; i++) {
+        const textarea = document.getElementById('term' + i);
+        if (textarea) {
+            // Guardar cuando el usuario termine de escribir (después de 500ms de inactividad)
+            let timeout;
+            textarea.addEventListener('input', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    saveTerms();
+                }, 500);
+            });
+        }
+    }
 }
 
 function addProductToQuote() {
