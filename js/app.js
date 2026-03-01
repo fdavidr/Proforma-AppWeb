@@ -4,7 +4,12 @@ async function init() {
     // Los datos ya fueron cargados en DOMContentLoaded
     // Solo actualizar UI y configuraciones
     updateUI();
-    loadTerms();
+    
+    // Esperar un frame para asegurar que el DOM esté completamente renderizado
+    requestAnimationFrame(() => {
+        loadTerms();
+    });
+    
     initPdfDatePicker();
     
     // Mostrar selector de documentos por defecto
