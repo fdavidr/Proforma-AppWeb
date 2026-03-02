@@ -169,31 +169,105 @@ select:focus {
 }
 
 /* Header Menu - Botones de navegación (sticky) */
-.app-header-menu {
+/* Layout Container */
+.app-layout-container {
+    display: flex;
+    gap: 20px;
+    min-height: calc(100vh - 180px);
+}
+
+/* Sidebar Vertical Menu */
+.app-sidebar {
+    width: 250px;
     background: white;
-    padding: 15px 20px;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     position: sticky;
-    top: 0;
-    z-index: 1000;
-    transition: box-shadow 0.3s ease;
+    top: 20px;
+    height: fit-content;
+    max-height: calc(100vh - 40px);
 }
 
-/* Efecto de sombra cuando se hace scroll */
-.app-header-menu.scrolled {
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
 }
 
-/* Botón activo del menú */
-.app-header-menu .btn.active-menu {
-    background: #3498db;
+.sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 20px;
+    border-top: 2px solid #ecf0f1;
+}
+
+/* Botones del Sidebar */
+.btn-sidebar {
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+}
+
+.btn-sidebar .icon {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+}
+
+.btn-sidebar .text {
+    flex: 1;
+}
+
+.btn-sidebar:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+/* Botón activo del menú vertical */
+.btn-sidebar.active-menu {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
     color: white;
-    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
-    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    transform: translateX(5px);
     font-weight: 600;
-    border-bottom: 3px solid #2980b9;
+    border-left: 4px solid #2c3e50;
+}
+
+.btn-sidebar.active-menu:hover {
+    transform: translateX(8px);
+}
+
+/* Botón de logout */
+.btn-sidebar.btn-logout {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-sidebar.btn-logout:hover {
+    background: #c0392b;
+}
+
+/* Content Wrapper */
+.app-content-wrapper {
+    flex: 1;
+    min-width: 0;
 }
 
 /* Botón de configuración ya no tiene estilos especiales, usa btn-secondary */
@@ -228,18 +302,15 @@ select:focus {
     color: #34495e;
 }
 
-.header-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
 .quote-number {
-    background: #ecf0f1;
-    padding: 10px 20px;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 15px;
+    border-radius: 12px;
     font-weight: bold;
-    color: #2c3e50;
+    color: white;
+    text-align: center;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 /* ==================== CONTENIDO PRINCIPAL ==================== */
@@ -650,6 +721,37 @@ input[type="file"] {
 }
 
 /* ==================== RESPONSIVE ==================== */
+@media (max-width: 1024px) {
+    .app-layout-container {
+        flex-direction: column;
+    }
+    
+    .app-sidebar {
+        width: 100%;
+        position: relative;
+        top: 0;
+        max-height: none;
+    }
+    
+    .sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .sidebar-footer {
+        flex-direction: row;
+        border-top: none;
+        border-left: 2px solid #ecf0f1;
+        padding-top: 0;
+        padding-left: 20px;
+    }
+    
+    .btn-sidebar {
+        flex: 1;
+        min-width: 150px;
+    }
+}
+
 @media (max-width: 768px) {
     .product-input-area {
         grid-template-columns: 1fr;
@@ -665,6 +767,22 @@ input[type="file"] {
 
     .selection-area .form-group {
         width: 100%;
+    }
+    
+    .sidebar-nav {
+        flex-direction: column;
+    }
+    
+    .sidebar-footer {
+        flex-direction: column;
+        border-left: none;
+        border-top: 2px solid #ecf0f1;
+        padding-left: 0;
+        padding-top: 20px;
+    }
+    
+    .btn-sidebar {
+        min-width: auto;
     }
 
     /* Ajustes para la tabla de productos en móviles */

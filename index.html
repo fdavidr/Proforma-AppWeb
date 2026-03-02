@@ -53,24 +53,56 @@
             </div>
         </div>
         
-        <!-- Header Menu (Sticky) -->
-        <div class="app-header-menu">
-            <div class="header-actions">
-                <button id="documentsBtn" class="btn btn-secondary" onclick="toggleDocuments()">📄 Documentos</button>
-                <button id="inventoryBtn" class="btn btn-secondary" onclick="openInventory()">📦 Inventario</button>
-                <button id="salesBtn" class="btn btn-secondary" onclick="openSales()">💰 Ventas</button>
-                <button id="historyBtn" class="btn btn-secondary" onclick="openHistory()">📋 Historial</button>
-                <button id="exportBtn" class="btn btn-secondary" onclick="exportData()" style="display: none;">📤 Exportar</button>
-                <button id="importBtn" class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()" style="display: none;">📥 Importar</button>
-                <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
+        <!-- Layout Container con Sidebar y Contenido -->
+        <div class="app-layout-container">
+            <!-- Sidebar Menu (Vertical) -->
+            <aside class="app-sidebar">
                 <div class="quote-number">
                     <span id="quoteNumber">Nº 100000</span>
                 </div>
-                <button id="configBtn" class="btn btn-secondary" onclick="openCompanySettings()" title="Configuración">⚙️ Configuración</button>
-                <button class="btn btn-danger" onclick="logout()">Salir</button>
-            </div>
-        </div>
-
+                
+                <nav class="sidebar-nav">
+                    <button id="documentsBtn" class="btn btn-sidebar" onclick="toggleDocuments()">
+                        <span class="icon">📄</span>
+                        <span class="text">Documentos</span>
+                    </button>
+                    <button id="inventoryBtn" class="btn btn-sidebar" onclick="openInventory()">
+                        <span class="icon">📦</span>
+                        <span class="text">Inventario</span>
+                    </button>
+                    <button id="salesBtn" class="btn btn-sidebar" onclick="openSales()">
+                        <span class="icon">💰</span>
+                        <span class="text">Ventas</span>
+                    </button>
+                    <button id="historyBtn" class="btn btn-sidebar" onclick="openHistory()">
+                        <span class="icon">📋</span>
+                        <span class="text">Historial</span>
+                    </button>
+                    <button id="exportBtn" class="btn btn-sidebar" onclick="exportData()" style="display: none;">
+                        <span class="icon">📤</span>
+                        <span class="text">Exportar</span>
+                    </button>
+                    <button id="importBtn" class="btn btn-sidebar" onclick="document.getElementById('importFileInput').click()" style="display: none;">
+                        <span class="icon">📥</span>
+                        <span class="text">Importar</span>
+                    </button>
+                    <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <button id="configBtn" class="btn btn-sidebar" onclick="openCompanySettings()" title="Configuración">
+                        <span class="icon">⚙️</span>
+                        <span class="text">Configuración</span>
+                    </button>
+                    <button class="btn btn-sidebar btn-logout" onclick="logout()">
+                        <span class="icon">🚪</span>
+                        <span class="text">Salir</span>
+                    </button>
+                </div>
+            </aside>
+            
+            <!-- Content Area -->
+            <div class="app-content-wrapper">
         <!-- Main Content -->
         <div id="mainContent" class="main-content">
             <!-- Document Type Toggle -->
@@ -546,7 +578,10 @@
                 </div>
             </div>
         </div>
-    </div>
+        
+        </div> <!-- End of app-content-wrapper -->
+        </div> <!-- End of app-layout-container -->
+    </div> <!-- End of app -->
 
     <!-- ==================== SCRIPTS ==================== -->
     <script src="js/firebase-config.js"></script>
