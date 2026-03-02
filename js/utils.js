@@ -105,8 +105,8 @@ function updateDocumentNumber() {
 
 // Actualizar botón activo del menú
 function setActiveMenuButton(buttonId) {
-    // Remover clase activa de todos los botones del menú
-    document.querySelectorAll('.app-header-menu .btn').forEach(btn => {
+    // Remover clase activa de todos los botones del sidebar
+    document.querySelectorAll('.btn-sidebar').forEach(btn => {
         btn.classList.remove('active-menu');
     });
     
