@@ -410,48 +410,65 @@
                 <button class="btn btn-secondary" onclick="showMainContent()">← Volver</button>
             </div>
             
-            <!-- Gestión de Inventarios -->
-            <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #2c3e50;">📋 Inventarios Disponibles (<span id="inventoryCountInline">0</span>/4)</h3>
-                    <button id="btnAddInventoryInline" class="btn btn-success" onclick="toggleNewInventoryForm()" style="padding: 8px 15px;">➕ Nuevo Inventario</button>
+            <!-- Panel de Control Unificado -->
+            <div style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                <!-- Fila 1: Gestión de Inventarios -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                            <h3 style="margin: 0; color: #2c3e50; font-size: 16px;">📋 Inventarios (<span id="inventoryCountInline">0</span>/4)</h3>
+                            <button id="btnAddInventoryInline" class="btn btn-success" onclick="toggleNewInventoryForm()" style="padding: 6px 12px; font-size: 13px;">➕ Nuevo</button>
+                        </div>
+                        <div id="inventoryListInline" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <!-- Lista de inventarios se genera dinámicamente -->
+                        </div>
+                    </div>
                 </div>
-                <div id="inventoryListInline" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                    <!-- Lista de inventarios se genera dinámicamente -->
-                </div>
-                <div id="newInventoryFormInline" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                
+                <!-- Formulario Nuevo Inventario (oculto por defecto) -->
+                <div id="newInventoryFormInline" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #27ae60;">
                     <div class="form-group" style="margin-bottom: 10px;">
-                        <label>Nombre del Nuevo Inventario *</label>
-                        <input type="text" id="newInventoryNameInline" placeholder="Ej: La Paz, Tarija, etc." maxlength="30" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                        <label style="font-weight: 600; color: #2c3e50;">Nombre del Nuevo Inventario *</label>
+                        <input type="text" id="newInventoryNameInline" placeholder="Ej: La Paz, Tarija, etc." maxlength="30" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn btn-secondary" onclick="cancelNewInventoryInline()">Cancelar</button>
                         <button class="btn btn-success" onclick="confirmNewInventoryInline()">✓ Crear Inventario</button>
                     </div>
                 </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <div style="flex: 1;">
-                        <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Inventario</label>
-                        <div id="inventoryFilterButtons" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                
+                <!-- Fila 2: Filtros, Totales y Acciones -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 20px; align-items: end;">
+                    <!-- Selector de Inventario -->
+                    <div>
+                        <label style="font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 8px;">🔍 Filtrar por Inventario</label>
+                        <div id="inventoryFilterButtons" style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <!-- Los botones se generarán dinámicamente -->
                         </div>
                     </div>
-                    <div>
-                        <div style="font-size: 14px; color: #666; text-align: center;">Costo Total Inventario</div>
-                        <div style="font-size: 20px; font-weight: bold; color: #e74c3c; text-align: center;" id="totalCostInventory">Bs 0.00</div>
+                    
+                    <!-- Costo Total -->
+                    <div style="text-align: center; padding: 12px; background: #ffebee; border-radius: 8px;">
+                        <div style="font-size: 12px; color: #c62828; font-weight: 600; margin-bottom: 4px;">COSTO TOTAL</div>
+                        <div style="font-size: 22px; font-weight: bold; color: #e74c3c;" id="totalCostInventory">Bs 0.00</div>
                     </div>
-                    <div>
-                        <div style="font-size: 14px; color: #666; text-align: center;">Precio Total Inventario</div>
-                        <div style="font-size: 20px; font-weight: bold; color: #27ae60; text-align: center;" id="totalPriceInventory">Bs 0.00</div>
+                    
+                    <!-- Precio Total -->
+                    <div style="text-align: center; padding: 12px; background: #e8f5e9; border-radius: 8px;">
+                        <div style="font-size: 12px; color: #2e7d32; font-weight: 600; margin-bottom: 4px;">PRECIO TOTAL</div>
+                        <div style="font-size: 22px; font-weight: bold; color: #27ae60;" id="totalPriceInventory">Bs 0.00</div>
                     </div>
-                    <div>
-                        <button class="btn btn-success" onclick="handleProductAction()">➕ Nuevo Producto</button>
-                        <button class="btn btn-primary" onclick="generateInventoryPDF()">📄 Descargar PDF</button>
+                    
+                    <!-- Botones de Acción -->
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="handleProductAction()" style="white-space: nowrap;">➕ Producto</button>
+                        <button class="btn btn-primary" onclick="generateInventoryPDF()" style="white-space: nowrap;">📄 PDF</button>
                     </div>
                 </div>
-                <div id="inventoryContent">
+            </div>
+            
+            <!-- Tabla de Productos -->
+            <div id="inventoryContent">
                     <table class="products-table">
                         <thead>
                             <tr>
