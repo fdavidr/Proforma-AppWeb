@@ -21,6 +21,11 @@ async function init() {
         typeToggle.style.display = 'flex';
     }
     
+    // Establecer botón de Documentos como activo por defecto
+    if (typeof setActiveMenuButton === 'function') {
+        setActiveMenuButton('documentsBtn');
+    }
+    
     // Inicializar efecto de scroll en el header
     initHeaderScrollEffect();
 

@@ -17,6 +17,7 @@ function openInventory() {
     document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'block';
     document.getElementById('salesSection').style.display = 'none';
+    setActiveMenuButton('inventoryBtn');
 }
 
 // Cargar lista de inventarios disponibles en la sección inline

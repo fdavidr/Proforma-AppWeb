@@ -103,12 +103,27 @@ function updateDocumentNumber() {
     }
 }
 
+// Actualizar botón activo del menú
+function setActiveMenuButton(buttonId) {
+    // Remover clase activa de todos los botones del menú
+    document.querySelectorAll('.app-header-menu .btn').forEach(btn => {
+        btn.classList.remove('active-menu');
+    });
+    
+    // Agregar clase activa al botón seleccionado
+    const activeButton = document.getElementById(buttonId);
+    if (activeButton) {
+        activeButton.classList.add('active-menu');
+    }
+}
+
 // Mostrar contenido principal y ocultar secciones
 function showMainContent() {
     document.getElementById('mainContent').style.display = 'block';
     document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'none';
+    setActiveMenuButton('documentsBtn');
 }
 
 // Toggle de visualización de documentos (simplemente muestra la sección de documentos)

@@ -37,6 +37,7 @@ function openSales() {
     document.getElementById('salesMonthFilter').value = currentMonth;
     
     filterSalesByMonth();
+    setActiveMenuButton('salesBtn');
     
     // Mostrar sección de ventas
     document.getElementById('mainContent').style.display = 'none';

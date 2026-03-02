@@ -6,6 +6,7 @@ function openHistory() {
     document.getElementById('historySection').style.display = 'block';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'none';
+    setActiveMenuButton('historyBtn');
 }
 
 function renderHistory() {
