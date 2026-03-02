@@ -181,9 +181,9 @@ function filterSalesByMonth() {
             <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
             <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
             <td>${sale.date}</td>
-            <td style="display: flex; gap: 5px;">
-                <button class="btn btn-primary" onclick="viewSalePDF(${sale.id})" style="background: #3498db; color: white; padding: 6px 12px; font-size: 12px;">Ver PDF</button>
-                <button class="btn btn-delete" onclick="deleteSale(${sale.id})" style="background: #e74c3c; color: white; padding: 6px 12px; font-size: 12px;">Eliminar</button>
+            <td style="white-space: nowrap;">
+                <button class="btn-action-icon btn-action-primary" onclick="viewSalePDF(${sale.id})" title="Ver PDF">👁️</button>
+                <button class="btn-action-icon btn-action-danger" onclick="deleteSale(${sale.id})" title="Eliminar">🗑️</button>
             </td>
         `;
         tbody.appendChild(tr);

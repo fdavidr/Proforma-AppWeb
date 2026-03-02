@@ -164,9 +164,9 @@ function loadInventoryData() {
             </td>
             <td>Bs ${costTotal.toFixed(2)}</td>
             <td>Bs ${priceTotal.toFixed(2)}</td>
-            <td>
-                <button class="btn btn-success btn-sm" onclick="saveInventoryRowChanges(${index}, this)" style="padding: 5px 10px; margin: 2px;">💾 GUARDAR CAMBIOS</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteProductFromInventory(${index})" style="padding: 5px 10px; margin: 2px;">🗑️</button>
+            <td style="white-space: nowrap;">
+                <button class="btn-action-icon btn-action-success" onclick="saveInventoryRowChanges(${index}, this)" title="Guardar cambios">💾</button>
+                <button class="btn-action-icon btn-action-danger" onclick="deleteProductFromInventory(${index})" title="Eliminar">🗑️</button>
             </td>
         `;
 

@@ -268,7 +268,6 @@ select:focus {
 .app-content-wrapper {
     flex: 1;
     min-width: 0;
-    overflow-x: hidden;
 }
 
 /* Botón de configuración ya no tiene estilos especiales, usa btn-secondary */
@@ -327,7 +326,6 @@ select:focus {
 .content-section {
     background: white;
     min-height: calc(100vh - 140px);
-    overflow-x: auto;
     width: 100%;
 }
 
@@ -415,37 +413,83 @@ select:focus {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    min-width: 800px;
 }
 
 .table-responsive {
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+}
+
+/* Botones de acción compactos (solo iconos) */
+.btn-action-icon {
+    padding: 6px 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 2px;
+}
+
+.btn-action-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-action-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-action-primary:hover {
+    background: #2980b9;
+}
+
+.btn-action-success {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-action-success:hover {
+    background: #229954;
+}
+
+.btn-action-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-action-danger:hover {
+    background: #c0392b;
 }
 
 .products-table th {
     background: #3498db;
     color: white;
-    padding: 12px;
+    padding: 10px 8px;
     text-align: left;
     font-weight: 500;
     white-space: nowrap;
+    font-size: 13px;
 }
 
 .products-table td {
-    padding: 12px;
+    padding: 10px 8px;
     border-bottom: 1px solid #ecf0f1;
-    white-space: nowrap;
+    font-size: 13px;
+}
+
+.products-table td:last-child {
+    width: 100px;
+    text-align: center;
 }
 
 .inventory-inline-input {
     width: 100%;
-    min-width: 95px;
-    padding: 6px 8px;
+    min-width: 70px;
+    padding: 5px 6px;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .inventory-inline-input:focus {
@@ -454,7 +498,7 @@ select:focus {
 }
 
 .inventory-description {
-    min-width: 180px;
+    min-width: 150px;
 }
 
 /* Contenedor con scroll para la tabla */

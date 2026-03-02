@@ -37,9 +37,9 @@ function renderHistory() {
             <td>${entry.seller.name || entry.seller}</td>
             <td>Bs ${entry.total.toFixed(2)}</td>
             <td>${entry.date}</td>
-            <td>
-                <button class="btn btn-primary" onclick="redownloadPDF(${entry.id})" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">📥 Descargar</button>
-                <button class="btn btn-delete" onclick="deleteHistoryEntry(${entry.id})" style="background: #e74c3c; color: white;">Eliminar</button>
+            <td style="white-space: nowrap;">
+                <button class="btn-action-icon btn-action-primary" onclick="redownloadPDF(${entry.id})" title="Descargar PDF">📄</button>
+                <button class="btn-action-icon btn-action-danger" onclick="deleteHistoryEntry(${entry.id})" title="Eliminar">🗑️</button>
             </td>
         `;
         tbody.appendChild(tr);
