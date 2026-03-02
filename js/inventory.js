@@ -99,10 +99,9 @@ function generateInventoryFilters() {
     
     appData.inventories.forEach((inventory, index) => {
         const button = document.createElement('button');
-        button.className = 'btn btn-primary city-filter' + (index === 0 ? ' active' : '');
+        button.className = 'btn-filter-inventory' + (index === 0 ? ' active' : '');
         button.dataset.city = inventory.id;
         button.onclick = () => filterInventoryByCity(inventory.id);
-        button.style.padding = '8px 20px';
         button.textContent = inventory.name;
         container.appendChild(button);
     });
@@ -112,7 +111,7 @@ function filterInventoryByCity(city) {
     selectedInventoryCity = city;
     
     // Actualizar botones activos
-    document.querySelectorAll('.city-filter').forEach(btn => {
+    document.querySelectorAll('.btn-filter-inventory').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.city === city) {
             btn.classList.add('active');

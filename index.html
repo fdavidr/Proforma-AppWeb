@@ -468,9 +468,9 @@
                 <!-- Fila 2: Filtros, Totales y Acciones -->
                 <div class="inventory-control-grid">
                     <!-- Selector de Inventario -->
-                    <div class="inventory-filter-section">
-                        <label style="font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 8px;">🔍 Filtrar por Inventario</label>
-                        <div id="inventoryFilterButtons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <label style="font-size: 13px; font-weight: 600; color: #555; margin: 0; white-space: nowrap;">🔍 Filtrar:</label>
+                        <div id="inventoryFilterButtons" style="display: flex; gap: 8px; flex-wrap: wrap; flex: 1;">
                             <!-- Los botones se generarán dinámicamente -->
                         </div>
                     </div>
@@ -527,11 +527,13 @@
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="flex: 1;">
-                        <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Ciudad</label>
-                        <div id="salesCityFilterButtons" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
-                            <!-- Los botones se generarán dinámicamente -->
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <label style="font-size: 13px; font-weight: 600; color: #555; margin: 0; white-space: nowrap;">🏛️ Ciudad:</label>
+                            <div id="salesCityFilterButtons" style="display: flex; gap: 8px; flex-wrap: wrap; flex: 1;">
+                                <!-- Los botones se generarán dinámicamente -->
+                            </div>
                         </div>
-                        <label style="font-size: 14px; color: #666; display: block; margin-bottom: 5px;">Seleccionar Mes</label>
+                        <label style="font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 5px;">📅 Mes:</label>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="month" id="salesMonthFilter" onchange="filterSalesByMonth()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                             <button class="btn btn-secondary" onclick="showAllSales()" style="padding: 8px 15px; font-size: 14px;">Ver Todas</button>
