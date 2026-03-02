@@ -268,6 +268,7 @@ select:focus {
 .app-content-wrapper {
     flex: 1;
     min-width: 0;
+    overflow-x: hidden;
 }
 
 /* Botón de configuración ya no tiene estilos especiales, usa btn-secondary */
@@ -319,11 +320,41 @@ select:focus {
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .content-section {
     background: white;
     min-height: calc(100vh - 140px);
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Grid de control de inventario */
+.inventory-control-grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
+    gap: 15px;
+    align-items: end;
+}
+
+.inventory-filter-section {
+    min-width: 0;
+}
+
+@media (max-width: 1400px) {
+    .inventory-control-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .inventory-control-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
 }
 
 .section {
@@ -385,6 +416,12 @@ select:focus {
     border-collapse: collapse;
     margin-top: 20px;
     min-width: 800px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .products-table th {

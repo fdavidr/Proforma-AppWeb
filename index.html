@@ -414,7 +414,7 @@
                 <h2>📋 Historial de PDFs Generados</h2>
                 <button class="btn btn-secondary" onclick="showMainContent()">← Volver</button>
             </div>
-            <div id="historyContent">
+            <div id="historyContent" class="table-responsive">
                 <table class="products-table">
                         <thead>
                             <tr>
@@ -470,9 +470,9 @@
                 </div>
                 
                 <!-- Fila 2: Filtros, Totales y Acciones -->
-                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 20px; align-items: end;">
+                <div class="inventory-control-grid">
                     <!-- Selector de Inventario -->
-                    <div>
+                    <div class="inventory-filter-section">
                         <label style="font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 8px;">🔍 Filtrar por Inventario</label>
                         <div id="inventoryFilterButtons" style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <!-- Los botones se generarán dinámicamente -->
@@ -500,7 +500,7 @@
             </div>
             
             <!-- Tabla de Productos -->
-            <div id="inventoryContent">
+            <div id="inventoryContent" class="table-responsive">
                     <table class="products-table">
                         <thead>
                             <tr>
@@ -557,7 +557,7 @@
                         <button class="btn btn-primary" onclick="generateSalesPDF()">📄 Descargar Resumen</button>
                     </div>
                 </div>
-                <div id="salesContent">
+                <div id="salesContent" class="table-responsive">
                     <table class="products-table">
                         <thead>
                             <tr>
