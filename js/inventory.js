@@ -42,7 +42,7 @@ function loadInventoryListInline() {
     
     appData.inventories.forEach(inventory => {
         const badge = document.createElement('span');
-        badge.style.cssText = 'padding: 8px 15px; background: #3498db; color: white; border-radius: 20px; font-weight: bold; font-size: 14px;';
+        badge.className = 'inventory-badge';
         badge.textContent = inventory.name;
         container.appendChild(badge);
     });

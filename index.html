@@ -445,16 +445,12 @@
             <!-- Panel de Control Unificado -->
             <div style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
                 <!-- Fila 1: Gestión de Inventarios -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
-                            <h3 style="margin: 0; color: #2c3e50; font-size: 16px;">📋 Inventarios (<span id="inventoryCountInline">0</span>/4)</h3>
-                            <button id="btnAddInventoryInline" class="btn btn-success" onclick="toggleNewInventoryForm()" style="padding: 6px 12px; font-size: 13px;">➕ Nuevo</button>
-                        </div>
-                        <div id="inventoryListInline" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            <!-- Lista de inventarios se genera dinámicamente -->
-                        </div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0; flex-wrap: wrap;">
+                    <h3 style="margin: 0; color: #2c3e50; font-size: 16px; white-space: nowrap;">📋 Inventarios (<span id="inventoryCountInline">0</span>/4):</h3>
+                    <div id="inventoryListInline" style="display: flex; flex-wrap: wrap; gap: 8px; flex: 1;">
+                        <!-- Lista de inventarios se genera dinámicamente -->
                     </div>
+                    <button id="btnAddInventoryInline" class="btn btn-success" onclick="toggleNewInventoryForm()" style="padding: 6px 12px; font-size: 13px; white-space: nowrap;">➕ Nuevo</button>
                 </div>
                 
                 <!-- Formulario Nuevo Inventario (oculto por defecto) -->
