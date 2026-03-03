@@ -61,11 +61,11 @@ body {
     border-color: #3498db;
 }
 
-/* Conversión automática a mayúsculas para inputs de texto */
-input[type="text"],
-input[type="email"],
-textarea,
-.autocomplete-input {
+/* Conversión automática a mayúsculas para inputs de texto (excepto login) */
+#app input[type="text"],
+#app input[type="email"],
+#app textarea,
+#app .autocomplete-input {
     text-transform: uppercase;
 }
 

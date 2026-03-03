@@ -49,11 +49,22 @@ function initUppercaseInputs() {
         input.setSelectionRange(start, end);
     };
     
+    // Función para verificar si un input debe ser excluido
+    const shouldExcludeInput = (input) => {
+        // Excluir campos de contraseña
+        if (input.type === 'password') return true;
+        
+        // Excluir campos del login (username y password están en #loginScreen)
+        const loginScreen = document.getElementById('loginScreen');
+        if (loginScreen && loginScreen.contains(input)) return true;
+        
+        return false;
+    };
+    
     // Agregar listener a todos los inputs de texto existentes
     const textInputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
     textInputs.forEach(input => {
-        // No aplicar a campos de contraseña
-        if (input.type !== 'password') {
+        if (!shouldExcludeInput(input)) {
             input.addEventListener('input', convertToUppercase);
         }
     });
@@ -65,12 +76,14 @@ function initUppercaseInputs() {
                 if (node.nodeType === 1) { // Element node
                     // Si el nodo es un input o textarea
                     if ((node.tagName === 'INPUT' && (node.type === 'text' || node.type === 'email')) || node.tagName === 'TEXTAREA') {
-                        node.addEventListener('input', convertToUppercase);
+                        if (!shouldExcludeInput(node)) {
+                            node.addEventListener('input', convertToUppercase);
+                        }
                     }
                     // Buscar inputs dentro del nodo agregado
                     const inputs = node.querySelectorAll('input[type="text"], input[type="email"], textarea');
                     inputs.forEach(input => {
-                        if (input.type !== 'password') {
+                        if (!shouldExcludeInput(input)) {
                             input.addEventListener('input', convertToUppercase);
                         }
                     });
