@@ -61,6 +61,14 @@ body {
     border-color: #3498db;
 }
 
+/* Conversión automática a mayúsculas para inputs de texto */
+input[type="text"],
+input[type="email"],
+textarea,
+.autocomplete-input {
+    text-transform: uppercase;
+}
+
 select {
     width: 100%;
     padding: 12px;
