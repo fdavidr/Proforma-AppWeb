@@ -58,6 +58,9 @@ function initUppercaseInputs() {
         const loginScreen = document.getElementById('loginScreen');
         if (loginScreen && loginScreen.contains(input)) return true;
         
+        // Excluir textareas de términos y condiciones
+        if (input.id && ['term1', 'term2', 'term3', 'term4'].includes(input.id)) return true;
+        
         return false;
     };
     
