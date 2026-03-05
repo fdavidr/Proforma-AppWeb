@@ -506,6 +506,29 @@ select:focus {
     background: #229954;
 }
 
+/* Estado modificado para botón de guardar */
+.btn-action-modified {
+    background: #f39c12 !important;
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
+}
+
+.btn-action-modified:hover {
+    background: #e67e22 !important;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(243, 156, 18, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
+    }
+}
+
 .btn-action-danger {
     background: #e74c3c;
     color: white;

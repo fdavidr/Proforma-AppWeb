@@ -175,6 +175,19 @@ function loadInventoryData() {
         row.querySelector('.inventory-cost').value = cost.toFixed(2);
         row.querySelector('.inventory-price').value = price.toFixed(2);
 
+        // Agregar listeners para detectar cambios
+        const saveButton = row.querySelector('.btn-action-success');
+        const inputs = row.querySelectorAll('.inventory-inline-input');
+        
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                if (saveButton && !saveButton.classList.contains('btn-action-modified')) {
+                    saveButton.classList.add('btn-action-modified');
+                    saveButton.title = '¡Hay cambios sin guardar!';
+                }
+            });
+        });
+
         tbody.appendChild(row);
     });
 
@@ -225,7 +238,11 @@ async function saveInventoryRowChanges(index, buttonElement) {
 
     buttonElement.disabled = true;
     const previousText = buttonElement.textContent;
-    buttonElement.textContent = 'Guardando...';
+    buttonElement.textContent = '💾';
+    
+    // Remover clase de modificado
+    buttonElement.classList.remove('btn-action-modified');
+    buttonElement.title = 'Guardar cambios';
 
     try {
         await saveData();
@@ -235,6 +252,7 @@ async function saveInventoryRowChanges(index, buttonElement) {
         alert('No se pudo guardar los cambios. Intenta nuevamente.');
         buttonElement.disabled = false;
         buttonElement.textContent = previousText;
+        buttonElement.classList.add('btn-action-modified');
     }
 }
 
