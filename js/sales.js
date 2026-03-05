@@ -163,13 +163,25 @@ function filterSalesByMonth() {
         }
         
         const profit = salePrice - saleCost;
-        totalCost += saleCost;
-        totalPrice += salePrice;
+        
+        // Solo sumar a los totales si NO está anulada
+        if (!sale.cancelled) {
+            totalCost += saleCost;
+            totalPrice += salePrice;
+        }
 
         // Resumen de productos
         const productCount = sale.items ? sale.items.length : 0;
         const productSummary = `${productCount} producto${productCount !== 1 ? 's' : ''}`;
 
+        // Determinar si está anulada
+        const isCancelled = sale.cancelled === true;
+        const cancelButtonIcon = isCancelled ? '✅' : '❌';
+        const cancelButtonTitle = isCancelled ? 'Validar (restaurar venta)' : 'Anular venta';
+        const cancelButtonClass = isCancelled ? 'btn-action-success' : 'btn-action-danger';
+        const rowClass = isCancelled ? 'sale-cancelled' : '';
+
+        tr.className = rowClass;
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${sale.number}</td>
@@ -182,7 +194,7 @@ function filterSalesByMonth() {
             <td>${sale.date}</td>
             <td style="white-space: nowrap;">
                 <button class="btn-action-icon btn-action-primary" onclick="viewSalePDF(${sale.id})" title="Ver PDF">👁️</button>
-                <button class="btn-action-icon btn-action-danger" onclick="deleteSale(${sale.id})" title="Eliminar">🗑️</button>
+                <button class="btn-action-icon ${cancelButtonClass}" onclick="toggleSaleCancellation(${sale.id})" title="${cancelButtonTitle}">${cancelButtonIcon}</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -448,34 +460,56 @@ function generateSalesPDF() {
 }
 
 // Función para eliminar una venta
-async function deleteSale(saleId) {
-    if (confirm('¿Está seguro de eliminar esta venta? Se repondrá el stock de los productos.')) {
-        // Buscar la venta a eliminar
-        const sale = appData.pdfHistory.find(entry => entry.id === saleId);
-        if (!sale) {
-            alert('No se encontró la venta');
-            return;
-        }
-        
-        // Reponer stock de los productos según la ciudad de la venta
-        if (sale.items && Array.isArray(sale.items)) {
-            sale.items.forEach(item => {
-                const product = appData.products.find(p => p.id === item.id);
-                if (product) {
-                    // Reponer stock según la ciudad
-                    if (sale.city === 'cochabamba') {
-                        product.stockCochabamba = (product.stockCochabamba || 0) + item.quantity;
-                    } else if (sale.city === 'santacruz') {
-                        product.stockSantaCruz = (product.stockSantaCruz || 0) + item.quantity;
+async function toggleSaleCancellation(saleId) {
+    // Buscar la venta
+    const sale = appData.pdfHistory.find(entry => entry.id === saleId);
+    if (!sale) {
+        alert('No se encontró la venta');
+        return;
+    }
+    
+    const isCancelled = sale.cancelled === true;
+    
+    if (isCancelled) {
+        // VALIDAR (restaurar) la venta
+        if (confirm('¿Está seguro de validar (restaurar) esta venta? Se descontará nuevamente el stock de los productos.')) {
+            // Descontar stock de los productos según la ciudad de la venta
+            if (sale.items && Array.isArray(sale.items)) {
+                sale.items.forEach(item => {
+                    const product = appData.products.find(p => p.id === item.id);
+                    if (product && product.stock) {
+                        // Descontar stock del inventario correspondiente
+                        const currentStock = product.stock[sale.city] || 0;
+                        product.stock[sale.city] = Math.max(0, currentStock - item.quantity);
                     }
-                }
-            });
+                });
+            }
+            
+            // Marcar como NO anulada
+            sale.cancelled = false;
+            await saveData();
+            filterSalesByMonth();
         }
-        
-        // Eliminar la venta del historial
-        appData.pdfHistory = appData.pdfHistory.filter(entry => entry.id !== saleId);
-        await saveData();
-        filterSalesByMonth();
+    } else {
+        // ANULAR la venta
+        if (confirm('¿Está seguro de anular esta venta? Se repondrá el stock de los productos.')) {
+            // Reponer stock de los productos según la ciudad de la venta
+            if (sale.items && Array.isArray(sale.items)) {
+                sale.items.forEach(item => {
+                    const product = appData.products.find(p => p.id === item.id);
+                    if (product && product.stock) {
+                        // Reponer stock del inventario correspondiente
+                        const currentStock = product.stock[sale.city] || 0;
+                        product.stock[sale.city] = currentStock + item.quantity;
+                    }
+                });
+            }
+            
+            // Marcar como anulada
+            sale.cancelled = true;
+            await saveData();
+            filterSalesByMonth();
+        }
     }
 }
 
