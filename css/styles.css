@@ -561,14 +561,13 @@ select:focus {
 
 /* Estilo para ventas anuladas */
 .sale-cancelled {
-    background-color: #fdecea !important;
-    opacity: 0.7;
+    background-color: rgba(243, 156, 18, 0.2) !important;
     position: relative;
 }
 
 .sale-cancelled td {
     text-decoration: line-through;
-    color: #95a5a6 !important;
+    color: #7f8c8d !important;
 }
 
 .sale-cancelled td:last-child {
