@@ -179,9 +179,7 @@ function filterSalesByMonth() {
         const cancelButtonIcon = isCancelled ? '✅' : '❌';
         const cancelButtonTitle = isCancelled ? 'Validar (restaurar venta)' : 'Anular venta';
         const cancelButtonClass = isCancelled ? 'btn-action-success' : 'btn-action-danger';
-        const rowClass = isCancelled ? 'sale-cancelled' : '';
 
-        tr.className = rowClass;
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${sale.number}</td>

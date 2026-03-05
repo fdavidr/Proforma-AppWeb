@@ -559,37 +559,6 @@ select:focus {
     text-align: center;
 }
 
-/* Estilo para ventas anuladas */
-.sale-cancelled {
-    background-color: rgba(243, 156, 18, 0.2) !important;
-    position: relative;
-}
-
-.sale-cancelled td {
-    text-decoration: line-through;
-    color: #7f8c8d !important;
-}
-
-.sale-cancelled td:last-child {
-    text-decoration: none;
-}
-
-.sale-cancelled::before {
-    content: '🚫 ANULADA';
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #e74c3c;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-    pointer-events: none;
-    z-index: 1;
-}
-
 .inventory-inline-input {
     width: 100%;
     min-width: 70px;
