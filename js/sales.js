@@ -640,7 +640,7 @@ function viewSalePDF(saleId) {
     doc.setTextColor(255, 255, 255);
     doc.text('#', margin + 2, yPos + 5);
     doc.text('Código', margin + 8, yPos + 5);
-    doc.text('IMG', margin + 28, yPos + 5);
+    doc.text('IMG', margin + 26, yPos + 5);
     doc.text('Descripción', margin + 52, yPos + 5);
     doc.text('Cant.', margin + 108, yPos + 5);
     doc.text('P.Unit.', margin + 122, yPos + 5);
@@ -651,13 +651,15 @@ function viewSalePDF(saleId) {
     doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'normal');
 
+    const tableLeft = margin;
+    const tableRight = pageWidth - margin;
     let subtotal = 0;
     let totalDiscount = 0;
 
     items.forEach((item, idx) => {
-        if (yPos > pageHeight - 40) {
+        if (yPos > pageHeight - 50) {
             doc.addPage();
-            yPos = margin;
+            yPos = margin + 20;
         }
 
         const itemSubtotal = item.price * item.quantity;
@@ -669,38 +671,75 @@ function viewSalePDF(saleId) {
         subtotal += itemSubtotal;
         totalDiscount += itemDiscount;
 
-        doc.text(String(idx + 1), margin + 2, yPos);
-        doc.text(item.code || '-', margin + 8, yPos);
+        // Acceder a los datos del producto (puede estar en item.product o directamente en item)
+        const product = item.product || item;
+        const productCode = product.code || '';
+        const productDescription = product.description || '';
+        const productImage = product.image || null;
 
-        if (item.image) {
+        // Procesar descripción con splitTextToSize
+        const descLines = doc.splitTextToSize(productDescription, 56);
+        const rowHeight = Math.max(10, descLines.length * 5, productImage ? 28 : 10);
+        const textYCenter = yPos + (rowHeight / 2);
+
+        // Número y código
+        doc.text(String(idx + 1), margin + 2, textYCenter);
+        doc.text(productCode || '-', margin + 8, textYCenter);
+
+        // Imagen del producto
+        if (productImage) {
             try {
-                doc.addImage(item.image, 'PNG', margin + 28, yPos - 3, 8, 8);
-            } catch (e) {}
+                const imgHeight = 24;
+                const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 2;
+                doc.addImage(productImage, 'PNG', margin + 26, imgY, 24, imgHeight);
+            } catch (e) {
+                console.log('Error al cargar imagen:', e);
+            }
         }
 
-        const description = item.description || '';
-        const desc = description.length > 40 ? description.substring(0, 40) + '...' : description;
-        doc.text(desc, margin + 40, yPos);
-        doc.text(String(item.quantity), margin + 108, yPos);
-        doc.text(`Bs ${item.price.toFixed(2)}`, margin + 122, yPos);
+        // Descripción (centrada verticalmente)
+        const descHeight = descLines.length * 5;
+        const descYStart = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
+        doc.text(descLines, margin + 52, descYStart);
+
+        // Cantidad, precio, descuento y total
+        doc.text(String(item.quantity), margin + 108, textYCenter);
+        doc.text(`Bs ${item.price.toFixed(2)}`, margin + 122, textYCenter);
         
         const discountText = item.discountType === '%' ? 
             `${item.discount}%` : 
             `Bs ${item.discount.toFixed(2)}`;
-        doc.text(discountText, margin + 147, yPos);
-        doc.text(`Bs ${itemTotal.toFixed(2)}`, pageWidth - margin - 2, yPos, { align: 'right' });
+        doc.text(discountText, margin + 147, textYCenter);
+        doc.text(`Bs ${itemTotal.toFixed(2)}`, pageWidth - margin - 2, textYCenter, { align: 'right' });
 
-        yPos += 10;
+        // Líneas de la tabla
+        doc.setDrawColor(200, 200, 200);
+        doc.line(tableLeft, yPos + rowHeight, tableRight, yPos + rowHeight);
+        doc.line(tableLeft, yPos, tableLeft, yPos + rowHeight);
+        doc.line(tableRight, yPos, tableRight, yPos + rowHeight);
+        
+        // Líneas verticales entre columnas
+        doc.line(margin + 6, yPos, margin + 6, yPos + rowHeight);
+        doc.line(margin + 25, yPos, margin + 25, yPos + rowHeight);
+        doc.line(margin + 51, yPos, margin + 51, yPos + rowHeight);
+        doc.line(margin + 107, yPos, margin + 107, yPos + rowHeight);
+        doc.line(margin + 120, yPos, margin + 120, yPos + rowHeight);
+        doc.line(margin + 145, yPos, margin + 145, yPos + rowHeight);
+        doc.line(margin + 160, yPos, margin + 160, yPos + rowHeight);
+
+        yPos += rowHeight;
     });
 
+    // Borde final de la tabla
+    doc.setDrawColor(0, 0, 0);
+    doc.line(tableLeft, yPos, tableRight, yPos);
+
     // Totales
-    yPos += 5;
-    doc.setLineWidth(0.3);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 7;
+    yPos += 8;
 
     const totalsX = pageWidth - margin - 50;
     doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
     doc.text('Subtotal:', totalsX, yPos);
     doc.text(`Bs ${subtotal.toFixed(2)}`, pageWidth - margin - 2, yPos, { align: 'right' });
     yPos += 6;
