@@ -513,20 +513,26 @@ async function toggleSaleCancellation(saleId) {
 
 // Función para ver el PDF de una venta
 function viewSalePDF(saleId) {
-    const sale = appData.pdfHistory.find(e => e.id === saleId);
-    if (!sale) {
-        alert('No se encontró la venta');
-        return;
-    }
+    try {
+        const sale = appData.pdfHistory.find(e => e.id === saleId);
+        if (!sale) {
+            alert('No se encontró la venta');
+            return;
+        }
 
-    const company = sale.company || {};
-    const client = typeof sale.client === 'object' ? sale.client : { name: sale.client };
-    const seller = typeof sale.seller === 'object' ? sale.seller : { name: sale.seller };
-    const items = Array.isArray(sale.items) ? sale.items : [];
+        const company = sale.company || {};
+        const client = typeof sale.client === 'object' ? sale.client : { name: sale.client };
+        const seller = typeof sale.seller === 'object' ? sale.seller : { name: sale.seller };
+        const items = Array.isArray(sale.items) ? sale.items : [];
 
-    // Regenerar PDF con los datos guardados
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+        // Regenerar PDF con los datos guardados
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) {
+            alert('Error: jsPDF no está cargado');
+            return;
+        }
+        
+        const doc = new jsPDF();
     
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -569,10 +575,13 @@ function viewSalePDF(saleId) {
     doc.text('Fecha: ' + sale.date, pageWidth - margin, 34, { align: 'right' });
 
     // Ciudad
-    const cityName = sale.city === 'cochabamba' ? 'COCHABAMBA' : 'SANTA CRUZ';
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+    if (sale.city) {
+        const inventory = appData.inventories.find(inv => inv.id === sale.city);
+        const cityName = inventory ? inventory.name.toUpperCase() : sale.city.toUpperCase();
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+    }
 
     // Línea separadora
     doc.setLineWidth(0.5);
@@ -753,6 +762,11 @@ function viewSalePDF(saleId) {
     }
 
     doc.save(`Nota_Venta_${sale.number}.pdf`);
+    
+    } catch (error) {
+        console.error('Error al generar PDF de venta:', error);
+        alert('Error al generar el PDF: ' + error.message);
+    }
 }
 
 // Exponer funciones globalmente
