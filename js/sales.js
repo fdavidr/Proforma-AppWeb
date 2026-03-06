@@ -724,11 +724,8 @@ function viewSalePDF(saleId) {
 
     // Si la venta está anulada, agregar sello de "ANULADO"
     if (sale.cancelled === true) {
-        // Guardar estado actual
-        doc.saveGraphicsState();
-        
-        // Configurar transparencia
-        doc.setGState(new doc.GState({ opacity: 0.3 }));
+        // Configurar transparencia (30%)
+        doc.setGState(doc.GState({ opacity: 0.3 }));
         
         // Configurar color rojo
         doc.setTextColor(220, 53, 69);
@@ -747,8 +744,9 @@ function viewSalePDF(saleId) {
             angle: 45
         });
         
-        // Restaurar estado
-        doc.restoreGraphicsState();
+        // Restaurar opacidad a 1
+        doc.setGState(doc.GState({ opacity: 1 }));
+        doc.setTextColor(0, 0, 0);
     }
 
     doc.save(`Nota_Venta_${sale.number}.pdf`);
@@ -760,7 +758,7 @@ window.filterSalesByCity = filterSalesByCity;
 window.filterSalesByMonth = filterSalesByMonth;
 window.generateSalesPDF = generateSalesPDF;
 window.showAllSales = showAllSales;
-window.deleteSale = deleteSale;
+window.toggleSaleCancellation = toggleSaleCancellation;
 window.viewSalePDF = viewSalePDF;
 
 function showAllSales() {
