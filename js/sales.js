@@ -724,29 +724,32 @@ function viewSalePDF(saleId) {
 
     // Si la venta está anulada, agregar sello de "ANULADO"
     if (sale.cancelled === true) {
-        // Configurar transparencia (30%)
-        doc.setGState(doc.GState({ opacity: 0.3 }));
+        // Guardar configuración actual
+        const currentFontSize = doc.internal.getFontSize();
         
-        // Configurar color rojo
-        doc.setTextColor(220, 53, 69);
+        // Configurar color rojo con transparencia simulada
+        doc.setTextColor(255, 200, 200);
         
         // Configurar fuente grande y negrita
-        doc.setFontSize(80);
+        doc.setFontSize(70);
         doc.setFont(undefined, 'bold');
         
         // Calcular centro de la página
         const centerX = pageWidth / 2;
         const centerY = pageHeight / 2;
         
-        // Rotar y dibujar texto
+        // Dibujar texto rotado
+        const textWidth = doc.getTextWidth('ANULADO');
+        
+        // Rotar el contexto y dibujar
         doc.text('ANULADO', centerX, centerY, {
             align: 'center',
             angle: 45
         });
         
-        // Restaurar opacidad a 1
-        doc.setGState(doc.GState({ opacity: 1 }));
+        // Restaurar color negro
         doc.setTextColor(0, 0, 0);
+        doc.setFontSize(currentFontSize);
     }
 
     doc.save(`Nota_Venta_${sale.number}.pdf`);
