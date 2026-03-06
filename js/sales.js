@@ -722,6 +722,35 @@ function viewSalePDF(saleId) {
         });
     }
 
+    // Si la venta está anulada, agregar sello de "ANULADO"
+    if (sale.cancelled === true) {
+        // Guardar estado actual
+        doc.saveGraphicsState();
+        
+        // Configurar transparencia
+        doc.setGState(new doc.GState({ opacity: 0.3 }));
+        
+        // Configurar color rojo
+        doc.setTextColor(220, 53, 69);
+        
+        // Configurar fuente grande y negrita
+        doc.setFontSize(80);
+        doc.setFont(undefined, 'bold');
+        
+        // Calcular centro de la página
+        const centerX = pageWidth / 2;
+        const centerY = pageHeight / 2;
+        
+        // Rotar y dibujar texto
+        doc.text('ANULADO', centerX, centerY, {
+            align: 'center',
+            angle: 45
+        });
+        
+        // Restaurar estado
+        doc.restoreGraphicsState();
+    }
+
     doc.save(`Nota_Venta_${sale.number}.pdf`);
 }
 
