@@ -678,7 +678,8 @@ function viewSalePDF(saleId) {
             } catch (e) {}
         }
 
-        const desc = item.description.length > 40 ? item.description.substring(0, 40) + '...' : item.description;
+        const description = item.description || '';
+        const desc = description.length > 40 ? description.substring(0, 40) + '...' : description;
         doc.text(desc, margin + 40, yPos);
         doc.text(String(item.quantity), margin + 108, yPos);
         doc.text(`Bs ${item.price.toFixed(2)}`, margin + 122, yPos);
