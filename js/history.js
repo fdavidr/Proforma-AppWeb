@@ -407,6 +407,62 @@ function redownloadPDF(entryId) {
         doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
     }
 
+    // Si la venta está anulada, agregar sello de "ANULADO" (solo para notas de venta)
+    if (entry.type === 'notaventa' && entry.cancelled === true) {
+        // Guardar configuración actual
+        const currentFontSize = doc.internal.getFontSize();
+        
+        // Configurar color rojo con transparencia simulada
+        doc.setTextColor(255, 200, 200);
+        
+        // Configurar fuente grande y negrita
+        doc.setFontSize(70);
+        doc.setFont(undefined, 'bold');
+        
+        // Calcular centro de la página
+        const centerX = pageWidth / 2;
+        const centerY = pageHeight / 2;
+        
+        // Dibujar texto rotado en la primera página
+        doc.setPage(1);
+        doc.text('ANULADO', centerX, centerY, {
+            align: 'center',
+            angle: 45
+        });
+        
+        // Restaurar color negro
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(currentFontSize);
+    }
+    
+    // Si la venta está facturada, agregar sello de "FACTURADO" (solo para notas de venta)
+    if (entry.type === 'notaventa' && entry.invoiced === true) {
+        // Guardar configuración actual
+        const currentFontSize = doc.internal.getFontSize();
+        
+        // Configurar color verde con transparencia simulada
+        doc.setTextColor(200, 255, 200);
+        
+        // Configurar fuente grande y negrita
+        doc.setFontSize(70);
+        doc.setFont(undefined, 'bold');
+        
+        // Calcular centro de la página
+        const centerX = pageWidth / 2;
+        const centerY = pageHeight / 2;
+        
+        // Dibujar texto rotado en la primera página
+        doc.setPage(1);
+        doc.text('FACTURADO', centerX, centerY, {
+            align: 'center',
+            angle: 45
+        });
+        
+        // Restaurar color negro
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(currentFontSize);
+    }
+
     // Guardar PDF
     doc.save(entry.fileName);
 }

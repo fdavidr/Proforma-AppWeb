@@ -819,6 +819,36 @@ function viewSalePDF(saleId) {
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(currentFontSize);
     }
+    
+    // Si la venta está facturada, agregar sello de "FACTURADO"
+    if (sale.invoiced === true) {
+        // Guardar configuración actual
+        const currentFontSize = doc.internal.getFontSize();
+        
+        // Configurar color verde con transparencia simulada
+        doc.setTextColor(200, 255, 200);
+        
+        // Configurar fuente grande y negrita
+        doc.setFontSize(70);
+        doc.setFont(undefined, 'bold');
+        
+        // Calcular centro de la página
+        const centerX = pageWidth / 2;
+        const centerY = pageHeight / 2;
+        
+        // Dibujar texto rotado
+        const textWidth = doc.getTextWidth('FACTURADO');
+        
+        // Rotar el contexto y dibujar
+        doc.text('FACTURADO', centerX, centerY, {
+            align: 'center',
+            angle: 45
+        });
+        
+        // Restaurar color negro
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(currentFontSize);
+    }
 
     doc.save(`Nota_Venta_${sale.number}.pdf`);
     
