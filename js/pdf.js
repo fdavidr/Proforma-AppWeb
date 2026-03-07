@@ -259,7 +259,7 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     doc.text('Fecha: ' + getSelectedPdfDate(), pageWidth - margin, 34, { align: 'right' });
     
     // Nombre del inventario debajo de la fecha
-    const inventory = appData.inventories.find(inv => inv.id === appData.selectedCity);
+    const inventory = appData.inventories.find(inv => inv.id === appData.selectedSaleCity);
     const cityName = inventory ? inventory.name.toUpperCase() : '';
     if (cityName) {
         doc.setFontSize(12);
