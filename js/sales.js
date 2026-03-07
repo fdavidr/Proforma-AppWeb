@@ -177,8 +177,14 @@ function filterSalesByMonth() {
         // Determinar si está anulada
         const isCancelled = sale.cancelled === true;
         const cancelButtonIcon = isCancelled ? '✅' : '❌';
-        const cancelButtonTitle = isCancelled ? 'Validar (restaurar venta)' : 'Anular venta';
-        const cancelButtonClass = isCancelled ? 'btn-action-success' : 'btn-action-danger';
+        const cancelButtonText = isCancelled ? 'Validar' : 'Anular';
+        const cancelButtonClass = isCancelled ? 'toggle-cancel validated' : 'toggle-cancel';
+        
+        // Determinar si está facturada
+        const isInvoiced = sale.invoiced === true;
+        const invoiceButtonIcon = isInvoiced ? '✓' : '📄';
+        const invoiceButtonText = isInvoiced ? 'Facturado' : 'Marcar Facturado';
+        const invoiceButtonClass = isInvoiced ? 'mark-invoiced invoiced' : 'mark-invoiced';
 
         tr.innerHTML = `
             <td>${index + 1}</td>
@@ -191,8 +197,20 @@ function filterSalesByMonth() {
             <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
             <td>${sale.date}</td>
             <td style="white-space: nowrap;">
-                <button class="btn-action-icon btn-action-primary" onclick="viewSalePDF(${sale.id})" title="Ver PDF">👁️</button>
-                <button class="btn-action-icon ${cancelButtonClass}" onclick="toggleSaleCancellation(${sale.id})" title="${cancelButtonTitle}">${cancelButtonIcon}</button>
+                <div class="actions-menu-container">
+                    <button class="btn-menu-toggle" onclick="toggleActionsMenu(event, ${sale.id})" title="Acciones">☰</button>
+                    <div class="actions-dropdown" id="menu-${sale.id}">
+                        <button class="view-pdf" onclick="viewSalePDF(${sale.id}); closeActionsMenu(${sale.id})">
+                            👁️ Ver PDF
+                        </button>
+                        <button class="${cancelButtonClass}" onclick="toggleSaleCancellation(${sale.id}); closeActionsMenu(${sale.id})">
+                            ${cancelButtonIcon} ${cancelButtonText}
+                        </button>
+                        <button class="${invoiceButtonClass}" onclick="toggleInvoiced(${sale.id}); closeActionsMenu(${sale.id})">
+                            ${invoiceButtonIcon} ${invoiceButtonText}
+                        </button>
+                    </div>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -810,6 +828,65 @@ function viewSalePDF(saleId) {
     }
 }
 
+// ==================== FUNCIONES MENU DESPLEGABLE ====================
+function toggleActionsMenu(event, saleId) {
+    event.stopPropagation();
+    
+    // Cerrar todos los demás menús
+    document.querySelectorAll('.actions-dropdown').forEach(menu => {
+        if (menu.id !== `menu-${saleId}`) {
+            menu.classList.remove('show');
+        }
+    });
+    
+    // Toggle del menú actual
+    const menu = document.getElementById(`menu-${saleId}`);
+    if (menu) {
+        menu.classList.toggle('show');
+    }
+}
+
+function closeActionsMenu(saleId) {
+    const menu = document.getElementById(`menu-${saleId}`);
+    if (menu) {
+        menu.classList.remove('show');
+    }
+}
+
+// Cerrar menús al hacer clic fuera
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.actions-menu-container')) {
+        document.querySelectorAll('.actions-dropdown').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+});
+
+// Función para marcar/desmarcar como facturado
+async function toggleInvoiced(saleId) {
+    const sale = appData.pdfHistory.find(entry => entry.id === saleId);
+    if (!sale) {
+        alert('No se encontró la venta');
+        return;
+    }
+    
+    const isInvoiced = sale.invoiced === true;
+    
+    if (isInvoiced) {
+        if (confirm('¿Desmarcar esta venta como facturada?')) {
+            sale.invoiced = false;
+            await saveData();
+            filterSalesByMonth();
+        }
+    } else {
+        if (confirm('¿Marcar esta venta como facturada?')) {
+            sale.invoiced = true;
+            await saveData();
+            filterSalesByMonth();
+        }
+    }
+}
+
 // Exponer funciones globalmente
 window.openSales = openSales;
 window.filterSalesByCity = filterSalesByCity;
@@ -818,6 +895,9 @@ window.generateSalesPDF = generateSalesPDF;
 window.showAllSales = showAllSales;
 window.toggleSaleCancellation = toggleSaleCancellation;
 window.viewSalePDF = viewSalePDF;
+window.toggleActionsMenu = toggleActionsMenu;
+window.closeActionsMenu = closeActionsMenu;
+window.toggleInvoiced = toggleInvoiced;
 
 function showAllSales() {
     document.getElementById('salesMonthFilter').value = '';

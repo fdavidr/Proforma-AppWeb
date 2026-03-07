@@ -1102,3 +1102,89 @@ input[type="file"] {
         font-size: 14px;
     }
 }
+
+/* ==================== MENU HAMBURGUESA DE ACCIONES ==================== */
+.actions-menu-container {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-menu-toggle {
+    padding: 6px 10px;
+    font-size: 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #7f8c8d;
+    color: white;
+}
+
+.btn-menu-toggle:hover {
+    background: #5d6d7e;
+    transform: scale(1.1);
+}
+
+.actions-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 160px;
+    z-index: 1000;
+    display: none;
+    margin-top: 5px;
+}
+
+.actions-dropdown.show {
+    display: block;
+}
+
+.actions-dropdown button {
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.actions-dropdown button:first-child {
+    border-radius: 8px 8px 0 0;
+}
+
+.actions-dropdown button:last-child {
+    border-radius: 0 0 8px 8px;
+}
+
+.actions-dropdown button:hover {
+    background: #ecf0f1;
+}
+
+.actions-dropdown button.view-pdf {
+    color: #3498db;
+}
+
+.actions-dropdown button.toggle-cancel {
+    color: #e74c3c;
+}
+
+.actions-dropdown button.toggle-cancel.validated {
+    color: #27ae60;
+}
+
+.actions-dropdown button.mark-invoiced {
+    color: #9b59b6;
+}
+
+.actions-dropdown button.mark-invoiced.invoiced {
+    color: #16a085;
+}
