@@ -1188,3 +1188,12 @@ input[type="file"] {
 .actions-dropdown button.mark-invoiced.invoiced {
     color: #16a085;
 }
+
+/* ==================== FILA DE VENTA ANULADA ==================== */
+tr.cancelled-sale {
+    background-color: rgba(255, 165, 0, 0.3) !important;
+}
+
+tr.cancelled-sale:hover {
+    background-color: rgba(255, 165, 0, 0.4) !important;
+}

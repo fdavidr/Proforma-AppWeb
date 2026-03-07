@@ -186,6 +186,11 @@ function filterSalesByMonth() {
         const invoiceButtonText = isInvoiced ? 'Facturado' : 'Marcar Facturado';
         const invoiceButtonClass = isInvoiced ? 'mark-invoiced invoiced' : 'mark-invoiced';
 
+        // Agregar clase visual si está anulada
+        if (isCancelled) {
+            tr.classList.add('cancelled-sale');
+        }
+
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${sale.number}</td>
