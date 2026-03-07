@@ -133,7 +133,7 @@ async function generatePDF() {
             docTitle = 'NOTA_DE_ENTREGA';
             docNumber = appData.currentDeliveryNumber;
         }
-        const fileName = `${docTitle}_${docNumber}_${appData.currentClient.name.replace(/\s+/g, '_')}.pdf`;
+        const fileName = `${docTitle}_${docNumber}_${appData.currentClient.name.toUpperCase().replace(/\s+/g, '_')}.pdf`;
         doc.save(fileName);
 
         // Guardar en historial ANTES de limpiar (usa currentQuoteItems)

@@ -39,7 +39,7 @@ function showClientList() {
 function addClientToList(client, list) {
     const div = document.createElement('div');
     div.className = 'autocomplete-item';
-    div.textContent = client.name + (client.company ? ' - ' + client.company : '');
+    div.textContent = client.name.toUpperCase() + (client.company ? ' - ' + client.company.toUpperCase() : '');
     div.onclick = () => selectClient(client);
     list.appendChild(div);
 }
@@ -47,7 +47,7 @@ function addClientToList(client, list) {
 function selectClient(client) {
     appData.currentClient = client;
     const input = document.getElementById('clientSelect');
-    input.value = client.name;
+    input.value = client.name.toUpperCase();
     input.classList.add('valid-selection');
     document.getElementById('clientList').classList.remove('active');
     document.getElementById('clientActionBtn').textContent = 'Editar Cliente';
