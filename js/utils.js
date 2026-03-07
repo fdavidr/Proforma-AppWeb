@@ -23,8 +23,18 @@ function updateUI() {
     }
     if (appData.company.logo) {
         document.getElementById('companyLogo').src = appData.company.logo;
+        // Sincronizar logo móvil
+        const mobileLogoEl = document.getElementById('companyLogoMobile');
+        if (mobileLogoEl) mobileLogoEl.src = appData.company.logo;
     }
+    // Sincronizar nombre empresa en topbar móvil
+    const mobileNameEl = document.getElementById('companyNameMobile');
+    if (mobileNameEl) mobileNameEl.textContent = appData.company.name;
+
     document.getElementById('quoteNumber').textContent = 'Nº ' + appData.currentQuoteNumber;
+    // Sincronizar número de documento en topbar móvil
+    const mobileBadge = document.getElementById('quoteNumberMobile');
+    if (mobileBadge) mobileBadge.textContent = 'Nº ' + appData.currentQuoteNumber;
     updateDocumentNumber();
     
     // Ocultar/mostrar botones según rol
@@ -92,15 +102,19 @@ document.addEventListener('click', function(e) {
 // Actualizar número de documento según el tipo
 function updateDocumentNumber() {
     const quoteNumberEl = document.getElementById('quoteNumber');
+    const mobileBadge = document.getElementById('quoteNumberMobile');
+    let numText = '';
     if (quoteNumberEl) {
         if (appData.documentType === 'cotizacion') {
-            quoteNumberEl.textContent = 'Nº ' + appData.currentQuoteNumber;
+            numText = 'Nº ' + appData.currentQuoteNumber;
         } else if (appData.documentType === 'notaventa') {
-            quoteNumberEl.textContent = 'Nº ' + appData.currentSaleNumber;
+            numText = 'Nº ' + appData.currentSaleNumber;
         } else if (appData.documentType === 'notaentrega') {
-            quoteNumberEl.textContent = 'Nº ' + appData.currentDeliveryNumber;
+            numText = 'Nº ' + appData.currentDeliveryNumber;
         }
+        quoteNumberEl.textContent = numText;
     }
+    if (mobileBadge && numText) mobileBadge.textContent = numText;
 }
 
 // Actualizar botón activo del menú

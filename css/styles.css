@@ -877,6 +877,28 @@ input[type="file"] {
     display: none !important;
 }
 
+/* ==================== TOPBAR MÓVIL ==================== */
+.mobile-topbar {
+    display: none; /* oculto en desktop */
+}
+
+.sidebar-close-btn {
+    display: none; /* oculto en desktop */
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
     .app-layout-container {
@@ -910,6 +932,165 @@ input[type="file"] {
 }
 
 @media (max-width: 768px) {
+
+    /* ---- Topbar Móvil ---- */
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        padding: 0 14px;
+        height: 56px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+
+    .mobile-menu-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 26px;
+        cursor: pointer;
+        padding: 6px 8px;
+        border-radius: 8px;
+        line-height: 1;
+        transition: background 0.2s;
+        flex-shrink: 0;
+    }
+
+    .mobile-menu-btn:hover {
+        background: rgba(255,255,255,0.15);
+    }
+
+    .mobile-topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        margin: 0 10px;
+        min-width: 0;
+    }
+
+    .mobile-logo {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.3);
+        background: white;
+        padding: 2px;
+        flex-shrink: 0;
+    }
+
+    .mobile-company-name {
+        color: white;
+        font-weight: 700;
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mobile-quote-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Empujar contenido abajo por la topbar fija */
+    #app {
+        padding-top: 56px;
+    }
+
+    /* Ocultar header desktop en móvil */
+    .app-header-top {
+        display: none;
+    }
+
+    /* ---- Sidebar como Drawer ---- */
+    .app-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 270px;
+        z-index: 1001;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 0;
+        max-height: 100vh;
+        overflow-y: auto;
+        padding-top: 16px;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+    }
+
+    .app-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    /* Botón cerrar dentro del sidebar */
+    .sidebar-close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: #7f8c8d;
+        cursor: pointer;
+        padding: 0 0 12px 0;
+        width: 100%;
+        transition: color 0.2s;
+    }
+
+    .sidebar-close-btn:hover {
+        color: #e74c3c;
+    }
+
+    /* Quitar sticky del layout en móvil */
+    .app-layout-container {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .app-content-wrapper {
+        width: 100%;
+    }
+
+    /* ---- Empresa: logo + datos horizontales ---- */
+    .company-info {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+    }
+
+    .company-logo {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .company-details h2 {
+        font-size: 16px;
+        margin-bottom: 2px;
+    }
+
+    .company-details p {
+        font-size: 12px;
+    }
+
+    /* ---- Tabla de productos ---- */
     .product-input-area {
         grid-template-columns: 1fr;
     }
@@ -942,7 +1123,6 @@ input[type="file"] {
         min-width: auto;
     }
 
-    /* Ajustes para la tabla de productos en móviles */
     .products-table {
         min-width: 700px;
         font-size: 13px;
@@ -953,7 +1133,6 @@ input[type="file"] {
         padding: 8px 6px;
     }
 
-    /* Reducir tamaño de columnas menos importantes */
     .products-table th:nth-child(1),
     .products-table td:nth-child(1) {
         width: 35px;
@@ -990,14 +1169,6 @@ input[type="file"] {
         height: 20px;
     }
 
-    /* Ajustar header para móviles */
-    .app-header-top {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-        text-align: center;
-    }
-    
     .app-header-menu {
         padding: 10px 15px;
     }
@@ -1013,32 +1184,27 @@ input[type="file"] {
         font-size: 12px;
     }
 
-    .company-info {
-        flex-direction: column;
-        text-align: center;
-        align-items: center;
-    }
-
-    .company-logo {
-        margin-bottom: 10px;
-    }
-
-    /* Ajustar sección de totales */
+    /* ---- Totales ---- */
     .totals-section {
         max-width: 100%;
         margin: 20px 0;
     }
 
-    /* Ajustar botones de tipo de documento */
+    /* ---- Tipo de documento: horizontal con wrap ---- */
     .type-toggle {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .type-toggle .btn {
-        width: 100%;
+        flex: 1;
+        min-width: 120px;
+        font-size: 13px;
+        padding: 10px 8px;
     }
-    
-    /* Mostrar solo iniciales en selectores de ciudad para móviles */
+
+    /* ---- Ciudad ---- */
     .city-selector .city-full-name {
         display: none;
     }
@@ -1054,10 +1220,24 @@ input[type="file"] {
         font-weight: bold;
     }
     
-    /* Ajustar contenedor de botones de ciudad */
     #citySelectorButtons {
         padding: 5px 0;
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling en iOS */
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ---- Main content padding ---- */
+    .main-content {
+        border-radius: 10px;
+        padding: 16px;
+    }
+
+    .section-title {
+        font-size: 15px;
+    }
+
+    .section {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
     }
 }
 

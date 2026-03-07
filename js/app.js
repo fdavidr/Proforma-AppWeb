@@ -35,6 +35,33 @@ async function init() {
     }
 }
 
+// ==================== MENÚ MÓVIL ====================
+function openMobileMenu() {
+    const sidebar = document.getElementById('appSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.add('mobile-open');
+    if (overlay) overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMobileMenu() {
+    const sidebar = document.getElementById('appSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Cerrar sidebar al navegar en móvil
+function closeMobileMenuOnNav() {
+    if (window.innerWidth <= 768) closeMobileMenu();
+}
+
+window.openMobileMenu = openMobileMenu;
+window.closeMobileMenu = closeMobileMenu;
+window.closeMobileMenuOnNav = closeMobileMenuOnNav;
+
+// ==================== MAYÚSCULAS ====================
 // Inicializar conversión automática a mayúsculas para todos los inputs de texto
 function initUppercaseInputs() {
     // Convertir a mayúsculas en tiempo real para inputs de texto y textareas
