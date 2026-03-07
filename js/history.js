@@ -134,7 +134,7 @@ function redownloadPDF(entryId) {
     if (entry.city) {
         const inventory = appData.inventories.find(inv => inv.id === entry.city);
         const cityName = inventory ? inventory.name.toUpperCase() : entry.city.toUpperCase();
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
     }
@@ -328,7 +328,7 @@ function redownloadPDF(entryId) {
         if (entry.city) {
             const inventory = appData.inventories.find(inv => inv.id === entry.city);
             const cityName = inventory ? inventory.name.toUpperCase() : entry.city.toUpperCase();
-            doc.setFontSize(12);
+            doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
             doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
         }

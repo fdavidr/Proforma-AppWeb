@@ -596,7 +596,7 @@ function viewSalePDF(saleId) {
     if (sale.city) {
         const inventory = appData.inventories.find(inv => inv.id === sale.city);
         const cityName = inventory ? inventory.name.toUpperCase() : sale.city.toUpperCase();
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
     }

@@ -262,7 +262,7 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     const inventory = appData.inventories.find(inv => inv.id === appData.selectedSaleCity);
     const cityName = inventory ? inventory.name.toUpperCase() : '';
     if (cityName) {
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
     }
