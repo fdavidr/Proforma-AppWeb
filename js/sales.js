@@ -551,15 +551,15 @@ function viewSalePDF(saleId) {
     const infoX = margin + (company.logo ? 35 : 0);
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text(company.name || '', infoX, yPos + 6);
+    doc.text((company.name || '').toUpperCase(), infoX, yPos + 6);
 
     doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
-    doc.text(company.slogan || '', infoX, yPos + 13);
+    doc.text((company.slogan || '').toUpperCase(), infoX, yPos + 13);
 
     if (company.nit) {
         doc.setFont(undefined, 'normal');
-        doc.text('NIT: ' + company.nit, infoX, yPos + 20);
+        doc.text('NIT: ' + company.nit.toUpperCase(), infoX, yPos + 20);
     }
 
     let headerHeight = company.logo ? (company.nit ? 30 : 28) : (company.nit ? 24 : 12);
@@ -592,15 +592,16 @@ function viewSalePDF(saleId) {
     doc.setFont(undefined, 'bold');
     doc.text('CLIENTE:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(client.name || '', margin + 25, yPos);
+    doc.text((client.name || '').toUpperCase(), margin + 25, yPos);
     
     if (client.ci) {
         doc.setFont(undefined, 'bold');
         const ciNitText = 'CI/NIT: ';
+        const ciValue = client.ci.toUpperCase();
         const ciNitWidth = doc.getTextWidth(ciNitText);
-        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(client.ci) - ciNitWidth, yPos);
+        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(ciValue) - ciNitWidth, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(client.ci, pageWidth - margin, yPos, { align: 'right' });
+        doc.text(ciValue, pageWidth - margin, yPos, { align: 'right' });
     }
     yPos += 6;
 
@@ -608,7 +609,7 @@ function viewSalePDF(saleId) {
         doc.setFont(undefined, 'bold');
         doc.text('Empresa:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(client.company, margin + 25, yPos);
+        doc.text(client.company.toUpperCase(), margin + 25, yPos);
         yPos += 6;
     }
 
@@ -616,7 +617,7 @@ function viewSalePDF(saleId) {
         doc.setFont(undefined, 'bold');
         doc.text('Teléfono:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(client.phone, margin + 25, yPos);
+        doc.text(client.phone.toUpperCase(), margin + 25, yPos);
         yPos += 6;
     }
 
@@ -626,9 +627,9 @@ function viewSalePDF(saleId) {
     doc.setFont(undefined, 'bold');
     doc.text('VENDEDOR:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(seller.name || '', margin + 25, yPos);
+    doc.text((seller.name || '').toUpperCase(), margin + 25, yPos);
     if (seller.phone) {
-        doc.text('Tel: ' + seller.phone, margin + 80, yPos);
+        doc.text('Tel: ' + seller.phone.toUpperCase(), margin + 80, yPos);
     }
     yPos += 8;
 
@@ -673,8 +674,8 @@ function viewSalePDF(saleId) {
 
         // Acceder a los datos del producto (puede estar en item.product o directamente en item)
         const product = item.product || item;
-        const productCode = product.code || '';
-        const productDescription = product.description || '';
+        const productCode = (product.code || '').toUpperCase();
+        const productDescription = (product.description || '').toUpperCase();
         const productImage = product.image || null;
 
         // Procesar descripción con splitTextToSize

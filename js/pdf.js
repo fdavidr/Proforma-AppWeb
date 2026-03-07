@@ -211,15 +211,15 @@ function addPDFHeader(doc, margin, yPos, pageWidth) {
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
     const infoX = margin + (appData.company.logo ? 35 : 0);
-    doc.text(appData.company.name, infoX, yPos + 6);
+    doc.text(appData.company.name.toUpperCase(), infoX, yPos + 6);
     
     doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
-    doc.text(appData.company.slogan || '', infoX, yPos + 13);
+    doc.text((appData.company.slogan || '').toUpperCase(), infoX, yPos + 13);
 
     if (appData.company.nit) {
         doc.setFont(undefined, 'normal');
-        const nitText = 'NIT: ' + appData.company.nit;
+        const nitText = 'NIT: ' + appData.company.nit.toUpperCase();
         doc.setTextColor(0, 0, 0);
         doc.text(nitText, infoX, yPos + 20);
     }
@@ -263,16 +263,17 @@ function addPDFClientInfo(doc, margin, yPos, pageWidth) {
     doc.setFont(undefined, 'bold');
     doc.text('CLIENTE:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(appData.currentClient.name, margin + 25, yPos);
+    doc.text(appData.currentClient.name.toUpperCase(), margin + 25, yPos);
     
     // CI/NIT en la misma fila, alineado a la derecha
     if (appData.currentClient.ci) {
         doc.setFont(undefined, 'bold');
         const ciNitText = 'CI/NIT: ';
+        const ciValue = appData.currentClient.ci.toUpperCase();
         const ciNitWidth = doc.getTextWidth(ciNitText);
-        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(appData.currentClient.ci) - ciNitWidth, yPos);
+        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(ciValue) - ciNitWidth, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(appData.currentClient.ci, pageWidth - margin, yPos, { align: 'right' });
+        doc.text(ciValue, pageWidth - margin, yPos, { align: 'right' });
     }
     
     yPos += 6;
@@ -281,7 +282,7 @@ function addPDFClientInfo(doc, margin, yPos, pageWidth) {
         doc.setFont(undefined, 'bold');
         doc.text('Empresa:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(appData.currentClient.company, margin + 25, yPos);
+        doc.text(appData.currentClient.company.toUpperCase(), margin + 25, yPos);
         yPos += 6;
     }
 
@@ -289,7 +290,7 @@ function addPDFClientInfo(doc, margin, yPos, pageWidth) {
         doc.setFont(undefined, 'bold');
         doc.text('Teléfono:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(appData.currentClient.phone, margin + 25, yPos);
+        doc.text(appData.currentClient.phone.toUpperCase(), margin + 25, yPos);
         yPos += 6;
     }
 
@@ -300,10 +301,10 @@ function addPDFSellerInfo(doc, margin, yPos) {
     doc.setFont(undefined, 'bold');
     doc.text('VENDEDOR:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(appData.currentSeller.name, margin + 25, yPos);
+    doc.text(appData.currentSeller.name.toUpperCase(), margin + 25, yPos);
     
     if (appData.currentSeller.phone) {
-        doc.text('Tel: ' + appData.currentSeller.phone, margin + 80, yPos);
+        doc.text('Tel: ' + appData.currentSeller.phone.toUpperCase(), margin + 80, yPos);
     }
     
     return yPos + 8;
@@ -340,13 +341,13 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
         }
 
         // Calcular altura de la fila primero
-        const description = doc.splitTextToSize(item.product.description, 56);
+        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 56);
         const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
         const textYCenter = yPos + (rowHeight / 2); // Centro vertical de la fila
 
         // Textos centrados verticalmente
         doc.text((index + 1).toString(), margin + 2, textYCenter);
-        doc.text(item.product.code || '-', margin + 8, textYCenter);
+        doc.text((item.product.code || '-').toUpperCase(), margin + 8, textYCenter);
         
         // Imagen del producto en su propia columna
         if (item.product.image) {
@@ -424,13 +425,13 @@ function addPDFProductsTableDelivery(doc, margin, yPos, pageWidth, pageHeight) {
         }
 
         // Calcular altura de la fila
-        const description = doc.splitTextToSize(item.product.description, 120);
+        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 120);
         const rowHeight = Math.max(7, description.length * 5);
         const textYCenter = yPos + (rowHeight / 2);
 
         // Textos
         doc.text((index + 1).toString(), margin + 2, textYCenter);
-        doc.text(item.product.code || '-', margin + 10, textYCenter);
+        doc.text((item.product.code || '-').toUpperCase(), margin + 10, textYCenter);
         
         const descHeight = description.length * 5;
         const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;

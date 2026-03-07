@@ -94,15 +94,15 @@ function redownloadPDF(entryId) {
         const infoX = margin + (company.logo ? 35 : 0);
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text(company.name || '', infoX, yPos + 6);
+        doc.text((company.name || '').toUpperCase(), infoX, yPos + 6);
 
         doc.setFontSize(10);
         doc.setFont(undefined, 'italic');
-        doc.text(company.slogan || '', infoX, yPos + 13);
+        doc.text((company.slogan || '').toUpperCase(), infoX, yPos + 13);
 
         if (company.nit) {
             doc.setFont(undefined, 'normal');
-            const nitText = 'NIT: ' + company.nit;
+            const nitText = 'NIT: ' + company.nit.toUpperCase();
             doc.setTextColor(0, 0, 0);
             doc.text(nitText, infoX, yPos + 20);
         }
@@ -139,16 +139,17 @@ function redownloadPDF(entryId) {
     doc.setFont(undefined, 'bold');
     doc.text('CLIENTE:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(client.name || '', margin + 25, yPos);
+    doc.text((client.name || '').toUpperCase(), margin + 25, yPos);
     
     // CI/NIT en la misma fila, alineado a la derecha
     if (client.ci) {
         doc.setFont(undefined, 'bold');
         const ciNitText = 'CI/NIT: ';
+        const ciValue = client.ci.toUpperCase();
         const ciNitWidth = doc.getTextWidth(ciNitText);
-        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(client.ci) - ciNitWidth, yPos);
+        doc.text(ciNitText, pageWidth - margin - doc.getTextWidth(ciValue) - ciNitWidth, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(client.ci, pageWidth - margin, yPos, { align: 'right' });
+        doc.text(ciValue, pageWidth - margin, yPos, { align: 'right' });
     }
     
     yPos += 6;
@@ -157,7 +158,7 @@ function redownloadPDF(entryId) {
         doc.setFont(undefined, 'bold');
         doc.text('Empresa:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(client.company, margin + 25, yPos);
+        doc.text(client.company.toUpperCase(), margin + 25, yPos);
         yPos += 6;
     }
 
@@ -165,7 +166,7 @@ function redownloadPDF(entryId) {
         doc.setFont(undefined, 'bold');
         doc.text('Teléfono:', margin, yPos);
         doc.setFont(undefined, 'normal');
-        doc.text(client.phone, margin + 25, yPos);
+        doc.text(client.phone.toUpperCase(), margin + 25, yPos);
         yPos += 6;
     }
 
@@ -175,10 +176,10 @@ function redownloadPDF(entryId) {
     doc.setFont(undefined, 'bold');
     doc.text('VENDEDOR:', margin, yPos);
     doc.setFont(undefined, 'normal');
-    doc.text(seller.name || '', margin + 25, yPos);
+    doc.text((seller.name || '').toUpperCase(), margin + 25, yPos);
     
     if (seller.phone) {
-        doc.text('Tel: ' + seller.phone, margin + 80, yPos);
+        doc.text('Tel: ' + seller.phone.toUpperCase(), margin + 80, yPos);
     }
     yPos += 8;
 
@@ -221,12 +222,12 @@ function redownloadPDF(entryId) {
 
         // Tabla simplificada para nota de entrega
         if (entry.type === 'notaentrega') {
-            const description = doc.splitTextToSize(item.product.description, 120);
+            const description = doc.splitTextToSize((item.product.description || '').toUpperCase(), 120);
             const rowHeight = Math.max(7, description.length * 5);
             const textYCenter = yPos + (rowHeight / 2);
 
             doc.text((index + 1).toString(), margin + 2, textYCenter);
-            doc.text(item.product.code || '-', margin + 10, textYCenter);
+            doc.text((item.product.code || '-').toUpperCase(), margin + 10, textYCenter);
             
             const descHeight = description.length * 5;
             const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
@@ -247,12 +248,12 @@ function redownloadPDF(entryId) {
             yPos += rowHeight;
         } else {
             // Tabla completa para cotización y nota de venta
-            const description = doc.splitTextToSize(item.product.description, 56);
+            const description = doc.splitTextToSize((item.product.description || '').toUpperCase(), 56);
             const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
             const textYCenter = yPos + (rowHeight / 2);
 
             doc.text((index + 1).toString(), margin + 2, textYCenter);
-            doc.text(item.product.code || '-', margin + 8, textYCenter);
+            doc.text((item.product.code || '-').toUpperCase(), margin + 8, textYCenter);
             
             // Imagen del producto
             if (item.product.image) {
