@@ -267,21 +267,22 @@ function generateSalesPDF() {
 
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(appData.company.name, margin + 35, yPos + 8);
+    doc.text(appData.company.name.toUpperCase(), margin + 35, yPos + 8);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(appData.company.slogan || '', margin + 35, yPos + 15);
+    doc.text((appData.company.slogan || '').toUpperCase(), margin + 35, yPos + 15);
     
     if (appData.company.nit) {
-        doc.text(`NIT: ${appData.company.nit}`, margin + 35, yPos + 21);
+        doc.text(`NIT: ${appData.company.nit.toUpperCase()}`, margin + 35, yPos + 21);
     }
 
     // Título del documento
     yPos += 40;
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    const cityTitle = selectedSalesCity === 'cochabamba' ? 'COCHABAMBA' : 'SANTA CRUZ';
+    const inventory = appData.inventories.find(inv => inv.id === selectedSalesCity);
+    const cityTitle = inventory ? inventory.name.toUpperCase() : selectedSalesCity.toUpperCase();
     doc.text(`REPORTE DE VENTAS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
     // Mes seleccionado
@@ -303,28 +304,68 @@ function generateSalesPDF() {
         return saleDate === selectedMonth;
     });
 
-    // Calcular totales
+    // Ordenar por fecha (más recientes primero)
+    sales.sort((a, b) => {
+        const parseDate = (dateStr) => {
+            try {
+                const parts = dateStr.split(',');
+                const datePart = parts[0].trim();
+                const [day, month, year] = datePart.split('/');
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+            } catch (e) {
+                return 0;
+            }
+        };
+        return parseDate(b.date) - parseDate(a.date);
+    });
+
+    // Calcular totales (solo ventas NO anuladas)
     let totalCost = 0;
     let totalPrice = 0;
+    let validSalesCount = 0;
+    let cancelledSalesCount = 0;
+    let invoicedSalesCount = 0;
     
     sales.forEach(sale => {
-        let saleCost = 0;
-        if (sale.items && Array.isArray(sale.items)) {
-            sale.items.forEach(item => {
-                const product = appData.products.find(p => p.id === item.id);
-                if (product && product.cost) {
-                    saleCost += (product.cost * item.quantity);
-                }
-            });
+        const isCancelled = sale.cancelled === true;
+        const isInvoiced = sale.invoiced === true;
+        
+        if (isCancelled) {
+            cancelledSalesCount++;
+        } else {
+            validSalesCount++;
+            if (isInvoiced) {
+                invoicedSalesCount++;
+            }
         }
-        totalCost += saleCost;
-        totalPrice += (sale.total || 0);
+        
+        // Solo sumar al total si NO está anulada
+        if (!isCancelled) {
+            let saleCost = 0;
+            if (sale.items && Array.isArray(sale.items)) {
+                sale.items.forEach(item => {
+                    const product = appData.products.find(p => p.id === item.id);
+                    if (product && product.cost) {
+                        saleCost += (product.cost * item.quantity);
+                    }
+                });
+            }
+            totalCost += saleCost;
+            totalPrice += (sale.total || 0);
+        }
     });
 
     const balance = totalPrice - totalCost;
 
+    // Resumen de estados
+    yPos += 10;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const summaryText = `Ventas Válidas: ${validSalesCount} | Facturadas: ${invoicedSalesCount} | Anuladas: ${cancelledSalesCount} | Total: ${sales.length}`;
+    doc.text(summaryText, pageWidth / 2, yPos, { align: 'center' });
+
     // Totales en recuadros
-    yPos += 12;
+    yPos += 8;
     const boxWidth = 55;
     const boxHeight = 18;
     const spacing = 5;
@@ -347,7 +388,7 @@ function generateSalesPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('PRECIO TOTAL', startX + boxWidth + spacing + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.text('INGRESO TOTAL', startX + boxWidth + spacing + boxWidth / 2, yPos + 6, { align: 'center' });
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(`Bs ${totalPrice.toFixed(2)}`, startX + boxWidth + spacing + boxWidth / 2, yPos + 13, { align: 'center' });
@@ -358,7 +399,7 @@ function generateSalesPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('BALANCE', startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.text('GANANCIA NETA', startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 6, { align: 'center' });
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(`Bs ${balance.toFixed(2)}`, startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 13, { align: 'center' });
@@ -369,22 +410,23 @@ function generateSalesPDF() {
     doc.setFont('helvetica', 'normal');
 
     // Encabezado de tabla
-    doc.setFillColor(112, 55, 205);
+    doc.setFillColor(52, 73, 94);
     doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
     
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     
     const colWidths = {
-        num: 12,
-        sale: 28,
-        client: 50,
-        vendor: 35,
-        products: 20,
-        cost: 28,
-        price: 28,
-        date: 28
+        num: 8,
+        sale: 18,
+        client: 38,
+        vendor: 30,
+        products: 12,
+        cost: 22,
+        price: 22,
+        date: 20,
+        status: 20
     };
 
     let xPos = margin + 2;
@@ -403,19 +445,53 @@ function generateSalesPDF() {
     doc.text('Precio', xPos, yPos + 5);
     xPos += colWidths.price;
     doc.text('Fecha', xPos, yPos + 5);
+    xPos += colWidths.date;
+    doc.text('Estado', xPos, yPos + 5);
 
     yPos += 10;
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(7);
 
     // Ventas
     sales.forEach((sale, index) => {
         if (yPos > pageHeight - 30) {
             doc.addPage();
-            yPos = margin;
+            yPos = margin + 10;
+            
+            // Repetir encabezado en nueva página
+            doc.setFillColor(52, 73, 94);
+            doc.rect(margin, yPos - 8, pageWidth - 2 * margin, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            
+            let xPosHeader = margin + 2;
+            doc.text('#', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.num;
+            doc.text('Nº Venta', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.sale;
+            doc.text('Cliente', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.client;
+            doc.text('Vendedor', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.vendor;
+            doc.text('Prods', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.products;
+            doc.text('Costo', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.cost;
+            doc.text('Precio', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.price;
+            doc.text('Fecha', xPosHeader, yPos - 3);
+            xPosHeader += colWidths.date;
+            doc.text('Estado', xPosHeader, yPos - 3);
+            
+            yPos += 2;
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
         }
 
+        // Calcular costo de esta venta
         let saleCost = 0;
         if (sale.items && Array.isArray(sale.items)) {
             sale.items.forEach(item => {
@@ -428,6 +504,20 @@ function generateSalesPDF() {
         
         const salePrice = sale.total || 0;
         const productCount = sale.items ? sale.items.length : 0;
+        const isCancelled = sale.cancelled === true;
+        const isInvoiced = sale.invoiced === true;
+        
+        // Determinar estado
+        let statusText = 'Vendido';
+        if (isCancelled) {
+            statusText = 'ANULADO';
+            doc.setTextColor(231, 76, 60); // Rojo para anulado
+        } else if (isInvoiced) {
+            statusText = 'Facturado';
+            doc.setTextColor(46, 204, 113); // Verde para facturado
+        } else {
+            doc.setTextColor(0, 0, 0); // Negro normal
+        }
 
         xPos = margin + 2;
         doc.text(`${index + 1}`, xPos, yPos);
@@ -435,47 +525,125 @@ function generateSalesPDF() {
         doc.text(sale.number.toString(), xPos, yPos);
         xPos += colWidths.sale;
         
-        const clientName = sale.client.name || sale.client;
-        doc.text(clientName.length > 25 ? clientName.substring(0, 25) + '...' : clientName, xPos, yPos);
+        const clientName = (sale.client.name || sale.client).toUpperCase();
+        const clientDisplay = clientName.length > 22 ? clientName.substring(0, 22) + '..' : clientName;
+        doc.text(clientDisplay, xPos, yPos);
         xPos += colWidths.client;
         
-        const vendorName = sale.seller.name || sale.seller;
-        doc.text(vendorName.length > 18 ? vendorName.substring(0, 18) + '...' : vendorName, xPos, yPos);
+        const vendorName = (sale.seller.name || sale.seller).toUpperCase();
+        const vendorDisplay = vendorName.length > 18 ? vendorName.substring(0, 18) + '..' : vendorName;
+        doc.text(vendorDisplay, xPos, yPos);
         xPos += colWidths.vendor;
         
-        doc.text(productCount.toString(), xPos, yPos);
+        doc.text(productCount.toString(), xPos + 3, yPos);
         xPos += colWidths.products;
+        
+        doc.text(`Bs ${saleCost.toFixed(2)}`, xPos, yPos);
+        xPos += colWidths.cost;
+        
+        doc.text(`Bs ${salePrice.toFixed(2)}`, xPos, yPos);
         xPos += colWidths.price;
-        doc.text(sale.date, xPos, yPos);
+        
+        const datePart = sale.date.split(',')[0].trim();
+        doc.text(datePart, xPos, yPos);
+        xPos += colWidths.date;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text(statusText, xPos, yPos);
+        doc.setFont('helvetica', 'normal');
 
-        yPos += 7;
+        yPos += 6;
 
-        // Línea separadora
-        if (index < sales.length - 1) {
-            doc.setDrawColor(220, 220, 220);
-            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
-        }
+        // Línea separadora sutil
+        doc.setDrawColor(230, 230, 230);
+        doc.setLineWidth(0.1);
+        doc.line(margin, yPos - 1, pageWidth - margin, yPos - 1);
+        
+        doc.setTextColor(0, 0, 0); // Resetear color
     });
 
     // Resumen final
-    yPos += 10;
-    if (yPos > pageHeight - 40) {
+    yPos += 8;
+    if (yPos > pageHeight - 45) {
         doc.addPage();
         yPos = margin;
     }
 
+    doc.setDrawColor(52, 73, 94);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Total de Ventas: ${sales.length}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Costo Total: Bs ${totalCost.toFixed(2)}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Ingreso Total: Bs ${totalPrice.toFixed(2)}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Ganancia Neta: Bs ${balance.toFixed(2)}`, margin, yPos);
+    doc.setTextColor(52, 73, 94);
+    doc.text('RESUMEN DEL PERÍODO', margin, yPos);
+    
+    yPos += 8;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    
+    doc.text(`Total de Ventas Registradas:`, margin, yPos);
+    doc.text(`${sales.length}`, pageWidth - margin - 30, yPos);
+    yPos += 6;
+    
+    doc.text(`Ventas Válidas:`, margin + 5, yPos);
+    doc.text(`${validSalesCount}`, pageWidth - margin - 30, yPos);
+    yPos += 5;
+    
+    doc.setTextColor(46, 204, 113);
+    doc.text(`• Facturadas:`, margin + 10, yPos);
+    doc.text(`${invoicedSalesCount}`, pageWidth - margin - 30, yPos);
+    yPos += 5;
+    
+    doc.setTextColor(0, 0, 0);
+    doc.text(`• Sin facturar:`, margin + 10, yPos);
+    doc.text(`${validSalesCount - invoicedSalesCount}`, pageWidth - margin - 30, yPos);
+    yPos += 6;
+    
+    doc.setTextColor(231, 76, 60);
+    doc.text(`Ventas Anuladas:`, margin + 5, yPos);
+    doc.text(`${cancelledSalesCount}`, pageWidth - margin - 30, yPos);
+    
+    yPos += 8;
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 6;
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Costo Total (ventas válidas):`, margin, yPos);
+    doc.setTextColor(231, 76, 60);
+    doc.text(`Bs ${totalCost.toFixed(2)}`, pageWidth - margin - 30, yPos);
+    yPos += 6;
+    
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Ingreso Total (ventas válidas):`, margin, yPos);
+    doc.setTextColor(39, 174, 96);
+    doc.text(`Bs ${totalPrice.toFixed(2)}`, pageWidth - margin - 30, yPos);
+    yPos += 6;
+    
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Ganancia Neta:`, margin, yPos);
+    doc.setTextColor(52, 152, 219);
+    doc.setFontSize(11);
+    doc.text(`Bs ${balance.toFixed(2)}`, pageWidth - margin - 30, yPos);
+
+    // Pie de página
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text(`Generado: ${new Date().toLocaleString('es-BO')}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+    }
 
     // Guardar PDF
-    const cityName = selectedSalesCity === 'cochabamba' ? 'Cochabamba' : 'SantaCruz';
+    const cityName = inventory ? inventory.name : selectedSalesCity;
     const fileName = `Reporte_Ventas_${cityName}_${monthName}_${year}.pdf`;
     doc.save(fileName);
 }
