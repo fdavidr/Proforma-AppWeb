@@ -129,6 +129,15 @@ function redownloadPDF(entryId) {
     
     doc.setFontSize(10);
     doc.text('Fecha: ' + entry.date, pageWidth - margin, 34, { align: 'right' });
+    
+    // Nombre del inventario debajo de la fecha
+    if (entry.city) {
+        const inventory = appData.inventories.find(inv => inv.id === entry.city);
+        const cityName = inventory ? inventory.name.toUpperCase() : entry.city.toUpperCase();
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+    }
 
     // Línea separadora
     doc.setLineWidth(0.5);
@@ -314,6 +323,16 @@ function redownloadPDF(entryId) {
         doc.text('Nº ' + entry.number, pageWidth - margin, 27, { align: 'right' });
         doc.setFontSize(10);
         doc.text('Fecha: ' + entry.date, pageWidth - margin, 34, { align: 'right' });
+        
+        // Nombre del inventario debajo de la fecha
+        if (entry.city) {
+            const inventory = appData.inventories.find(inv => inv.id === entry.city);
+            const cityName = inventory ? inventory.name.toUpperCase() : entry.city.toUpperCase();
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+        }
+        
         doc.setLineWidth(0.5);
         doc.line(margin, yPos, pageWidth - margin, yPos);
     }

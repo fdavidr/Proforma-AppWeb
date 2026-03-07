@@ -257,6 +257,15 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     
     doc.setFontSize(10);
     doc.text('Fecha: ' + getSelectedPdfDate(), pageWidth - margin, 34, { align: 'right' });
+    
+    // Nombre del inventario debajo de la fecha
+    const inventory = appData.inventories.find(inv => inv.id === appData.selectedCity);
+    const cityName = inventory ? inventory.name.toUpperCase() : '';
+    if (cityName) {
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+    }
 }
 
 function addPDFClientInfo(doc, margin, yPos, pageWidth) {
