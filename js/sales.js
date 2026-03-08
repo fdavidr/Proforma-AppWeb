@@ -2,80 +2,74 @@
 
 let selectedSalesCity = 'cochabamba';
 
-// Generar botones de filtro de ciudad dinámicamente
+// Generar lista desplegable de filtro de ciudad
 function generateSalesCityFilterButtons() {
     const container = document.getElementById('salesCityFilterButtons');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
-    appData.inventories.forEach((inventory, index) => {
-        const button = document.createElement('button');
-        button.className = 'btn-filter-inventory' + (index === 0 ? ' active' : '');
-        button.dataset.city = inventory.id;
-        button.onclick = () => filterSalesByCity(inventory.id);
-        button.textContent = inventory.name;
-        container.appendChild(button);
+
+    const select = document.createElement('select');
+    select.id = 'salesCitySelect';
+    select.style.cssText = 'padding: 7px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-weight: 600; color: #2c3e50; background: #fff; cursor: pointer; min-width: 160px; outline: none;';
+
+    appData.inventories.forEach(inventory => {
+        const option = document.createElement('option');
+        option.value = inventory.id;
+        option.textContent = inventory.name;
+        if (inventory.id === selectedSalesCity) option.selected = true;
+        select.appendChild(option);
     });
+
+    select.addEventListener('change', () => filterSalesByCity(select.value));
+    container.appendChild(select);
 }
 
 function openSales() {
-    // Generar botones de filtro de ciudad
-    generateSalesCityFilterButtons();
-    
-    // Si es vendedor, establecer su ciudad automáticamente
+    // Establecer ciudad antes de generar el select para que quede preseleccionada
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
         selectedSalesCity = appData.loggedSeller.city;
     } else {
         selectedSalesCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
     }
-    
+
+    // Generar lista desplegable de ciudad (usa selectedSalesCity ya establecido)
+    generateSalesCityFilterButtons();
+
     // Establecer mes actual por defecto
     const today = new Date();
     const currentMonth = today.toISOString().slice(0, 7);
     document.getElementById('salesMonthFilter').value = currentMonth;
-    
+
     filterSalesByMonth();
     setActiveMenuButton('salesBtn');
-    
+
     // Mostrar sección de ventas
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'block';
-    
-    // Si es vendedor, bloquear botones de ciudad
-    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
-        document.querySelectorAll('.city-filter-sales').forEach(btn => {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
-            btn.classList.remove('active');
-            if (btn.dataset.city === appData.loggedSeller.city) {
-                btn.classList.add('active');
-            }
-        });
-    } else {
-        // Admin puede cambiar de ciudad
-        document.querySelectorAll('.city-filter-sales').forEach(btn => {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-        });
+
+    // Si es vendedor, deshabilitar el select de ciudad
+    const citySelect = document.getElementById('salesCitySelect');
+    if (citySelect) {
+        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+            citySelect.value = appData.loggedSeller.city;
+            citySelect.disabled = true;
+            citySelect.style.opacity = '0.5';
+            citySelect.style.cursor = 'not-allowed';
+        } else {
+            citySelect.disabled = false;
+            citySelect.style.opacity = '1';
+            citySelect.style.cursor = 'pointer';
+        }
     }
 }
 
 function filterSalesByCity(city) {
     selectedSalesCity = city;
-    
-    // Actualizar botones activos
-    document.querySelectorAll('#salesCityFilterButtons .btn-filter-inventory').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.city === city) {
-            btn.classList.add('active');
-        }
-    });
-    
+    const select = document.getElementById('salesCitySelect');
+    if (select) select.value = city;
     filterSalesByMonth();
 }
 
