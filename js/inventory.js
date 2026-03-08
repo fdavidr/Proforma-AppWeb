@@ -20,75 +20,13 @@ function openInventory() {
     setActiveMenuButton('inventoryBtn');
 }
 
-// Cargar lista de inventarios disponibles en la sección inline
+// Actualizar elementos ocultos que el JS interno necesita
 function loadInventoryListInline() {
-    const container = document.getElementById('inventoryListInline');
     const countSpan = document.getElementById('inventoryCountInline');
-    const addButton = document.getElementById('btnAddInventoryInline');
-    
-    if (!container || !countSpan) return;
-    
-    container.innerHTML = '';
-    countSpan.textContent = appData.inventories.length;
-    
-    // Mostrar/ocultar botón de agregar según el límite
-    if (addButton) {
-        if (appData.inventories.length >= 4) {
-            addButton.style.display = 'none';
-        } else {
-            addButton.style.display = 'inline-block';
-        }
-    }
-    
-    appData.inventories.forEach(inventory => {
-        const badge = document.createElement('span');
-        badge.className = 'inventory-badge';
-        badge.textContent = inventory.name;
-        container.appendChild(badge);
-    });
+    if (countSpan) countSpan.textContent = appData.inventories.length;
 }
 
-// Mostrar formulario de nuevo inventario
-function toggleNewInventoryForm() {
-    const form = document.getElementById('newInventoryFormInline');
-    const button = document.getElementById('btnAddInventoryInline');
-    
-    if (form.style.display === 'none') {
-        form.style.display = 'block';
-        button.style.display = 'none';
-        document.getElementById('newInventoryNameInline').value = '';
-        document.getElementById('newInventoryNameInline').focus();
-    } else {
-        form.style.display = 'none';
-        button.style.display = 'inline-block';
-    }
-}
 
-// Cancelar creación de nuevo inventario
-function cancelNewInventoryInline() {
-    document.getElementById('newInventoryFormInline').style.display = 'none';
-    document.getElementById('btnAddInventoryInline').style.display = 'inline-block';
-}
-
-// Confirmar creación de nuevo inventario
-async function confirmNewInventoryInline() {
-    const name = document.getElementById('newInventoryNameInline').value.trim();
-    
-    if (createInventory(name)) {
-        await saveData();
-        
-        // Actualizar lista de inventarios en línea
-        loadInventoryListInline();
-        
-        // Actualizar filtros de inventario
-        generateInventoryFilters();
-        
-        // Ocultar formulario
-        cancelNewInventoryInline();
-        
-        alert(`Inventario "${name}" creado exitosamente`);
-    }
-}
 
 // Generar botones de filtro de inventarios dinámicamente
 function generateInventoryFilters() {
@@ -457,6 +395,3 @@ window.loadInventoryData = loadInventoryData;
 window.saveInventoryRowChanges = saveInventoryRowChanges;
 window.deleteProductFromInventory = deleteProductFromInventory;
 window.generateInventoryPDF = generateInventoryPDF;
-window.toggleNewInventoryForm = toggleNewInventoryForm;
-window.cancelNewInventoryInline = cancelNewInventoryInline;
-window.confirmNewInventoryInline = confirmNewInventoryInline;

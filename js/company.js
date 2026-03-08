@@ -14,6 +14,7 @@ function openCompanySettings() {
         preview.style.display = 'none';
         preview.src = '';
     }
+    renderModalInventoryList();
     openModal('companyModal');
 }
 
@@ -101,8 +102,65 @@ function convertTransparentToWhite(base64, callback) {
     img.src = base64;
 }
 
+// ==================== GESTIÓN DE INVENTARIOS DESDE EL MODAL ====================
+
+function renderModalInventoryList() {
+    const list = document.getElementById('modalInventoryList');
+    const countSpan = document.getElementById('modalInventoryCount');
+    const addRow = document.getElementById('modalAddInventoryRow');
+    if (!list) return;
+
+    countSpan.textContent = appData.inventories.length;
+    addRow.style.display = appData.inventories.length >= 4 ? 'none' : 'flex';
+    list.innerHTML = '';
+
+    appData.inventories.forEach(inv => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; background:#f8f9fa; border-radius:7px; padding:7px 12px;';
+        row.innerHTML = `
+            <span style="font-weight:600; color:#2c3e50;">${inv.name}</span>
+            ${appData.inventories.length > 1
+                ? `<button onclick="deleteInventoryFromModal('${inv.id}')" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:16px; line-height:1;" title="Eliminar inventario">🗑</button>`
+                : '<span style="font-size:11px; color:#999;">Principal</span>'}
+        `;
+        list.appendChild(row);
+    });
+}
+
+async function addInventoryFromModal() {
+    const input = document.getElementById('modalNewInventoryName');
+    const name = input.value.trim();
+    if (createInventory(name)) {
+        input.value = '';
+        await saveData();
+        renderModalInventoryList();
+        // Actualizar selector en sección inventario si está abierta
+        if (typeof generateInventoryFilters === 'function') generateInventoryFilters();
+        if (typeof loadInventoryListInline === 'function') loadInventoryListInline();
+    }
+}
+
+async function deleteInventoryFromModal(id) {
+    if (appData.inventories.length <= 1) {
+        alert('Debe existir al menos un inventario.');
+        return;
+    }
+    const inv = appData.inventories.find(i => i.id === id);
+    if (!inv) return;
+    if (!confirm(`¿Eliminar el inventario "${inv.name}"? Se perderán todos los datos de stock asociados.`)) return;
+
+    appData.inventories = appData.inventories.filter(i => i.id !== id);
+    appData.products.forEach(p => { if (p.stock) delete p.stock[id]; });
+    await saveData();
+    renderModalInventoryList();
+    if (typeof generateInventoryFilters === 'function') generateInventoryFilters();
+    if (typeof loadInventoryListInline === 'function') loadInventoryListInline();
+}
+
 // Exponer funciones globalmente
 window.openCompanySettings = openCompanySettings;
 window.handleLogoUpload = handleLogoUpload;
 window.saveCompanySettings = saveCompanySettings;
 window.convertTransparentToWhite = convertTransparentToWhite;
+window.addInventoryFromModal = addInventoryFromModal;
+window.deleteInventoryFromModal = deleteInventoryFromModal;

@@ -307,6 +307,17 @@
                     <input type="file" id="logoInput" accept="image/*" onchange="handleLogoUpload(event)">
                     <img id="logoPreview" style="max-width: 200px; margin-top: 10px; display: none;">
                 </div>
+                <!-- Gestión de Inventarios -->
+                <div class="form-group" style="border-top: 2px solid #f0f0f0; padding-top: 16px; margin-top: 4px;">
+                    <label style="font-weight: 700; color: #2c3e50; font-size: 14px;">🏪 Inventarios (<span id="modalInventoryCount">0</span>/4)</label>
+                    <div id="modalInventoryList" style="display: flex; flex-direction: column; gap: 6px; margin: 10px 0;"></div>
+                    <div id="modalAddInventoryRow" style="display: flex; gap: 8px; margin-top: 8px;">
+                        <input type="text" id="modalNewInventoryName" placeholder="Ej: La Paz, Tarija..." maxlength="30"
+                            style="flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;"
+                            onkeydown="if(event.key==='Enter') addInventoryFromModal()">
+                        <button class="btn btn-success" onclick="addInventoryFromModal()" style="white-space: nowrap;">➕ Agregar</button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('companyModal')">Cancelar</button>
@@ -463,17 +474,6 @@
                 <span id="inventoryCountInline" style="display:none;">0</span>
                 <div id="inventoryListInline" style="display:none;"></div>
                 
-                <!-- Formulario Nuevo Inventario (oculto por defecto) -->
-                <div id="newInventoryFormInline" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #27ae60;">
-                    <div class="form-group" style="margin-bottom: 10px;">
-                        <label style="font-weight: 600; color: #2c3e50;">Nombre del Nuevo Inventario *</label>
-                        <input type="text" id="newInventoryNameInline" placeholder="Ej: La Paz, Tarija, etc." maxlength="30" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" onclick="cancelNewInventoryInline()">Cancelar</button>
-                        <button class="btn btn-success" onclick="confirmNewInventoryInline()">✓ Crear Inventario</button>
-                    </div>
-                </div>
                 
                 <!-- Fila 2: Filtros, Totales y Acciones -->
                 <div class="inventory-control-grid">
@@ -483,7 +483,6 @@
                         <div id="inventoryFilterButtons" style="display: flex; gap: 8px; flex-wrap: wrap; flex: 1;">
                             <!-- Los botones se generarán dinámicamente -->
                         </div>
-                        <button id="btnAddInventoryInline" class="btn btn-success" onclick="toggleNewInventoryForm()" style="padding: 6px 12px; font-size: 13px; white-space: nowrap;">➕ Nuevo</button>
                     </div>
                     
                     <!-- Costo Total -->
