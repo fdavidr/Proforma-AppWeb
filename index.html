@@ -585,11 +585,11 @@
             <!-- Título + botón descargar en la misma fila -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2>📊 Movimientos</h2>
-                <button class="btn btn-primary" onclick="generateSalesPDF()">&#x1F4C4; Descargar Resumen</button>
+                <button class="btn btn-primary" onclick="generateSalesPDF()" style="white-space:nowrap; padding:7px 12px; font-size:13px;">&#x1F4C4; Descargar</button>
             </div>
             <!-- Barra de filtros + totales -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:8px; gap:16px; flex-wrap:wrap;">
-                <!-- Tabs + Filtros en una sola fila -->
+            <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:8px;">
+                <!-- Fila 1: Tabs + Filtros -->
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <!-- Tabs Ventas / Gastos -->
                     <div style="display:flex; gap:8px;">
@@ -608,8 +608,8 @@
                         <button class="btn btn-secondary" onclick="showAllSales()" style="padding:8px 12px; font-size:13px;">Ver Todas</button>
                     </div>
                 </div>
-                <!-- Totales -->
-                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+                <!-- Fila 2: Totales centrados -->
+                <div style="display:flex; justify-content:center; gap:24px; flex-wrap:wrap; align-items:center;">
                     <div style="text-align:center; min-width:85px;">
                         <div style="font-size:13px; color:#666;">Costo Total</div>
                         <div style="font-size:20px; font-weight:bold; color:#e74c3c;" id="totalCostSales">Bs 0.00</div>
