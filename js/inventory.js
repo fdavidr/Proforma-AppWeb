@@ -94,30 +94,32 @@ async function confirmNewInventoryInline() {
 function generateInventoryFilters() {
     const container = document.getElementById('inventoryFilterButtons');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
-    appData.inventories.forEach((inventory, index) => {
-        const button = document.createElement('button');
-        button.className = 'btn-filter-inventory' + (index === 0 ? ' active' : '');
-        button.dataset.city = inventory.id;
-        button.onclick = () => filterInventoryByCity(inventory.id);
-        button.textContent = inventory.name;
-        container.appendChild(button);
+
+    const select = document.createElement('select');
+    select.id = 'inventoryCitySelect';
+    select.style.cssText = 'padding: 7px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-weight: 600; color: #2c3e50; background: #fff; cursor: pointer; min-width: 160px; outline: none;';
+
+    appData.inventories.forEach(inventory => {
+        const option = document.createElement('option');
+        option.value = inventory.id;
+        option.textContent = inventory.name;
+        if (inventory.id === selectedInventoryCity) option.selected = true;
+        select.appendChild(option);
     });
+
+    select.addEventListener('change', () => filterInventoryByCity(select.value));
+    container.appendChild(select);
 }
 
 function filterInventoryByCity(city) {
     selectedInventoryCity = city;
-    
-    // Actualizar botones activos
-    document.querySelectorAll('.btn-filter-inventory').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.city === city) {
-            btn.classList.add('active');
-        }
-    });
-    
+
+    // Sincronizar el select si existe
+    const select = document.getElementById('inventoryCitySelect');
+    if (select) select.value = city;
+
     loadInventoryData();
 }
 
