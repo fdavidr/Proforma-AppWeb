@@ -717,27 +717,13 @@ function viewSalePDF(saleId) {
         const items = Array.isArray(sale.items) ? sale.items : [];
 
         // Regenerar PDF con los datos guardados
-        const { jsPDF } = window.jspdf;
+        const { jsPDF, GState: JsPDFGState } = window.jspdf;
         if (!jsPDF) {
             alert('Error: jsPDF no está cargado');
             return;
         }
         
         const doc = new jsPDF();
-    
-    // ===== MARCA DE AGUA (dibujada PRIMERO para quedar detrás del contenido) =====
-    if (sale.cancelled === true || sale.invoiced === true) {
-        const wmText = sale.cancelled === true ? 'ANULADO' : 'FACTURADO';
-        const wmColor = sale.cancelled === true ? [255, 160, 160] : [160, 255, 160];
-        doc.setTextColor(wmColor[0], wmColor[1], wmColor[2]);
-        doc.setFontSize(70);
-        doc.setFont(undefined, 'bold');
-        doc.text(wmText, doc.internal.pageSize.width / 2, doc.internal.pageSize.height / 2, {
-            align: 'center',
-            angle: 45
-        });
-        doc.setTextColor(0, 0, 0);
-    }
 
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -975,6 +961,29 @@ function viewSalePDF(saleId) {
                 yPos += 5;
             }
         });
+    }
+
+    // ===== MARCA DE AGUA (dibujada AL FINAL para quedar ENCIMA de imágenes y contenido) =====
+    if (sale.cancelled === true || sale.invoiced === true) {
+        const wmText = sale.cancelled === true ? 'ANULADO' : 'FACTURADO';
+        const wmColorR = sale.cancelled === true ? 220 : 30;
+        const wmColorG = sale.cancelled === true ? 30 : 160;
+        const wmColorB = 30;
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            doc.saveGraphicsState();
+            try {
+                const gState = new JsPDFGState({ opacity: 0.3 });
+                doc.setGState(gState);
+            } catch (e) { /* GState no disponible */ }
+            doc.setTextColor(wmColorR, wmColorG, wmColorB);
+            doc.setFontSize(70);
+            doc.setFont(undefined, 'bold');
+            doc.text(wmText, pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+            doc.restoreGraphicsState();
+            doc.setTextColor(0, 0, 0);
+        }
     }
 
     doc.save(`Nota_Venta_${sale.number}.pdf`);

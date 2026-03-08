@@ -70,20 +70,6 @@ function redownloadPDF(entryId) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // ===== MARCA DE AGUA (dibujada PRIMERO para quedar detrás del contenido) =====
-    if (entry.type === 'notaventa' && (entry.cancelled === true || entry.invoiced === true)) {
-        const wmText = entry.cancelled === true ? 'ANULADO' : 'FACTURADO';
-        const wmColor = entry.cancelled === true ? [255, 160, 160] : [160, 255, 160];
-        doc.setTextColor(wmColor[0], wmColor[1], wmColor[2]);
-        doc.setFontSize(70);
-        doc.setFont(undefined, 'bold');
-        doc.text(wmText, doc.internal.pageSize.width / 2, doc.internal.pageSize.height / 2, {
-            align: 'center',
-            angle: 45
-        });
-        doc.setTextColor(0, 0, 0);
-    }
-
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const margin = 10;
@@ -438,6 +424,30 @@ function redownloadPDF(entryId) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    }
+
+    // ===== MARCA DE AGUA (dibujada AL FINAL para quedar ENCIMA de imágenes y contenido) =====
+    if (entry.type === 'notaventa' && (entry.cancelled === true || entry.invoiced === true)) {
+        const wmText = entry.cancelled === true ? 'ANULADO' : 'FACTURADO';
+        const wmColorR = entry.cancelled === true ? 220 : 30;
+        const wmColorG = entry.cancelled === true ? 30 : 160;
+        const wmColorB = 30;
+        const totalPages = doc.internal.getNumberOfPages();
+        const { GState: JsPDFGState } = window.jspdf;
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            doc.saveGraphicsState();
+            try {
+                const gState = new JsPDFGState({ opacity: 0.3 });
+                doc.setGState(gState);
+            } catch (e) { /* GState no disponible */ }
+            doc.setTextColor(wmColorR, wmColorG, wmColorB);
+            doc.setFontSize(70);
+            doc.setFont(undefined, 'bold');
+            doc.text(wmText, pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+            doc.restoreGraphicsState();
+            doc.setTextColor(0, 0, 0);
+        }
     }
 
     // Guardar PDF
