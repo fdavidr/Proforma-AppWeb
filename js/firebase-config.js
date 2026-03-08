@@ -261,6 +261,18 @@ function stopCountersSync() {
     }
 }
 
+// Elimina las imágenes de los productos dentro de los items del historial
+// para mantener el tamaño del documento Firestore por debajo del límite de 1MB.
+function stripImagesFromHistoryItems(historyArray) {
+    return (historyArray || []).map(entry => ({
+        ...entry,
+        items: (entry.items || []).map(item => ({
+            ...item,
+            product: item.product ? { ...item.product, image: '' } : item.product
+        }))
+    }));
+}
+
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
     // Limitar cotizaciones a 10 y mantener todas las ventas y entregas
@@ -274,7 +286,10 @@ async function saveAllData(appData) {
     const limitedCotizaciones = sortedCotizaciones.slice(0, 10);
     
     // Combinar cotizaciones limitadas con todas las ventas y entregas, y ordenar por ID
-    limitedHistory = [...limitedCotizaciones, ...ventas, ...entregas].sort((a, b) => b.id - a.id);
+    // Eliminar imágenes de productos en items del historial para no superar el límite de 1MB de Firestore
+    limitedHistory = stripImagesFromHistoryItems(
+        [...limitedCotizaciones, ...ventas, ...entregas].sort((a, b) => b.id - a.id)
+    );
     
     const dataToSave = {
         company: { ...appData.company },
@@ -418,6 +433,29 @@ async function loadAllData() {
                     cotizaciones: firebaseData.pdfHistory?.filter(e => e.type === 'cotizacion').length || 0,
                     ventas: firebaseData.pdfHistory?.filter(e => e.type === 'notaventa').length || 0
                 });
+
+                // Fusionar con localStorage para recuperar ventas que fallaron al guardarse en Firebase
+                const localStr = localStorage.getItem('proformaAppData');
+                if (localStr) {
+                    try {
+                        const localData = JSON.parse(localStr);
+                        const localHistory = localData.pdfHistory || [];
+                        const fbHistory = firebaseData.pdfHistory || [];
+                        if (localHistory.length > fbHistory.length ||
+                            (localHistory.length > 0 && fbHistory.length > 0 &&
+                             localHistory[0].id > fbHistory[0].id)) {
+                            // localStorage tiene entradas más recientes → fusionar
+                            const mergedMap = new Map();
+                            fbHistory.forEach(e => mergedMap.set(e.id, e));
+                            localHistory.forEach(e => mergedMap.set(e.id, e));
+                            firebaseData.pdfHistory = Array.from(mergedMap.values())
+                                .sort((a, b) => b.id - a.id);
+                            console.log('🔀 Historial fusionado: Firebase', fbHistory.length,
+                                '+ localStorage', localHistory.length,
+                                '→', firebaseData.pdfHistory.length, 'entradas');
+                        }
+                    } catch (e) { /* ignorar errores de parseo */ }
+                }
 
                 // Guardar en localStorage como cache (sin romper la carga por límites)
                 saveLocalCacheSafe(firebaseData);
