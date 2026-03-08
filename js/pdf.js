@@ -141,18 +141,13 @@ async function generatePDF() {
 
         // Si es nota de venta, descontar del stock
         if (appData.documentType === 'notaventa') {
-            let productsUpdated = 0;
+            const cityId = appData.selectedSaleCity;
             appData.currentQuoteItems.forEach(item => {
                 const product = appData.products.find(p => p.id === item.id);
                 if (product) {
-                    const stockField = appData.selectedSaleCity === 'cochabamba' 
-                        ? 'stockCochabamba' 
-                        : 'stockSantaCruz';
-                    const previousStock = product[stockField] || 0;
-                    product[stockField] = previousStock - item.quantity;
-                    // Evitar stock negativo
-                    if (product[stockField] < 0) product[stockField] = 0;
-                    productsUpdated++;
+                    if (!product.stock) product.stock = {};
+                    const previousStock = product.stock[cityId] || 0;
+                    product.stock[cityId] = Math.max(0, previousStock - item.quantity);
                 }
             });
         }

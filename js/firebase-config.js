@@ -317,6 +317,23 @@ async function saveAllData(appData) {
                 const snapshot = await transaction.get(appDocRef);
                 const existingData = snapshot.exists ? snapshot.data() : {};
 
+                // Merge pdfHistory: combinar entradas del servidor con las locales para evitar
+                // que guardados concurrentes de dos vendedores se sobreescriban entre sí.
+                const existingHistory = existingData.pdfHistory || [];
+                const localHistory = firebasePayload.pdfHistory || [];
+                const mergedMap = new Map();
+                // Primero las del servidor, luego las locales (las locales tienen prioridad
+                // para reflejar cambios recientes como anulaciones o facturado)
+                existingHistory.forEach(entry => mergedMap.set(entry.id, entry));
+                localHistory.forEach(entry => mergedMap.set(entry.id, entry));
+                let mergedHistory = Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
+                // Aplicar límite de 10 cotizaciones
+                const mCotizaciones = mergedHistory.filter(e => e.type === 'cotizacion').slice(0, 10);
+                const mVentas = mergedHistory.filter(e => e.type === 'notaventa');
+                const mEntregas = mergedHistory.filter(e => e.type === 'notaentrega');
+                firebasePayload.pdfHistory = [...mCotizaciones, ...mVentas, ...mEntregas]
+                    .sort((a, b) => b.id - a.id);
+
                 firebasePayload.currentQuoteNumber = Math.max(
                     firebasePayload.currentQuoteNumber || 100000,
                     existingData.currentQuoteNumber || 100000
@@ -336,6 +353,9 @@ async function saveAllData(appData) {
             appData.currentQuoteNumber = firebasePayload.currentQuoteNumber;
             appData.currentSaleNumber = firebasePayload.currentSaleNumber;
             appData.currentDeliveryNumber = firebasePayload.currentDeliveryNumber;
+            // Sincronizar historial fusionado de vuelta al estado local
+            appData.pdfHistory = firebasePayload.pdfHistory;
+            dataToSave.pdfHistory = firebasePayload.pdfHistory;
             console.log('✅ Datos guardados exitosamente en Firebase');
 
             // Guardar cache local sin bloquear si hay límite de espacio
