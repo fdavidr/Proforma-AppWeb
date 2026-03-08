@@ -969,7 +969,7 @@ function viewSalePDF(saleId) {
         const currentFontSize = doc.internal.getFontSize();
         
         // Configurar color rojo con transparencia simulada
-        doc.setTextColor(255, 200, 200);
+        doc.setTextColor(255, 153, 153);
         
         // Configurar fuente grande y negrita
         doc.setFontSize(70);
@@ -999,7 +999,7 @@ function viewSalePDF(saleId) {
         const currentFontSize = doc.internal.getFontSize();
         
         // Configurar color verde con transparencia simulada
-        doc.setTextColor(200, 255, 200);
+        doc.setTextColor(153, 255, 153);
         
         // Configurar fuente grande y negrita
         doc.setFontSize(70);
