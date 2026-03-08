@@ -80,15 +80,15 @@
                 <nav class="sidebar-nav">
                     <button id="documentsBtn" class="btn btn-sidebar" onclick="toggleDocuments(); closeMobileMenuOnNav()">
                         <span class="icon">📄</span>
-                        <span class="text">Documentos</span>
+                        <span class="text">Operaciones</span>
                     </button>
                     <button id="inventoryBtn" class="btn btn-sidebar" onclick="openInventory(); closeMobileMenuOnNav()">
                         <span class="icon">📦</span>
                         <span class="text">Inventario</span>
                     </button>
                     <button id="salesBtn" class="btn btn-sidebar" onclick="openSales(); closeMobileMenuOnNav()">
-                        <span class="icon">💰</span>
-                        <span class="text">Ventas</span>
+                        <span class="icon">�</span>
+                        <span class="text">Movimientos</span>
                     </button>
                     <button id="historyBtn" class="btn btn-sidebar" onclick="openHistory(); closeMobileMenuOnNav()">
                         <span class="icon">📋</span>
@@ -126,8 +126,10 @@
                 <button class="btn btn-primary active" onclick="setDocumentType('cotizacion')">Cotización</button>
                 <button class="btn btn-primary" onclick="setDocumentType('notaventa')">Nota de Venta</button>
                 <button class="btn btn-primary" onclick="setDocumentType('notaentrega')">Nota de Entrega</button>
+                <button class="btn btn-primary" onclick="setDocumentType('gasto')">💸 Gastos</button>
             </div>
 
+            <div id="quoteFormBody">
             <!-- City Selection (visible only for Nota de Venta) -->
             <div id="citySelectorContainer" class="section" style="display: none;">
                 <h3 class="section-title">Seleccionar Ciudad</h3>
@@ -271,6 +273,55 @@
                         </div>
                         <button class="btn btn-primary" onclick="generatePDF()">Generar PDF</button>
                     </div>
+                </div>
+            </div>
+            </div><!-- /quoteFormBody -->
+
+            <!-- GASTOS FORM SECTION -->
+            <div id="gastoFormSection" style="display:none;">
+                <div class="section">
+                    <h3 class="section-title">💸 Registrar Gasto</h3>
+                    <div class="form-group">
+                        <label>Descripción / Concepto *</label>
+                        <input type="text" id="gastoConcept" placeholder="Ej: Pago de alquiler, compra de materiales...">
+                    </div>
+                    <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                        <div class="form-group" style="flex:1; min-width:140px;">
+                            <label>Monto (Bs) *</label>
+                            <input type="number" id="gastoAmount" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group" style="flex:1; min-width:140px;">
+                            <label>Categoría</label>
+                            <select id="gastoCategory">
+                                <option value="Alquiler">Alquiler</option>
+                                <option value="Servicios">Servicios</option>
+                                <option value="Transporte">Transporte</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Materiales">Materiales</option>
+                                <option value="Compras">Compras</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                        <div class="form-group" style="flex:1; min-width:140px;">
+                            <label>Almacén / Ciudad</label>
+                            <select id="gastoCity"></select>
+                        </div>
+                        <div class="form-group" style="flex:1; min-width:140px;">
+                            <label>Fecha *</label>
+                            <input type="date" id="gastoDate">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notas (opcional)</label>
+                        <textarea id="gastoNotes" rows="2" placeholder="Información adicional..."></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveGasto()" style="margin-top:5px;">💾 Registrar Gasto</button>
+                </div>
+                <div class="section">
+                    <h3 class="section-title">📋 Últimos Gastos Registrados</h3>
+                    <div id="gastoRecentList"></div>
                 </div>
             </div>
         </div>
@@ -532,10 +583,15 @@
     <div id="salesSection" class="content-section" style="display: none;">
         <div style="padding: 20px;">
             <div style="margin-bottom: 20px;">
-                <h2>💰 Reporte de Ventas</h2>
+                <h2>� Movimientos</h2>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <div style="flex: 1;">
+                        <!-- Tabs Ventas / Gastos -->
+                        <div style="display:flex; gap:8px; margin-bottom:14px;">
+                            <button id="tabVentas" class="btn btn-primary" onclick="switchMovimientosTab('ventas')" style="padding:7px 18px; font-size:13px;">💰 Ventas</button>
+                            <button id="tabGastos" class="btn btn-secondary" onclick="switchMovimientosTab('gastos')" style="padding:7px 18px; font-size:13px;">💸 Gastos</button>
+                        </div>
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 15px;">
                             <label style="font-size: 13px; font-weight: 600; color: #555; margin: 0; white-space: nowrap;">🏛️ Ciudad:</label>
                             <div id="salesCityFilterButtons"></div>
@@ -555,8 +611,12 @@
                         <div style="font-size: 24px; font-weight: bold; color: #27ae60;" id="totalPriceSales">Bs 0.00</div>
                     </div>
                     <div style="flex: 1; text-align: center;">
-                        <div style="font-size: 14px; color: #666;">Balance</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #3498db;" id="balanceSales">Bs 0.00</div>
+                        <div style="font-size: 14px; color: #666;">Total Gastos</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #e67e22;" id="totalGastosSales">Bs 0.00</div>
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 14px; color: #666;">Ganancia Líquida</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #3498db;" id="gananciaLiquidaSales">Bs 0.00</div>
                     </div>
                     <div>
                         <button class="btn btn-primary" onclick="generateSalesPDF()">📄 Descargar Resumen</button>
@@ -581,6 +641,23 @@
                         <tbody id="salesTableBody"></tbody>
                     </table>
                 </div>
+                <div id="gastosContent" class="table-responsive" style="display:none;">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Concepto</th>
+                                <th>Categoría</th>
+                                <th>Monto</th>
+                                <th>Ciudad</th>
+                                <th>Fecha</th>
+                                <th>Notas</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gastosTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
@@ -598,6 +675,7 @@
     <script src="js/sellers.js"></script>
     <script src="js/products.js"></script>
     <script src="js/inventory.js"></script>
+    <script src="js/gastos.js"></script>
     <script src="js/sales.js"></script>
     <script src="js/quotes.js"></script>
     <script src="js/pdf.js"></script>

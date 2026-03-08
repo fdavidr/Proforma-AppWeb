@@ -45,7 +45,22 @@ function setDocumentType(type) {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
+    // Mostrar/ocultar formulario de gasto vs formulario de documento
+    const quoteFormBody = document.getElementById('quoteFormBody');
+    const gastoFormSection = document.getElementById('gastoFormSection');
+    if (type === 'gasto') {
+        if (quoteFormBody) quoteFormBody.style.display = 'none';
+        if (gastoFormSection) { gastoFormSection.style.display = 'block'; }
+        if (typeof initGastoForm === 'function') initGastoForm();
+        const citySelector = document.getElementById('citySelectorContainer');
+        if (citySelector) citySelector.style.display = 'none';
+        return;
+    } else {
+        if (quoteFormBody) quoteFormBody.style.display = 'block';
+        if (gastoFormSection) gastoFormSection.style.display = 'none';
+    }
+
     // Actualizar número mostrado
     updateDocumentNumber();
     

@@ -298,6 +298,7 @@ async function saveAllData(appData) {
         sellers: appData.sellers || [],
         products: appData.products || [],
         pdfHistory: limitedHistory,
+        gastos: appData.gastos || [],
         currentQuoteNumber: appData.currentQuoteNumber,
         currentSaleNumber: appData.currentSaleNumber,
         currentDeliveryNumber: appData.currentDeliveryNumber,
@@ -312,7 +313,8 @@ async function saveAllData(appData) {
         vendedores: dataToSave.sellers.length,
         productos: dataToSave.products.length,
         cotizaciones: limitedCotizaciones.length,
-        ventas: ventas.length
+        ventas: ventas.length,
+        gastos: (dataToSave.gastos || []).length
     });
 
     // Intentar guardar en Firebase primero
@@ -349,6 +351,14 @@ async function saveAllData(appData) {
                 firebasePayload.pdfHistory = [...mCotizaciones, ...mVentas, ...mEntregas]
                     .sort((a, b) => b.id - a.id);
 
+                // Merge gastos: combinar con los del servidor por id
+                const existingGastos = existingData.gastos || [];
+                const localGastos = firebasePayload.gastos || [];
+                const mergedGastosMap = new Map();
+                existingGastos.forEach(g => mergedGastosMap.set(g.id, g));
+                localGastos.forEach(g => mergedGastosMap.set(g.id, g));
+                firebasePayload.gastos = Array.from(mergedGastosMap.values()).sort((a, b) => b.id - a.id);
+
                 firebasePayload.currentQuoteNumber = Math.max(
                     firebasePayload.currentQuoteNumber || 100000,
                     existingData.currentQuoteNumber || 100000
@@ -368,9 +378,11 @@ async function saveAllData(appData) {
             appData.currentQuoteNumber = firebasePayload.currentQuoteNumber;
             appData.currentSaleNumber = firebasePayload.currentSaleNumber;
             appData.currentDeliveryNumber = firebasePayload.currentDeliveryNumber;
-            // Sincronizar historial fusionado de vuelta al estado local
+            // Sincronizar historial y gastos fusionados de vuelta al estado local
             appData.pdfHistory = firebasePayload.pdfHistory;
             dataToSave.pdfHistory = firebasePayload.pdfHistory;
+            appData.gastos = firebasePayload.gastos;
+            dataToSave.gastos = firebasePayload.gastos;
             console.log('✅ Datos guardados exitosamente en Firebase');
 
             // Guardar cache local sin bloquear si hay límite de espacio

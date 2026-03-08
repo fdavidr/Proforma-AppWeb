@@ -16,6 +16,7 @@ let appData = {
     products: [],
     quotes: [],
     pdfHistory: [],
+    gastos: [],
     currentQuoteNumber: 100000,
     currentSaleNumber: 100000,
     currentDeliveryNumber: 100000,
@@ -66,6 +67,7 @@ async function loadData() {
             if (saved.sellers) appData.sellers = saved.sellers;
             if (saved.products) appData.products = saved.products;
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
+            if (saved.gastos) appData.gastos = saved.gastos;
             
             // Cargar inventarios
             if (saved.inventories) {

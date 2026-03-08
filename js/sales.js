@@ -1,6 +1,23 @@
 // ==================== GESTIÓN DE VENTAS ====================
 
 let selectedSalesCity = 'cochabamba';
+let movimientosFilter = 'ventas';
+
+function switchMovimientosTab(tab) {
+    movimientosFilter = tab;
+
+    const tabVentas = document.getElementById('tabVentas');
+    const tabGastos = document.getElementById('tabGastos');
+    const salesContent = document.getElementById('salesContent');
+    const gastosContent = document.getElementById('gastosContent');
+
+    if (tabVentas) tabVentas.classList.toggle('active', tab === 'ventas');
+    if (tabGastos) tabGastos.classList.toggle('active', tab === 'gastos');
+    if (salesContent) salesContent.style.display = tab === 'ventas' ? '' : 'none';
+    if (gastosContent) gastosContent.style.display = tab === 'gastos' ? '' : 'none';
+
+    filterSalesByMonth();
+}
 
 // Generar lista desplegable de filtro de ciudad
 function generateSalesCityFilterButtons() {
@@ -85,7 +102,8 @@ function filterSalesByMonth() {
 
     if (sales.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';
-        updateSalesTotals([], []);
+        updateSalesTotals([], [0, 0, 0]);
+        renderGastosTable([]);
         return;
     }
 
@@ -103,7 +121,8 @@ function filterSalesByMonth() {
 
     if (filteredSales.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>';
-        updateSalesTotals([], []);
+        updateSalesTotals([], [0, 0, 0]);
+        renderGastosTable([]);
         return;
     }
 
@@ -215,23 +234,64 @@ function filterSalesByMonth() {
         tbody.appendChild(tr);
     });
 
-    updateSalesTotals(filteredSales, [totalCost, totalPrice]);
+    // Filtrar gastos por mes y ciudad para el mismo período
+    const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+    let filteredGastos = allGastos.filter(g => g.city === selectedSalesCity);
+    if (selectedMonth) {
+        filteredGastos = filteredGastos.filter(g => {
+            const datePart = g.date.split(',')[0].trim();
+            const [gd, gm, gy] = datePart.split('/');
+            return `${gy}-${(gm || '').padStart(2, '0')}` === selectedMonth;
+        });
+    }
+    const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
+
+    renderGastosTable(filteredGastos);
+    updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos]);
+}
+
+function renderGastosTable(gastos) {
+    const tbody = document.getElementById('gastosTableBody');
+    if (!tbody) return;
+
+    if (!gastos || gastos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#7f8c8d;">No hay gastos en este período</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    gastos.forEach((g, index) => {
+        const cityName = (appData.inventories.find(i => i.id === g.city) || {}).name || g.city || '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${g.concept}</td>
+            <td>${g.category}</td>
+            <td style="color:#e67e22; font-weight:bold;">Bs ${(g.amount || 0).toFixed(2)}</td>
+            <td>${cityName}</td>
+            <td>${g.date}</td>
+            <td>${g.notes || '-'}</td>
+            <td><button onclick="deleteGasto(${g.id})" style="background:none; border:1px solid #e74c3c; color:#e74c3c; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑 Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function updateSalesTotals(sales, totals) {
-    const [totalCost, totalPrice] = totals;
-    const balance = totalPrice - totalCost;
+    const [totalCost, totalPrice, totalGastos] = totals;
+    const gananciaLiquida = (totalPrice || 0) - (totalCost || 0) - (totalGastos || 0);
 
-    document.getElementById('totalCostSales').textContent = `Bs ${(totalCost || 0).toFixed(2)}`;
-    document.getElementById('totalPriceSales').textContent = `Bs ${(totalPrice || 0).toFixed(2)}`;
-    document.getElementById('balanceSales').textContent = `Bs ${(balance || 0).toFixed(2)}`;
-    
-    // Cambiar color del balance según sea positivo o negativo
-    const balanceElement = document.getElementById('balanceSales');
-    if (balance >= 0) {
-        balanceElement.style.color = '#3498db';
-    } else {
-        balanceElement.style.color = '#e74c3c';
+    const costEl = document.getElementById('totalCostSales');
+    const priceEl = document.getElementById('totalPriceSales');
+    const gastosEl = document.getElementById('totalGastosSales');
+    const gananciaEl = document.getElementById('gananciaLiquidaSales');
+
+    if (costEl) costEl.textContent = `Bs ${(totalCost || 0).toFixed(2)}`;
+    if (priceEl) priceEl.textContent = `Bs ${(totalPrice || 0).toFixed(2)}`;
+    if (gastosEl) gastosEl.textContent = `Bs ${(totalGastos || 0).toFixed(2)}`;
+    if (gananciaEl) {
+        gananciaEl.textContent = `Bs ${gananciaLiquida.toFixed(2)}`;
+        gananciaEl.style.color = gananciaLiquida >= 0 ? '#3498db' : '#e74c3c';
     }
 }
 
@@ -351,6 +411,18 @@ function generateSalesPDF() {
 
     const balance = totalPrice - totalCost;
 
+    // Filtrar gastos del mismo mes y ciudad
+    const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+    const filteredGastos = allGastos.filter(g => {
+        if (g.city !== selectedSalesCity) return false;
+        if (!selectedMonth) return true;
+        const datePart = g.date.split(',')[0].trim();
+        const [gd, gm, gy] = datePart.split('/');
+        return `${gy}-${(gm || '').padStart(2, '0')}` === selectedMonth;
+    });
+    const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
+    const gananciaLiquida = totalPrice - totalCost - totalGastos;
+
     // Resumen de estados
     yPos += 10;
     doc.setFontSize(9);
@@ -358,45 +430,57 @@ function generateSalesPDF() {
     const summaryText = `Ventas Válidas: ${validSalesCount} | Facturadas: ${invoicedSalesCount} | Anuladas: ${cancelledSalesCount} | Total: ${sales.length}`;
     doc.text(summaryText, pageWidth / 2, yPos, { align: 'center' });
 
-    // Totales en recuadros
+    // Totales en recuadros (4 cajas)
     yPos += 8;
-    const boxWidth = 55;
+    const boxWidth = 42;
     const boxHeight = 18;
-    const spacing = 5;
-    const totalBoxesWidth = (boxWidth * 3) + (spacing * 2);
+    const spacing = 4;
+    const totalBoxesWidth = (boxWidth * 4) + (spacing * 3);
     const startX = (pageWidth - totalBoxesWidth) / 2;
 
-    // Cuadro de costo total
+    // Costo Total
     doc.setFillColor(231, 76, 60);
     doc.rect(startX, yPos, boxWidth, boxHeight, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
     doc.text('COSTO TOTAL', startX + boxWidth / 2, yPos + 6, { align: 'center' });
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text(`Bs ${totalCost.toFixed(2)}`, startX + boxWidth / 2, yPos + 13, { align: 'center' });
 
-    // Cuadro de precio total
+    // Ingreso Total
     doc.setFillColor(39, 174, 96);
     doc.rect(startX + boxWidth + spacing, yPos, boxWidth, boxHeight, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.text('INGRESO TOTAL', startX + boxWidth + spacing + boxWidth / 2, yPos + 6, { align: 'center' });
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text(`Bs ${totalPrice.toFixed(2)}`, startX + boxWidth + spacing + boxWidth / 2, yPos + 13, { align: 'center' });
 
-    // Cuadro de balance
-    doc.setFillColor(52, 152, 219);
+    // Total Gastos
+    doc.setFillColor(230, 126, 34);
     doc.rect(startX + (boxWidth + spacing) * 2, yPos, boxWidth, boxHeight, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text('GANANCIA NETA', startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 6, { align: 'center' });
-    doc.setFontSize(12);
+    doc.text('TOTAL GASTOS', startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Bs ${balance.toFixed(2)}`, startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 13, { align: 'center' });
+    doc.text(`Bs ${totalGastos.toFixed(2)}`, startX + (boxWidth + spacing) * 2 + boxWidth / 2, yPos + 13, { align: 'center' });
+
+    // Ganancia Líquida
+    doc.setFillColor(52, 152, 219);
+    doc.rect(startX + (boxWidth + spacing) * 3, yPos, boxWidth, boxHeight, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('GANANCIA LÍQUIDA', startX + (boxWidth + spacing) * 3 + boxWidth / 2, yPos + 6, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Bs ${gananciaLiquida.toFixed(2)}`, startX + (boxWidth + spacing) * 3 + boxWidth / 2, yPos + 13, { align: 'center' });
 
     // Tabla de ventas
     yPos += boxHeight + 12;
@@ -618,12 +702,58 @@ function generateSalesPDF() {
     doc.setTextColor(39, 174, 96);
     doc.text(`Bs ${totalPrice.toFixed(2)}`, pageWidth - margin - 30, yPos);
     yPos += 6;
+
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Gastos:`, margin, yPos);
+    doc.setTextColor(230, 126, 34);
+    doc.text(`Bs ${totalGastos.toFixed(2)}`, pageWidth - margin - 30, yPos);
+    yPos += 6;
     
     doc.setTextColor(0, 0, 0);
-    doc.text(`Ganancia Neta:`, margin, yPos);
+    doc.text(`Ganancia Líquida:`, margin, yPos);
     doc.setTextColor(52, 152, 219);
     doc.setFontSize(11);
-    doc.text(`Bs ${balance.toFixed(2)}`, pageWidth - margin - 30, yPos);
+    doc.text(`Bs ${gananciaLiquida.toFixed(2)}`, pageWidth - margin - 30, yPos);
+
+    // Tabla de gastos del período
+    if (filteredGastos.length > 0) {
+        yPos += 14;
+        if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin; }
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(52, 73, 94);
+        doc.text('GASTOS DEL PERÍODO', margin, yPos);
+        yPos += 6;
+
+        doc.setFillColor(230, 126, 34);
+        doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.text('Concepto', margin + 2, yPos + 5);
+        doc.text('Categoría', margin + 65, yPos + 5);
+        doc.text('Monto', margin + 110, yPos + 5);
+        doc.text('Fecha', margin + 140, yPos + 5);
+        yPos += 10;
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+
+        filteredGastos.forEach(g => {
+            if (yPos > pageHeight - 25) { doc.addPage(); yPos = margin + 10; }
+            const conceptDisp = g.concept.length > 38 ? g.concept.substring(0, 38) + '..' : g.concept;
+            doc.text(conceptDisp, margin + 2, yPos);
+            doc.text(g.category, margin + 65, yPos);
+            doc.setTextColor(230, 126, 34);
+            doc.text(`Bs ${(g.amount || 0).toFixed(2)}`, margin + 110, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.text(g.date.split(',')[0].trim(), margin + 140, yPos);
+            yPos += 6;
+            doc.setDrawColor(230, 230, 230);
+            doc.setLineWidth(0.1);
+            doc.line(margin, yPos - 1, pageWidth - margin, yPos - 1);
+        });
+    }
 
     // Pie de página
     const pageCount = doc.internal.getNumberOfPages();
@@ -1058,6 +1188,8 @@ window.viewSalePDF = viewSalePDF;
 window.toggleActionsMenu = toggleActionsMenu;
 window.closeActionsMenu = closeActionsMenu;
 window.toggleInvoiced = toggleInvoiced;
+window.switchMovimientosTab = switchMovimientosTab;
+window.renderGastosTable = renderGastosTable;
 
 function showAllSales() {
     document.getElementById('salesMonthFilter').value = '';
