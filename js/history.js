@@ -444,7 +444,7 @@ function redownloadPDF(entryId) {
             doc.setTextColor(wmColorR, wmColorG, wmColorB);
             doc.setFontSize(70);
             doc.setFont(undefined, 'bold');
-            doc.text(wmText, pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+            doc.text(wmText, pageWidth / 2 + 20, pageHeight / 2, { align: 'center', angle: 45 });
             doc.restoreGraphicsState();
             doc.setTextColor(0, 0, 0);
         }
