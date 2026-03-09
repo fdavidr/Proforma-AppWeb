@@ -1377,3 +1377,60 @@ tr.cancelled-sale {
 tr.cancelled-sale:hover {
     background-color: rgba(255, 165, 0, 0.4) !important;
 }
+
+/* ==================== INVENTARIO RESPONSIVE MÓVIL ==================== */
+
+/* Tablet (≤768px): ocultar Img, Costo Total, Precio Total */
+@media (max-width: 768px) {
+    /* El control grid ya está en 1fr por la regla anterior */
+    .inventory-control-grid > div:last-child {
+        display: flex;
+        justify-content: stretch;
+        gap: 10px;
+    }
+    .inventory-control-grid > div:last-child .btn {
+        flex: 1;
+    }
+
+    #inventorySection .products-table {
+        min-width: 0 !important;
+        width: 100%;
+    }
+    /* Ocultar: Img (2), Costo Total (8), Precio Total (9) */
+    #inventorySection .products-table th:nth-child(2),
+    #inventorySection .products-table td:nth-child(2),
+    #inventorySection .products-table th:nth-child(8),
+    #inventorySection .products-table td:nth-child(8),
+    #inventorySection .products-table th:nth-child(9),
+    #inventorySection .products-table td:nth-child(9) {
+        display: none;
+    }
+    #inventorySection .products-table .inventory-inline-input {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        font-size: 12px;
+        padding: 4px 5px;
+    }
+}
+
+/* Móvil pequeño (≤480px): también ocultar Código (3) y Costo Unit. (6) */
+@media (max-width: 480px) {
+    #inventorySection .products-table th:nth-child(3),
+    #inventorySection .products-table td:nth-child(3),
+    #inventorySection .products-table th:nth-child(6),
+    #inventorySection .products-table td:nth-child(6) {
+        display: none;
+    }
+    #inventorySection .products-table {
+        font-size: 11px;
+    }
+    #inventorySection .products-table th,
+    #inventorySection .products-table td {
+        padding: 6px 4px;
+    }
+    #inventorySection .products-table .inventory-inline-input {
+        font-size: 11px;
+        padding: 3px 4px;
+    }
+}
