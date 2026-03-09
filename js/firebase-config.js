@@ -437,17 +437,47 @@ async function loadAllData() {
 
                 if (firebaseData.productsStorage === 'chunks') {
                     firebaseData.products = await loadProductsFromChunks();
-                    // Restaurar imágenes desde localStorage: los chunks de Firestore no las almacenan
-                    // para evitar superar el límite de 1MB por documento.
+                    // Comparar timestamps para detectar si el último write a los chunks falló.
+                    // Si localStorage es más reciente que el documento principal de Firebase,
+                    // means the transaction never ran (saveProductsInChunks threw), so the chunks
+                    // have stale data. In that case, prefer localStorage products.
+                    // Siempre se restauran imágenes desde localStorage porque los chunks no las guardan.
                     try {
                         const localStr = localStorage.getItem('proformaAppData');
                         if (localStr) {
                             const localData = JSON.parse(localStr);
-                            const imgMap = new Map((localData.products || []).map(p => [p.id, p.image || '']));
-                            firebaseData.products = firebaseData.products.map(p => ({
-                                ...p,
-                                image: imgMap.get(p.id) || ''
-                            }));
+                            const fbTimestamp = firebaseData.lastUpdated
+                                ? new Date(firebaseData.lastUpdated).getTime()
+                                : 0;
+                            const localTimestamp = localData.lastUpdated
+                                ? new Date(localData.lastUpdated).getTime()
+                                : 0;
+
+                            if (localTimestamp > fbTimestamp &&
+                                    localData.products && localData.products.length > 0) {
+                                // localStorage es más reciente → el último write a Firebase falló.
+                                // Usar productos de localStorage (tienen los datos correctos).
+                                console.log('⚠️ Productos de localStorage (Firebase write previo falló):',
+                                    'fb=', new Date(fbTimestamp).toISOString(),
+                                    'local=', new Date(localTimestamp).toISOString());
+                                const fbImgMap = new Map(
+                                    firebaseData.products.map(p => [p.id, p.image || ''])
+                                );
+                                firebaseData.products = localData.products.map(localProd => ({
+                                    ...localProd,
+                                    // Priorizar imagen de localStorage; fallback imagen de Firebase
+                                    image: localProd.image || fbImgMap.get(localProd.id) || ''
+                                }));
+                            } else {
+                                // Firebase está actualizado → solo restaurar imágenes desde localStorage
+                                const imgMap = new Map(
+                                    (localData.products || []).map(p => [p.id, p.image || ''])
+                                );
+                                firebaseData.products = firebaseData.products.map(p => ({
+                                    ...p,
+                                    image: imgMap.get(p.id) || ''
+                                }));
+                            }
                         }
                     } catch (e) { /* ignorar errores de parseo */ }
                 } else {

@@ -178,21 +178,25 @@ async function saveInventoryRowChanges(index, buttonElement) {
 
     buttonElement.disabled = true;
     const previousText = buttonElement.textContent;
-    buttonElement.textContent = '💾';
-    
+    buttonElement.textContent = '⏳';
+
     // Remover clase de modificado
     buttonElement.classList.remove('btn-action-modified');
-    buttonElement.title = 'Guardar cambios';
+    buttonElement.title = 'Guardando...';
 
+    let saveOk = false;
     try {
         await saveData();
-        loadInventoryData();
+        saveOk = true;
     } catch (error) {
         console.error('Error al guardar cambios del inventario:', error);
-        alert('No se pudo guardar los cambios. Intenta nuevamente.');
-        buttonElement.disabled = false;
-        buttonElement.textContent = previousText;
-        buttonElement.classList.add('btn-action-modified');
+    }
+
+    // Siempre recargar la tabla para reflejar el estado real de appData en memoria
+    loadInventoryData();
+
+    if (!saveOk) {
+        alert('No se pudo guardar los cambios en la nube. Los datos se conservan localmente y se sincronizarán en la próxima sesión.');
     }
 }
 
