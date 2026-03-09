@@ -118,8 +118,12 @@ async function saveProductsInChunks(products) {
     const productsCollection = db.collection('proformaProducts');
     const chunks = [];
 
-    for (let i = 0; i < products.length; i += FIREBASE_PRODUCTS_CHUNK_SIZE) {
-        chunks.push(products.slice(i, i + FIREBASE_PRODUCTS_CHUNK_SIZE));
+    // Eliminar imágenes antes de guardar en Firestore para evitar superar el límite de 1MB
+    // por documento. Las imágenes se conservan en localStorage y se restauran al cargar.
+    const productsForStorage = products.map(p => ({ ...p, image: '' }));
+
+    for (let i = 0; i < productsForStorage.length; i += FIREBASE_PRODUCTS_CHUNK_SIZE) {
+        chunks.push(productsForStorage.slice(i, i + FIREBASE_PRODUCTS_CHUNK_SIZE));
     }
 
     const existingChunksSnapshot = await productsCollection.get();
@@ -433,6 +437,19 @@ async function loadAllData() {
 
                 if (firebaseData.productsStorage === 'chunks') {
                     firebaseData.products = await loadProductsFromChunks();
+                    // Restaurar imágenes desde localStorage: los chunks de Firestore no las almacenan
+                    // para evitar superar el límite de 1MB por documento.
+                    try {
+                        const localStr = localStorage.getItem('proformaAppData');
+                        if (localStr) {
+                            const localData = JSON.parse(localStr);
+                            const imgMap = new Map((localData.products || []).map(p => [p.id, p.image || '']));
+                            firebaseData.products = firebaseData.products.map(p => ({
+                                ...p,
+                                image: imgMap.get(p.id) || ''
+                            }));
+                        }
+                    } catch (e) { /* ignorar errores de parseo */ }
                 } else {
                     firebaseData.products = firebaseData.products || [];
                 }
