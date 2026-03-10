@@ -44,6 +44,7 @@ function updateUI() {
     const salesBtn = document.getElementById('salesBtn');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
+    const manageInventoriesBtn = document.getElementById('manageInventoriesBtn');
     
     if (appData.userRole === 'vendedor') {
         // Vendedor solo ve Ventas
