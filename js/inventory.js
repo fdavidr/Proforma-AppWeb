@@ -243,7 +243,8 @@ function generateInventoryPDF() {
     yPos += 40;
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    const cityTitle = selectedInventoryCity === 'cochabamba' ? 'COCHABAMBA' : 'SANTA CRUZ';
+    const currentInventory = appData.inventories.find(inv => inv.id === selectedInventoryCity);
+    const cityTitle = currentInventory ? currentInventory.name.toUpperCase() : selectedInventoryCity.toUpperCase();
     doc.text(`INVENTARIO DE PRODUCTOS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
     // Fecha
@@ -257,13 +258,13 @@ function generateInventoryPDF() {
     });
     doc.text(`Fecha: ${fecha}`, pageWidth / 2, yPos, { align: 'center' });
 
-    // Calcular totales
+    // Calcular totales usando el mismo método que loadInventoryData()
     let totalCost = 0;
     let totalPrice = 0;
     appData.products.forEach(product => {
-        const stock = selectedInventoryCity === 'cochabamba' 
-            ? (product.stockCochabamba || 0) 
-            : (product.stockSantaCruz || 0);
+        const stock = product.stock && product.stock[selectedInventoryCity]
+            ? product.stock[selectedInventoryCity]
+            : 0;
         const cost = product.cost || 0;
         const price = product.price || 0;
         totalCost += stock * cost;
@@ -347,9 +348,9 @@ function generateInventoryPDF() {
             yPos = margin;
         }
 
-        const stock = selectedInventoryCity === 'cochabamba' 
-            ? (product.stockCochabamba || 0) 
-            : (product.stockSantaCruz || 0);
+        const stock = product.stock && product.stock[selectedInventoryCity]
+            ? product.stock[selectedInventoryCity]
+            : 0;
         const cost = product.cost || 0;
         const price = product.price || 0;
         const costTotal = stock * cost;
@@ -387,7 +388,7 @@ function generateInventoryPDF() {
     });
 
     // Guardar PDF
-    const cityName = selectedInventoryCity === 'cochabamba' ? 'Cochabamba' : 'SantaCruz';
+    const cityName = currentInventory ? currentInventory.name.replace(/\s+/g, '') : selectedInventoryCity;
     const fileName = `Inventario_${cityName}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
 }
