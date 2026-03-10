@@ -330,7 +330,11 @@ async function saveAllData(appData) {
                 ...dataToSave,
                 products: [],
                 productsStorage: 'chunks',
-                productsCount: (dataToSave.products || []).length
+                productsCount: (dataToSave.products || []).length,
+                // Campo dedicado que SOLO se actualiza cuando los productos se guardan
+                // exitosamente en chunks. `lastUpdated` lo sobreescribe reserveDocumentNumber
+                // cada vez que se crea un documento, invalidando la comparación de timestamps.
+                productsUpdatedAt: dataToSave.lastUpdated
             };
 
             const appDocRef = db.collection('proformaApp').doc('appData');
@@ -437,39 +441,44 @@ async function loadAllData() {
 
                 if (firebaseData.productsStorage === 'chunks') {
                     firebaseData.products = await loadProductsFromChunks();
-                    // Comparar timestamps para detectar si el último write a los chunks falló.
-                    // Si localStorage es más reciente que el documento principal de Firebase,
-                    // means the transaction never ran (saveProductsInChunks threw), so the chunks
-                    // have stale data. In that case, prefer localStorage products.
-                    // Siempre se restauran imágenes desde localStorage porque los chunks no las guardan.
+                    // Detectar si el último write de productos a Firebase falló comparando
+                    // productsUpdatedAt (campo dedicado, solo actualizado por saveProductsInChunks)
+                    // con lastUpdated de localStorage.
+                    // IMPORTANTE: NO usar firebaseData.lastUpdated porque reserveDocumentNumber()
+                    // lo sobreescribe cada vez que se crea una cotización/venta, haciendo que
+                    // Firebase parezca más reciente que localStorage aunque los chunks sean viejos.
                     try {
                         const localStr = localStorage.getItem('proformaAppData');
                         if (localStr) {
                             const localData = JSON.parse(localStr);
-                            const fbTimestamp = firebaseData.lastUpdated
-                                ? new Date(firebaseData.lastUpdated).getTime()
+                            // productsUpdatedAt solo existe en Firebase si la transacción del
+                            // último saveAllData se completó. Si es undefined, los chunks pueden
+                            // ser inconsistentes → preferir localStorage.
+                            const fbProductsTimestamp = firebaseData.productsUpdatedAt
+                                ? new Date(firebaseData.productsUpdatedAt).getTime()
                                 : 0;
                             const localTimestamp = localData.lastUpdated
                                 ? new Date(localData.lastUpdated).getTime()
                                 : 0;
 
-                            if (localTimestamp > fbTimestamp &&
+                            if (localTimestamp > fbProductsTimestamp &&
                                     localData.products && localData.products.length > 0) {
-                                // localStorage es más reciente → el último write a Firebase falló.
+                                // localStorage es más reciente que el último producto-save en Firebase
+                                // → el write a chunks falló o la transacción no se completó.
                                 // Usar productos de localStorage (tienen los datos correctos).
-                                console.log('⚠️ Productos de localStorage (Firebase write previo falló):',
-                                    'fb=', new Date(fbTimestamp).toISOString(),
+                                console.log('⚠️ Chunks de Firebase desactualizados, usando localStorage:',
+                                    'productsUpdatedAt=', fbProductsTimestamp
+                                        ? new Date(fbProductsTimestamp).toISOString() : 'nunca',
                                     'local=', new Date(localTimestamp).toISOString());
                                 const fbImgMap = new Map(
                                     firebaseData.products.map(p => [p.id, p.image || ''])
                                 );
                                 firebaseData.products = localData.products.map(localProd => ({
                                     ...localProd,
-                                    // Priorizar imagen de localStorage; fallback imagen de Firebase
                                     image: localProd.image || fbImgMap.get(localProd.id) || ''
                                 }));
                             } else {
-                                // Firebase está actualizado → solo restaurar imágenes desde localStorage
+                                // Firebase chunks están actualizados → solo restaurar imágenes
                                 const imgMap = new Map(
                                     (localData.products || []).map(p => [p.id, p.image || ''])
                                 );
