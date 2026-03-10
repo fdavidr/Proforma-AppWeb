@@ -440,55 +440,48 @@ async function loadAllData() {
                 firebaseData = doc.data();
 
                 if (firebaseData.productsStorage === 'chunks') {
-                    firebaseData.products = await loadProductsFromChunks();
-                    // Detectar si el último write de productos a Firebase falló comparando
-                    // productsUpdatedAt (campo dedicado, solo actualizado por saveProductsInChunks)
-                    // con lastUpdated de localStorage.
-                    // IMPORTANTE: NO usar firebaseData.lastUpdated porque reserveDocumentNumber()
-                    // lo sobreescribe cada vez que se crea una cotización/venta, haciendo que
-                    // Firebase parezca más reciente que localStorage aunque los chunks sean viejos.
+                    const chunksProducts = await loadProductsFromChunks();
+                    // Los chunks de Firestore no almacenan imágenes (se eliminan antes de guardar
+                    // para no superar el límite de 1MB). localStorage siempre contiene la versión
+                    // más reciente que guardó este cliente (incluyendo imágenes y stock actualizado).
+                    // Estrategia: si localStorage tiene productos, usarlos como fuente de verdad
+                    // para este cliente. Los chunks de Firebase son el respaldo para dispositivos
+                    // nuevos (sin localStorage) o cuando localStorage no tiene datos.
                     try {
                         const localStr = localStorage.getItem('proformaAppData');
                         if (localStr) {
                             const localData = JSON.parse(localStr);
-                            // productsUpdatedAt solo existe en Firebase si la transacción del
-                            // último saveAllData se completó. Si es undefined, los chunks pueden
-                            // ser inconsistentes → preferir localStorage.
-                            const fbProductsTimestamp = firebaseData.productsUpdatedAt
-                                ? new Date(firebaseData.productsUpdatedAt).getTime()
-                                : 0;
-                            const localTimestamp = localData.lastUpdated
-                                ? new Date(localData.lastUpdated).getTime()
-                                : 0;
+                            if (localData.products && localData.products.length > 0) {
+                                // localStorage tiene datos → es la fuente de verdad para este cliente.
+                                // Fusionar: preferir datos de localStorage por producto (stock, precio,
+                                // costo actualizados), pero usar chunks de Firebase como fallback para
+                                // productos que solo existan en Firebase (agregados desde otro dispositivo).
+                                const localMap = new Map(localData.products.map(p => [p.id, p]));
+                                const chunkMap = new Map(chunksProducts.map(p => [p.id, p]));
 
-                            if (localTimestamp > fbProductsTimestamp &&
-                                    localData.products && localData.products.length > 0) {
-                                // localStorage es más reciente que el último producto-save en Firebase
-                                // → el write a chunks falló o la transacción no se completó.
-                                // Usar productos de localStorage (tienen los datos correctos).
-                                console.log('⚠️ Chunks de Firebase desactualizados, usando localStorage:',
-                                    'productsUpdatedAt=', fbProductsTimestamp
-                                        ? new Date(fbProductsTimestamp).toISOString() : 'nunca',
-                                    'local=', new Date(localTimestamp).toISOString());
-                                const fbImgMap = new Map(
-                                    firebaseData.products.map(p => [p.id, p.image || ''])
-                                );
-                                firebaseData.products = localData.products.map(localProd => ({
-                                    ...localProd,
-                                    image: localProd.image || fbImgMap.get(localProd.id) || ''
-                                }));
+                                // Productos que están en Firebase pero no en localStorage → agregar
+                                const onlyInFirebase = chunksProducts.filter(p => !localMap.has(p.id));
+
+                                // Fusionar: localStorage prevalece, agregar los que solo están en Firebase
+                                firebaseData.products = [
+                                    ...localData.products,
+                                    ...onlyInFirebase
+                                ];
+
+                                console.log('📦 Productos: localStorage(' + localData.products.length +
+                                    ') + solo-Firebase(' + onlyInFirebase.length + ')');
                             } else {
-                                // Firebase chunks están actualizados → solo restaurar imágenes
-                                const imgMap = new Map(
-                                    (localData.products || []).map(p => [p.id, p.image || ''])
-                                );
-                                firebaseData.products = firebaseData.products.map(p => ({
-                                    ...p,
-                                    image: imgMap.get(p.id) || ''
-                                }));
+                                // localStorage vacío → usar chunks de Firebase
+                                firebaseData.products = chunksProducts;
                             }
+                        } else {
+                            // Sin localStorage → dispositivo nuevo, usar chunks de Firebase
+                            firebaseData.products = chunksProducts;
                         }
-                    } catch (e) { /* ignorar errores de parseo */ }
+                    } catch (e) {
+                        // Error parseando localStorage → usar chunks de Firebase como fallback
+                        firebaseData.products = chunksProducts;
+                    }
                 } else {
                     firebaseData.products = firebaseData.products || [];
                 }
