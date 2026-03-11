@@ -84,18 +84,8 @@ async function loadData() {
             
             // Cargar términos
             if (saved.terms) appData.terms = saved.terms;
-            
-            console.log('Datos cargados correctamente:', {
-                clientes: appData.clients.length,
-                vendedores: appData.sellers.length,
-                productos: appData.products.length,
-                historial: appData.pdfHistory.length
-            });
-        } else {
-            console.log('No hay datos guardados, usando valores por defecto');
         }
     } catch (e) {
-        console.error('Error al cargar datos:', e);
     }
 }
 

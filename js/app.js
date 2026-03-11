@@ -8,11 +8,6 @@ async function init() {
     // Forzar carga de términos con reintentos automáticos
     forceLoadTermsWithRetry();
     
-    // Reintentar carga adicional después de 500ms por seguridad
-    setTimeout(() => {
-        loadTerms();
-    }, 500);
-    
     initPdfDatePicker();
     
     // Inicializar conversión automática a mayúsculas

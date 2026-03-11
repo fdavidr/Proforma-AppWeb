@@ -271,7 +271,7 @@ function redownloadPDF(entryId) {
                     const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
                     doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
                 } catch(e) {
-                    console.log('Error al cargar imagen del producto:', e);
+                    // Imagen del producto no disponible
                 }
             }
             

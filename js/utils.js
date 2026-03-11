@@ -44,7 +44,6 @@ function updateUI() {
     const salesBtn = document.getElementById('salesBtn');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
-    const manageInventoriesBtn = document.getElementById('manageInventoriesBtn');
     
     if (appData.userRole === 'vendedor') {
         // Vendedor solo ve Ventas
@@ -78,7 +77,6 @@ function updateUI() {
         if (salesBtn) salesBtn.style.display = '';
         if (exportBtn) exportBtn.style.display = '';
         if (importBtn) importBtn.style.display = '';
-        if (manageInventoriesBtn) manageInventoriesBtn.style.display = '';
         
         // Admin puede cambiar vendedor
         const sellerInput = document.getElementById('sellerSelect');
@@ -141,11 +139,6 @@ function showMainContent() {
     setActiveMenuButton('documentsBtn');
 }
 
-// Toggle de visualización de documentos (simplemente muestra la sección de documentos)
-function toggleDocuments() {
-    showMainContent();
-}
-
 // ==================== FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN ====================
 
 function exportData() {
@@ -156,12 +149,16 @@ function exportData() {
             exportDate: new Date().toISOString(),
             data: {
                 company: appData.company,
+                inventories: appData.inventories,
                 clients: appData.clients,
                 sellers: appData.sellers,
                 products: appData.products,
                 pdfHistory: appData.pdfHistory,
+                gastos: appData.gastos,
+                terms: appData.terms,
                 currentQuoteNumber: appData.currentQuoteNumber,
-                currentSaleNumber: appData.currentSaleNumber
+                currentSaleNumber: appData.currentSaleNumber,
+                currentDeliveryNumber: appData.currentDeliveryNumber
             }
         };
         
@@ -187,9 +184,7 @@ function exportData() {
         URL.revokeObjectURL(url);
         
         alert('✅ Datos exportados exitosamente');
-        console.log('📤 Exportación completada');
     } catch (error) {
-        console.error('❌ Error al exportar:', error);
         alert('Error al exportar los datos: ' + error.message);
     }
 }
@@ -217,12 +212,16 @@ function importData(event) {
             
             // Importar datos
             if (importedData.data.company) appData.company = importedData.data.company;
+            if (importedData.data.inventories) appData.inventories = importedData.data.inventories;
             if (importedData.data.clients) appData.clients = importedData.data.clients;
             if (importedData.data.sellers) appData.sellers = importedData.data.sellers;
             if (importedData.data.products) appData.products = importedData.data.products;
             if (importedData.data.pdfHistory) appData.pdfHistory = importedData.data.pdfHistory;
+            if (importedData.data.gastos) appData.gastos = importedData.data.gastos;
+            if (importedData.data.terms) appData.terms = importedData.data.terms;
             if (importedData.data.currentQuoteNumber) appData.currentQuoteNumber = importedData.data.currentQuoteNumber;
             if (importedData.data.currentSaleNumber) appData.currentSaleNumber = importedData.data.currentSaleNumber;
+            if (importedData.data.currentDeliveryNumber) appData.currentDeliveryNumber = importedData.data.currentDeliveryNumber;
             
             // Guardar en localStorage
             await saveData();
@@ -236,15 +235,7 @@ function importData(event) {
                   `Productos: ${appData.products.length}\n` +
                   `Historial: ${appData.pdfHistory.length}`);
             
-            console.log('📥 Importación completada:', {
-                clientes: appData.clients.length,
-                vendedores: appData.sellers.length,
-                productos: appData.products.length,
-                historial: appData.pdfHistory.length
-            });
-            
         } catch (error) {
-            console.error('❌ Error al importar:', error);
             alert('Error al importar los datos: ' + error.message);
         }
         

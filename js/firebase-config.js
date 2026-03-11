@@ -33,49 +33,14 @@ function initFirebase() {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         isFirebaseEnabled = true;
-        console.log('✅ Firebase conectado exitosamente');
         return true;
     } catch (error) {
-        console.error('❌ Error inicializando Firebase:', error);
-        console.log('⚠️ Usando localStorage como respaldo');
         isFirebaseEnabled = false;
         return false;
     }
 }
 
 // ==================== FUNCIONES DE BASE DE DATOS ====================
-
-async function saveToFirestore(collection, data) {
-    if (!isFirebaseEnabled) {
-        return false;
-    }
-
-    try {
-        await db.collection(collection).doc('data').set(data);
-        return true;
-    } catch (error) {
-        console.error(`Error guardando en Firestore (${collection}):`, error);
-        return false;
-    }
-}
-
-async function loadFromFirestore(collection) {
-    if (!isFirebaseEnabled) {
-        return null;
-    }
-
-    try {
-        const doc = await db.collection(collection).doc('data').get();
-        if (doc.exists) {
-            return doc.data();
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error(`Error cargando desde Firestore (${collection}):`, error);
-        return null;
-    }
-}
 
 function createLocalCachePayload(data) {
     return {
@@ -97,15 +62,12 @@ function saveLocalCacheSafe(data) {
             try {
                 const compactData = createLocalCachePayload(data);
                 localStorage.setItem('proformaAppData', JSON.stringify(compactData));
-                console.log('⚠️ Cache local guardado en modo compacto por límite de espacio');
                 return true;
             } catch (compactError) {
-                console.error('❌ Error guardando cache local compacto:', compactError);
                 return false;
             }
         }
 
-        console.error('❌ Error guardando cache local:', error);
         return false;
     }
 }
@@ -206,7 +168,6 @@ async function reserveDocumentNumber(documentType) {
 
         return result;
     } catch (error) {
-        console.error('❌ Error reservando número de documento:', error);
         return {
             number: localCurrent,
             next: localCurrent + 1,
@@ -242,7 +203,6 @@ async function syncDocumentCounters() {
 
         return hasChanges;
     } catch (error) {
-        console.error('❌ Error sincronizando contadores:', error);
         return false;
     }
 }
@@ -311,16 +271,6 @@ async function saveAllData(appData) {
         productsUpdatedAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
     };
-
-    console.log('💾 Guardando datos:', {
-        company: dataToSave.company.name,
-        clientes: dataToSave.clients.length,
-        vendedores: dataToSave.sellers.length,
-        productos: dataToSave.products.length,
-        cotizaciones: limitedCotizaciones.length,
-        ventas: ventas.length,
-        gastos: (dataToSave.gastos || []).length
-    });
 
     // Intentar guardar en Firebase primero
     if (isFirebaseEnabled) {
@@ -394,27 +344,23 @@ async function saveAllData(appData) {
             dataToSave.gastos = firebasePayload.gastos;
             // Sincronizar productsUpdatedAt para que localStorage lo tenga
             dataToSave.productsUpdatedAt = firebasePayload.productsUpdatedAt;
-            console.log('✅ Datos guardados exitosamente en Firebase');
 
             // Guardar cache local sin bloquear si hay límite de espacio
             saveLocalCacheSafe(dataToSave);
             return true;
         } catch (error) {
-            console.error('❌ Error guardando en Firebase:', error);
-            console.log('⚠️ Guardando solo en localStorage como respaldo');
+            // Fallo en Firebase — guardar solo en localStorage como respaldo
         }
     }
 
     // Guardar en localStorage (si Firebase falla o no está disponible)
     try {
         if (saveLocalCacheSafe(dataToSave)) {
-            console.log('✅ Datos guardados en localStorage');
             return true;
         }
 
         throw new Error('No se pudo guardar en localStorage');
     } catch (error) {
-        console.error('❌ Error guardando en localStorage:', error);
         if (error.name === 'QuotaExceededError') {
             alert('Espacio de almacenamiento lleno. Eliminando datos antiguos...');
             // Reducir ventas y entregas si hay problemas de espacio
@@ -472,16 +418,12 @@ async function loadAllData() {
                                 return lp && lp.image ? { ...p, image: lp.image } : p;
                             });
                             firebaseData.products = [...merged, ...onlyLocal];
-                            console.log('📦 Productos: Firebase más reciente(' + chunksProducts.length +
-                                ') + locales exclusivos(' + onlyLocal.length + ')');
                         } else {
                             // localStorage es igual o más reciente → este dispositivo guardó de último.
                             // Agregar productos que solo existan en Firebase (de otro dispositivo).
                             const localMap = new Map(localProducts.map(p => [p.id, p]));
                             const onlyInFirebase = chunksProducts.filter(p => !localMap.has(p.id));
                             firebaseData.products = [...localProducts, ...onlyInFirebase];
-                            console.log('📦 Productos: localStorage(' + localProducts.length +
-                                ') + solo-Firebase(' + onlyInFirebase.length + ')');
                         }
                     } else if (localProducts.length > 0) {
                         firebaseData.products = localProducts;
@@ -491,15 +433,6 @@ async function loadAllData() {
                 } else {
                     firebaseData.products = firebaseData.products || [];
                 }
-
-                console.log('📂 Datos cargados desde Firebase:', {
-                    company: firebaseData.company?.name || 'Sin nombre',
-                    clientes: firebaseData.clients?.length || 0,
-                    vendedores: firebaseData.sellers?.length || 0,
-                    productos: firebaseData.products?.length || 0,
-                    cotizaciones: firebaseData.pdfHistory?.filter(e => e.type === 'cotizacion').length || 0,
-                    ventas: firebaseData.pdfHistory?.filter(e => e.type === 'notaventa').length || 0
-                });
 
                 // Fusionar con localStorage para recuperar ventas que fallaron al guardarse en Firebase
                 const localStr = localStorage.getItem('proformaAppData');
@@ -517,9 +450,6 @@ async function loadAllData() {
                             localHistory.forEach(e => mergedMap.set(e.id, e));
                             firebaseData.pdfHistory = Array.from(mergedMap.values())
                                 .sort((a, b) => b.id - a.id);
-                            console.log('🔀 Historial fusionado: Firebase', fbHistory.length,
-                                '+ localStorage', localHistory.length,
-                                '→', firebaseData.pdfHistory.length, 'entradas');
                         }
                     } catch (e) { /* ignorar errores de parseo */ }
                 }
@@ -528,11 +458,10 @@ async function loadAllData() {
                 saveLocalCacheSafe(firebaseData);
                 return firebaseData;
             } else {
-                console.log('ℹ️ No hay datos en Firebase - buscando en localStorage');
+                // No hay datos en Firebase
             }
         } catch (error) {
-            console.error('❌ Error cargando desde Firebase:', error);
-            console.log('⚠️ Intentando cargar desde localStorage');
+            // Error cargando desde Firebase — intentar localStorage
         }
     }
     
@@ -541,27 +470,13 @@ async function loadAllData() {
     if (localDataStr) {
         try {
             const localData = JSON.parse(localDataStr);
-            console.log('📂 Datos cargados desde localStorage:', {
-                company: localData.company?.name || 'Sin nombre',
-                clientes: localData.clients?.length || 0,
-                vendedores: localData.sellers?.length || 0,
-                productos: localData.products?.length || 0,
-                cotizaciones: localData.pdfHistory?.filter(e => e.type === 'cotizacion').length || 0,
-                ventas: localData.pdfHistory?.filter(e => e.type === 'notaventa').length || 0
-            });
-            
-            // Si Firebase está habilitado y tiene datos locales, sincronizarlos
-            if (isFirebaseEnabled && !firebaseData) {
-                console.log('⚠️ Usando datos locales temporales. No se sincroniza automáticamente para evitar sobrescribir contadores remotos.');
-            }
             
             return localData;
         } catch (e) {
-            console.error('❌ Error parseando localStorage:', e);
+            // Error parseando localStorage
         }
     }
 
-    console.log('ℹ️ No hay datos guardados - iniciando con valores por defecto');
     return null;
 }
 

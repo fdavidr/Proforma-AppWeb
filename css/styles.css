@@ -132,15 +132,6 @@ select:focus {
     background: #7f8c8d;
 }
 
-.btn-danger {
-    background: #e74c3c;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #c0392b;
-}
-
 .btn-delete {
     background: transparent;
     color: #e74c3c;
@@ -343,55 +334,6 @@ select:focus {
     grid-template-columns: minmax(250px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
     gap: 15px;
     align-items: end;
-}
-
-.inventory-filter-section {
-    min-width: 0;
-}
-
-/* Badge de inventario */
-.inventory-badge {
-    display: inline-block;
-    padding: 6px 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 13px;
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
-    transition: all 0.2s ease;
-}
-
-.inventory-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
-}
-
-/* Botones de filtro de inventario */
-.btn-filter-inventory {
-    padding: 6px 16px;
-    background: #f8f9fa;
-    color: #2c3e50;
-    border: 2px solid #e0e0e0;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-filter-inventory:hover {
-    background: #e9ecef;
-    border-color: #3498db;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.2);
-}
-
-.btn-filter-inventory.active {
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    color: white;
-    border-color: #2980b9;
-    box-shadow: 0 3px 8px rgba(52, 152, 219, 0.4);
 }
 
 @media (max-width: 1400px) {
@@ -828,31 +770,23 @@ input[type="file"] {
 }
 
 /* ==================== SELECTORES DE CIUDAD ==================== */
-.city-selector.active,
-.city-filter.active,
-.city-filter-sales.active {
+.city-selector.active {
     background: #27ae60 !important;
     box-shadow: 0 0 15px rgba(39, 174, 96, 0.4);
     transform: scale(1.05);
     font-weight: bold;
 }
 
-.city-selector,
-.city-filter,
-.city-filter-sales {
+.city-selector {
     transition: all 0.3s ease;
 }
 
-.city-selector:not(.active),
-.city-filter:not(.active),
-.city-filter-sales:not(.active) {
+.city-selector:not(.active) {
     background: #95a5a6;
     opacity: 0.7;
 }
 
-.city-selector:hover,
-.city-filter:hover,
-.city-filter-sales:hover {
+.city-selector:hover {
     opacity: 1;
     transform: translateY(-2px);
 }
@@ -1167,21 +1101,6 @@ input[type="file"] {
     .product-image {
         width: 20px;
         height: 20px;
-    }
-
-    .app-header-menu {
-        padding: 10px 15px;
-    }
-
-    .header-actions {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .header-actions .btn {
-        padding: 8px 12px;
-        font-size: 12px;
     }
 
     /* ---- Totales ---- */

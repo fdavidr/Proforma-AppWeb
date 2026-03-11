@@ -7,9 +7,6 @@ function openInventory() {
     selectedInventoryCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
     
     // Generar lista de inventarios disponibles
-    loadInventoryListInline();
-    
-    // Generar filtros dinámicos
     generateInventoryFilters();
     
     loadInventoryData();
@@ -18,12 +15,6 @@ function openInventory() {
     document.getElementById('inventorySection').style.display = 'block';
     document.getElementById('salesSection').style.display = 'none';
     setActiveMenuButton('inventoryBtn');
-}
-
-// Actualizar elementos ocultos que el JS interno necesita
-function loadInventoryListInline() {
-    const countSpan = document.getElementById('inventoryCountInline');
-    if (countSpan) countSpan.textContent = appData.inventories.length;
 }
 
 
@@ -204,7 +195,7 @@ async function saveInventoryRowChanges(index, buttonElement) {
     try {
         saveOk = await saveData();
     } catch (error) {
-        console.error('Error al guardar cambios del inventario:', error);
+        // Error al guardar cambios del inventario
     }
 
     if (saveOk !== false) {

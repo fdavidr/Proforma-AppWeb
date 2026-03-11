@@ -44,7 +44,9 @@ function setDocumentType(type) {
     document.querySelectorAll('.type-toggle .btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    // Marcar el botón clickeado como activo buscando por data attribute
+    const clickedBtn = document.querySelector(`.type-toggle .btn[onclick*="'${type}'"]`);
+    if (clickedBtn) clickedBtn.classList.add('active');
 
     // Mostrar/ocultar formulario de gasto vs formulario de documento
     const quoteFormBody = document.getElementById('quoteFormBody');
@@ -135,7 +137,6 @@ function loadTerms() {
         }
     }
     
-    console.log(`📝 Términos cargados (${loadedCount}/4) para:`, appData.documentType);
     return loadedCount === 4;
 }
 
@@ -181,15 +182,12 @@ function forceLoadTermsWithRetry() {
         const success = loadTerms();
         
         if (success) {
-            console.log(`✅ Términos cargados exitosamente en intento ${attempts}`);
             initTermsListeners();
             return;
         }
         
         if (attempts < maxAttempts) {
             setTimeout(tryLoad, 100);
-        } else {
-            console.error('❌ No se pudieron cargar términos después de', maxAttempts, 'intentos');
         }
     };
     

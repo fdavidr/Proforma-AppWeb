@@ -60,7 +60,6 @@ async function generatePDF() {
         }
 
         saveTerms();
-        console.log('generatePDF: company.nit =', appData.company.nit);
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -360,7 +359,7 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
                 const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
                 doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
             } catch(e) {
-                console.log('Error al cargar imagen del producto:', e);
+                // Imagen del producto no disponible
             }
         }
         
@@ -577,7 +576,7 @@ function saveToHistory(fileName) {
         id: Date.now(),
         type: appData.documentType,
         number: docNumber,
-        city: appData.documentType === 'notaventa' ? appData.selectedSaleCity : appData.selectedSaleCity,
+        city: appData.selectedSaleCity,
         client: JSON.parse(JSON.stringify({
             name: appData.currentClient.name,
             phone: appData.currentClient.phone || '',

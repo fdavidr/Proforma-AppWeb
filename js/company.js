@@ -136,7 +136,6 @@ async function addInventoryFromModal() {
         renderModalInventoryList();
         // Actualizar selector en sección inventario si está abierta
         if (typeof generateInventoryFilters === 'function') generateInventoryFilters();
-        if (typeof loadInventoryListInline === 'function') loadInventoryListInline();
     }
 }
 
@@ -154,7 +153,6 @@ async function deleteInventoryFromModal(id) {
     await saveData();
     renderModalInventoryList();
     if (typeof generateInventoryFilters === 'function') generateInventoryFilters();
-    if (typeof loadInventoryListInline === 'function') loadInventoryListInline();
 }
 
 // Exponer funciones globalmente

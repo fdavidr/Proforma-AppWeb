@@ -53,7 +53,6 @@ function selectProduct(product) {
     document.getElementById('productPrice').value = product.price || 0;
     document.getElementById('productActionBtn').textContent = 'Modificar Producto';
     document.getElementById('productActionBtn').className = 'btn btn-warning';
-    updateProductPreview();
 }
 
 function handleProductAction() {
@@ -246,10 +245,6 @@ function saveProduct() {
     if (inventorySection && inventorySection.style.display === 'block') {
         loadInventoryData();
     }
-}
-
-function updateProductPreview() {
-    // Función para retroalimentación visual
 }
 
 // Exponer funciones globalmente

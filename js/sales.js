@@ -1,10 +1,29 @@
 // ==================== GESTIÓN DE VENTAS ====================
 
 let selectedSalesCity = 'cochabamba';
-let movimientosFilter = 'ventas';
+
+// Convertir fecha string "DD/MM/YYYY, HH:MM:SS" a timestamp
+function parseDateStr(dateStr) {
+    try {
+        const parts = dateStr.split(',');
+        const datePart = parts[0].trim();
+        const timePart = parts[1] ? parts[1].trim() : '00:00:00';
+        const [day, month, year] = datePart.split('/');
+        const [hours, minutes, seconds] = timePart.split(':');
+        return new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hours) || 0,
+            parseInt(minutes) || 0,
+            parseInt(seconds) || 0
+        ).getTime();
+    } catch (e) {
+        return 0;
+    }
+}
 
 function switchMovimientosTab(tab) {
-    movimientosFilter = tab;
 
     const tabVentas = document.getElementById('tabVentas');
     const tabGastos = document.getElementById('tabGastos');
@@ -127,33 +146,7 @@ function filterSalesByMonth() {
     }
 
     // Ordenar por fecha (más recientes primero)
-    filteredSales.sort((a, b) => {
-        // Convertir fecha string "DD/MM/YYYY, HH:MM:SS" a timestamp
-        const parseDate = (dateStr) => {
-            try {
-                const parts = dateStr.split(',');
-                const datePart = parts[0].trim(); // DD/MM/YYYY
-                const timePart = parts[1] ? parts[1].trim() : '00:00:00'; // HH:MM:SS
-                
-                const [day, month, year] = datePart.split('/');
-                const [hours, minutes, seconds] = timePart.split(':');
-                
-                // Crear objeto Date con los valores parseados
-                return new Date(
-                    parseInt(year),
-                    parseInt(month) - 1, // Los meses en JS van de 0-11
-                    parseInt(day),
-                    parseInt(hours) || 0,
-                    parseInt(minutes) || 0,
-                    parseInt(seconds) || 0
-                ).getTime();
-            } catch (e) {
-                return 0;
-            }
-        };
-        
-        return parseDate(b.date) - parseDate(a.date); // Orden descendente (más reciente primero)
-    });
+    filteredSales.sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
 
     let totalCost = 0;
     let totalPrice = 0;
@@ -359,19 +352,7 @@ function generateSalesPDF() {
     });
 
     // Ordenar por fecha (más recientes primero)
-    sales.sort((a, b) => {
-        const parseDate = (dateStr) => {
-            try {
-                const parts = dateStr.split(',');
-                const datePart = parts[0].trim();
-                const [day, month, year] = datePart.split('/');
-                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
-            } catch (e) {
-                return 0;
-            }
-        };
-        return parseDate(b.date) - parseDate(a.date);
-    });
+    sales.sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
 
     // Calcular totales (solo ventas NO anuladas)
     let totalCost = 0;
@@ -1009,7 +990,7 @@ function viewSalePDF(saleId) {
                 const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 2;
                 doc.addImage(productImage, 'PNG', margin + 26, imgY, 24, imgHeight);
             } catch (e) {
-                console.log('Error al cargar imagen:', e);
+                // Imagen no disponible
             }
         }
 
@@ -1113,7 +1094,6 @@ function viewSalePDF(saleId) {
     doc.save(`Nota_Venta_${sale.number}.pdf`);
     
     } catch (error) {
-        console.error('Error al generar PDF de venta:', error);
         alert('Error al generar el PDF: ' + error.message);
     }
 }
