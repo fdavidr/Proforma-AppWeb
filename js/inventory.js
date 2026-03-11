@@ -393,6 +393,54 @@ function generateInventoryPDF() {
     doc.save(fileName);
 }
 
+function generateInventoryExcel() {
+    if (!window.XLSX) {
+        alert('La librería de Excel no está disponible. Revisa tu conexión a internet.');
+        return;
+    }
+
+    const currentInventory = appData.inventories.find(inv => inv.id === selectedInventoryCity);
+    const cityName = currentInventory ? currentInventory.name : selectedInventoryCity;
+
+    // Cabeceras
+    const headers = ['#', 'Código', 'Descripción', 'Stock', 'Costo Unit. (Bs)', 'Precio Unit. (Bs)', 'Costo Total (Bs)', 'Precio Total (Bs)'];
+
+    // Filas de datos
+    const rows = appData.products.map((product, index) => {
+        const stock = (product.stock && product.stock[selectedInventoryCity]) || 0;
+        const cost = product.cost || 0;
+        const price = product.price || 0;
+        return [
+            index + 1,
+            product.code || '',
+            product.description || '',
+            stock,
+            cost,
+            price,
+            parseFloat((stock * cost).toFixed(2)),
+            parseFloat((stock * price).toFixed(2))
+        ];
+    });
+
+    // Totales
+    const totalCost = rows.reduce((s, r) => s + r[6], 0);
+    const totalPrice = rows.reduce((s, r) => s + r[7], 0);
+    rows.push([]);
+    rows.push(['', '', 'TOTAL', '', '', '', parseFloat(totalCost.toFixed(2)), parseFloat(totalPrice.toFixed(2))]);
+
+    const wsData = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Ancho de columnas
+    ws['!cols'] = [{ wch: 4 }, { wch: 14 }, { wch: 36 }, { wch: 8 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, cityName.substring(0, 31));
+
+    const date = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `Inventario_${cityName}_${date}.xlsx`);
+}
+
 // Exponer funciones globalmente
 window.openInventory = openInventory;
 window.filterInventoryByCity = filterInventoryByCity;
@@ -400,3 +448,4 @@ window.loadInventoryData = loadInventoryData;
 window.saveInventoryRowChanges = saveInventoryRowChanges;
 window.deleteProductFromInventory = deleteProductFromInventory;
 window.generateInventoryPDF = generateInventoryPDF;
+window.generateInventoryExcel = generateInventoryExcel;
