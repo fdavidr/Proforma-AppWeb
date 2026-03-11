@@ -136,6 +136,23 @@ function loadInventoryData() {
     document.getElementById('totalPriceInventory').textContent = `Bs ${totalPrice.toFixed(2)}`;
 }
 
+// Recalcular los totales del pie sin re-renderizar la tabla completa
+function updateInventoryTotals() {
+    let totalCost = 0;
+    let totalPrice = 0;
+    appData.products.forEach(product => {
+        const stock = product.stock && product.stock[selectedInventoryCity]
+            ? product.stock[selectedInventoryCity]
+            : 0;
+        const cost = product.cost || 0;
+        const price = product.price || 0;
+        totalCost += stock * cost;
+        totalPrice += stock * price;
+    });
+    document.getElementById('totalCostInventory').textContent = `Bs ${totalCost.toFixed(2)}`;
+    document.getElementById('totalPriceInventory').textContent = `Bs ${totalPrice.toFixed(2)}`;
+}
+
 async function saveInventoryRowChanges(index, buttonElement) {
     const row = buttonElement.closest('tr');
     const product = appData.products[index];
@@ -177,7 +194,6 @@ async function saveInventoryRowChanges(index, buttonElement) {
     }
 
     buttonElement.disabled = true;
-    const previousText = buttonElement.textContent;
     buttonElement.textContent = '⏳';
 
     // Remover clase de modificado
@@ -186,25 +202,43 @@ async function saveInventoryRowChanges(index, buttonElement) {
 
     let saveOk = false;
     try {
-        await saveData();
-        saveOk = true;
+        saveOk = await saveData();
     } catch (error) {
         console.error('Error al guardar cambios del inventario:', error);
     }
 
-    // Siempre recargar la tabla para reflejar el estado real de appData en memoria
-    loadInventoryData();
+    if (saveOk !== false) {
+        // Actualizar solo las celdas calculadas de esta fila (sin re-renderizar toda la tabla)
+        const costTotal = stock * cost;
+        const priceTotal = stock * price;
+        const cells = row.querySelectorAll('td');
+        // Columnas: #(0) Img(1) Code(2) Desc(3) Stock(4) Cost(5) Price(6) CostTotal(7) PriceTotal(8) Actions(9)
+        cells[7].textContent = `Bs ${costTotal.toFixed(2)}`;
+        cells[8].textContent = `Bs ${priceTotal.toFixed(2)}`;
 
-    if (!saveOk) {
-        alert('No se pudo guardar los cambios en la nube. Los datos se conservan localmente y se sincronizarán en la próxima sesión.');
+        // Recalcular totales del pie de tabla
+        updateInventoryTotals();
+
+        // Indicador visual de éxito
+        buttonElement.textContent = '✅';
+        buttonElement.title = 'Guardado exitosamente';
+        buttonElement.disabled = false;
+        setTimeout(() => {
+            buttonElement.textContent = '💾';
+            buttonElement.title = 'Guardar cambios';
+        }, 1500);
+    } else {
+        // En caso de fallo, recargar tabla para reflejar estado real
+        loadInventoryData();
+        alert('No se pudo guardar los cambios. Revisa tu conexión e intenta de nuevo.');
     }
 }
 
-function deleteProductFromInventory(index) {
+async function deleteProductFromInventory(index) {
     const product = appData.products[index];
     if (confirm(`¿Eliminar el producto "${product.description}"?`)) {
         appData.products.splice(index, 1);
-        saveData();
+        await saveData();
         loadInventoryData();
     }
 }
