@@ -146,9 +146,9 @@ function updateInventoryTotals() {
 
 async function saveInventoryRowChanges(index, buttonElement) {
     const row = buttonElement.closest('tr');
-    const product = appData.products[index];
+    const existingProduct = appData.products[index];
 
-    if (!row || !product) {
+    if (!row || !existingProduct) {
         return;
     }
 
@@ -167,21 +167,27 @@ async function saveInventoryRowChanges(index, buttonElement) {
     const cost = Math.max(0, isNaN(costValue) ? 0 : costValue);
     const price = Math.max(0, isNaN(priceValue) ? 0 : priceValue);
 
-    product.code = code;
-    product.description = description;
-    product.cost = cost;
-    product.price = price;
+    // Crear nuevo objeto stock preservando los stocks de otras ciudades
+    const newStock = { ...(existingProduct.stock || {}) };
+    newStock[selectedInventoryCity] = stock;
 
-    // Asegurar que existe el objeto stock
-    if (!product.stock) {
-        product.stock = {};
-    }
-    
-    // Actualizar el stock del inventario seleccionado
-    product.stock[selectedInventoryCity] = stock;
+    // Crear nuevo objeto producto completo (misma lógica que saveProduct en products.js)
+    const updatedProduct = {
+        id: existingProduct.id,
+        code: code,
+        description: description,
+        price: price,
+        cost: cost,
+        stock: newStock,
+        registrationDate: existingProduct.registrationDate || new Date().toISOString(),
+        image: existingProduct.image || ''
+    };
 
-    if (appData.currentProduct && appData.currentProduct.id === product.id) {
-        appData.currentProduct = product;
+    // Reemplazar el producto completo en el array (no mutar el objeto anterior)
+    appData.products[index] = updatedProduct;
+
+    if (appData.currentProduct && appData.currentProduct.id === updatedProduct.id) {
+        appData.currentProduct = updatedProduct;
     }
 
     buttonElement.disabled = true;
