@@ -133,22 +133,21 @@ function initPdfDatePicker() {
     const today = new Date();
     dateInput.value = today.toISOString().split('T')[0];
     
-    // Calcular fecha mínima (1 mes atrás)
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    
+    // Fecha mínima: 1 de enero de 2025
+    const minDateStr = '2025-01-01';
+
     // Establecer límites
-    dateInput.min = oneMonthAgo.toISOString().split('T')[0];
+    dateInput.min = minDateStr;
     dateInput.max = today.toISOString().split('T')[0];
     
     // Validar en tiempo real
     dateInput.addEventListener('change', function() {
         const selectedDate = new Date(this.value + 'T00:00:00');
-        const minDate = new Date(oneMonthAgo.toISOString().split('T')[0] + 'T00:00:00');
+        const minDate = new Date(minDateStr + 'T00:00:00');
         const maxDate = new Date(today.toISOString().split('T')[0] + 'T00:00:00');
         
         if (selectedDate < minDate) {
-            alert('La fecha no puede ser mayor a 1 mes atrás');
+            alert('La fecha no puede ser anterior al 1 de enero de 2025');
             this.value = today.toISOString().split('T')[0];
         } else if (selectedDate > maxDate) {
             alert('No se pueden seleccionar fechas futuras');
