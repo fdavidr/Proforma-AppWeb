@@ -255,10 +255,25 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     // Nombre del inventario debajo de la fecha
     const inventory = appData.inventories.find(inv => inv.id === appData.selectedSaleCity);
     const cityName = inventory ? inventory.name.toUpperCase() : '';
+    let nextY = 41;
     if (cityName) {
         doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
-        doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+        doc.text(cityName, pageWidth - margin, nextY, { align: 'right' });
+        nextY += 7;
+    }
+
+    // Método de pago (solo Nota de Venta)
+    if (appData.documentType === 'notaventa') {
+        const pmEl = document.getElementById('salePaymentMethod');
+        const pm = pmEl ? pmEl.value : '';
+        if (pm) {
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text('PAGO: ', pageWidth - margin - doc.getTextWidth(pm), nextY);
+            doc.setFont(undefined, 'normal');
+            doc.text(pm, pageWidth - margin, nextY, { align: 'right' });
+        }
     }
 }
 
