@@ -268,8 +268,8 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
         }
         if (pm) {
             doc.setFontSize(9);
-            doc.setFont(undefined, 'normal');
-            doc.text(pm, pageWidth / 2, 41, { align: 'center' });
+            doc.setFont(undefined, 'bold');
+            doc.text('PAGO: ' + pm, pageWidth / 2, 41, { align: 'center' });
         }
     } else {
         if (cityName) {
