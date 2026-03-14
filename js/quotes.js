@@ -63,6 +63,12 @@ function setDocumentType(type) {
         if (gastoFormSection) gastoFormSection.style.display = 'none';
     }
 
+    // Mostrar campo de método de pago solo en Nota de Venta
+    const paymentMethodGroup = document.getElementById('salePaymentMethodGroup');
+    if (paymentMethodGroup) {
+        paymentMethodGroup.style.display = type === 'notaventa' ? 'block' : 'none';
+    }
+
     // Actualizar número mostrado
     updateDocumentNumber();
     
