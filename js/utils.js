@@ -136,6 +136,7 @@ function showMainContent() {
     document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'none';
+    document.getElementById('estadisticasSection').style.display = 'none';
     setActiveMenuButton('documentsBtn');
 }
 

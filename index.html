@@ -8,6 +8,7 @@
     <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -93,6 +94,10 @@
                     <button id="historyBtn" class="btn btn-sidebar" onclick="openHistory(); closeMobileMenuOnNav()">
                         <span class="icon">📋</span>
                         <span class="text">Historial</span>
+                    </button>
+                    <button id="estadisticasBtn" class="btn btn-sidebar" onclick="openEstadisticas(); closeMobileMenuOnNav()">
+                        <span class="icon">📊</span>
+                        <span class="text">Estadísticas</span>
                     </button>
                     <button id="exportBtn" class="btn btn-sidebar" onclick="exportData()" style="display: none;">
                         <span class="icon">📤</span>
@@ -701,6 +706,115 @@
             </div>
         </div>
         
+        <!-- ==================== ESTADÍSTICAS ==================== -->
+        <div id="estadisticasSection" class="content-section" style="display: none;">
+
+            <!-- Header -->
+            <div class="stats-header">
+                <h2>📊 Estadísticas de Ventas</h2>
+                <p>Análisis de rendimiento y tendencias</p>
+            </div>
+
+            <!-- Filtros -->
+            <div class="stats-filters">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">🏛️ Ciudad:</label>
+                    <div id="estadisticasCityButtons" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">📅 Año:</label>
+                    <select id="estadisticasYearFilter"
+                        onchange="estadisticasYear = this.value ? parseInt(this.value) : null; renderEstadisticas();"
+                        style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:#fff; cursor:pointer;">
+                    </select>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div id="estadisticasKPIs" class="kpi-row"></div>
+
+            <!-- Grid 2x2 de gráficos -->
+            <div class="charts-grid">
+
+                <!-- Top 5 Productos -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-card-icon">🏆</span>
+                        <div>
+                            <h4>Top 5 Productos Más Vendidos</h4>
+                            <p>Por unidades vendidas</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chartTopProducts"></canvas>
+                        <div class="chart-empty">Sin datos para mostrar</div>
+                    </div>
+                </div>
+
+                <!-- Top 5 Clientes Frecuentes -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-card-icon">👥</span>
+                        <div>
+                            <h4>Top 5 Clientes Frecuentes</h4>
+                            <p>Por número de compras</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chartTopClientsFreq"></canvas>
+                        <div class="chart-empty">Sin datos para mostrar</div>
+                    </div>
+                </div>
+
+                <!-- Top 5 por Volumen -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-card-icon">💰</span>
+                        <div>
+                            <h4>Top 5 Clientes por Volumen</h4>
+                            <p>Por monto total de compras</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chartTopClientsVol"></canvas>
+                        <div class="chart-empty">Sin datos para mostrar</div>
+                    </div>
+                </div>
+
+                <!-- Métodos de Pago -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-card-icon">💳</span>
+                        <div>
+                            <h4>Métodos de Pago</h4>
+                            <p>Distribución por tipo de pago</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chartPaymentMethods"></canvas>
+                        <div class="chart-empty">Sin datos para mostrar</div>
+                    </div>
+                </div>
+
+            </div><!-- /charts-grid -->
+
+            <!-- Volumen mensual (ancho completo) -->
+            <div class="chart-card chart-card-full">
+                <div class="chart-card-header">
+                    <span class="chart-card-icon">📈</span>
+                    <div>
+                        <h4>Volumen de Ventas por Mes</h4>
+                        <p>Ingresos mensuales en Bolivianos</p>
+                    </div>
+                </div>
+                <div class="chart-wrapper chart-wrapper-wide">
+                    <canvas id="chartMonthlySales"></canvas>
+                    <div class="chart-empty">Sin datos para mostrar</div>
+                </div>
+            </div>
+
+        </div><!-- /estadisticasSection -->
+
         </div> <!-- End of app-content-wrapper -->
         </div> <!-- End of app-layout-container -->
     </div> <!-- End of app -->
@@ -720,6 +834,7 @@
     <script src="js/quotes.js?v=20260315b"></script>
     <script src="js/pdf.js?v=20260315b"></script>
     <script src="js/history.js?v=20260315b"></script>
+    <script src="js/estadisticas.js?v=20260315"></script>
     <script src="js/app.js?v=20260315b"></script>
 </body>
 </html>
