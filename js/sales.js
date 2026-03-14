@@ -120,7 +120,7 @@ function filterSalesByMonth() {
     );
 
     if (sales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';
         updateSalesTotals([], [0, 0, 0]);
         renderGastosTable([]);
         return;
@@ -139,7 +139,7 @@ function filterSalesByMonth() {
     }
 
     if (filteredSales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>';
         updateSalesTotals([], [0, 0, 0]);
         renderGastosTable([]);
         return;
@@ -150,6 +150,10 @@ function filterSalesByMonth() {
 
     let totalCost = 0;
     let totalPrice = 0;
+    let totalEfectivo = 0;
+    let totalTransferencia = 0;
+    let totalCheque = 0;
+    let totalSinMetodo = 0;
 
     filteredSales.forEach((sale, index) => {
         const tr = document.createElement('tr');
@@ -174,6 +178,11 @@ function filterSalesByMonth() {
         if (!sale.cancelled) {
             totalCost += saleCost;
             totalPrice += salePrice;
+            const pm = (sale.paymentMethod || '').toUpperCase();
+            if (pm === 'EFECTIVO') totalEfectivo += salePrice;
+            else if (pm === 'TRANSFERENCIA BANCARIA') totalTransferencia += salePrice;
+            else if (pm === 'CHEQUE') totalCheque += salePrice;
+            else totalSinMetodo += salePrice;
         }
 
         // Resumen de productos
@@ -197,6 +206,8 @@ function filterSalesByMonth() {
             tr.classList.add('cancelled-sale');
         }
 
+        const paymentBadge = sale.paymentMethod ? `<span style="font-size:11px; padding:2px 6px; border-radius:10px; background:#ecf0f1; color:#555;">${sale.paymentMethod}</span>` : '<span style="color:#bbb; font-size:11px;">—</span>';
+
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${sale.number}</td>
@@ -206,6 +217,7 @@ function filterSalesByMonth() {
             <td style="color: #e74c3c;">Bs ${saleCost.toFixed(2)}</td>
             <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
             <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
+            <td style="white-space:nowrap;">${paymentBadge}</td>
             <td>${sale.date}</td>
             <td style="white-space: nowrap;">
                 <div class="actions-menu-container">
@@ -240,7 +252,7 @@ function filterSalesByMonth() {
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
 
     renderGastosTable(filteredGastos);
-    updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos]);
+    updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos], [totalEfectivo, totalTransferencia, totalCheque, totalSinMetodo]);
 }
 
 function renderGastosTable(gastos) {
@@ -248,7 +260,7 @@ function renderGastosTable(gastos) {
     if (!tbody) return;
 
     if (!gastos || gastos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#7f8c8d;">No hay gastos en este período</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#7f8c8d;">No hay gastos en este período</td></tr>';
         return;
     }
 
@@ -263,6 +275,7 @@ function renderGastosTable(gastos) {
             <td style="color:#e67e22; font-weight:bold;">Bs ${(g.amount || 0).toFixed(2)}</td>
             <td>${cityName}</td>
             <td>${g.date}</td>
+            <td>${g.paymentMethod || '—'}</td>
             <td>${g.notes || '-'}</td>
             <td><button onclick="deleteGasto(${g.id})" style="background:none; border:1px solid #e74c3c; color:#e74c3c; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:12px;">🗑 Eliminar</button></td>
         `;
@@ -270,7 +283,7 @@ function renderGastosTable(gastos) {
     });
 }
 
-function updateSalesTotals(sales, totals) {
+function updateSalesTotals(sales, totals, paymentTotals) {
     const [totalCost, totalPrice, totalGastos] = totals;
     const gananciaLiquida = (totalPrice || 0) - (totalCost || 0) - (totalGastos || 0);
 
@@ -286,6 +299,16 @@ function updateSalesTotals(sales, totals) {
         gananciaEl.textContent = `Bs ${gananciaLiquida.toFixed(2)}`;
         gananciaEl.style.color = gananciaLiquida >= 0 ? '#3498db' : '#e74c3c';
     }
+
+    const [tEfectivo, tTransferencia, tCheque, tSinMetodo] = paymentTotals || [0, 0, 0, 0];
+    const efectivoEl = document.getElementById('totalEfectivoSales');
+    const transferenciaEl = document.getElementById('totalTransferenciaSales');
+    const chequeEl = document.getElementById('totalChequeSales');
+    const sinMetodoEl = document.getElementById('totalSinMetodoSales');
+    if (efectivoEl) efectivoEl.textContent = `Bs ${(tEfectivo || 0).toFixed(2)}`;
+    if (transferenciaEl) transferenciaEl.textContent = `Bs ${(tTransferencia || 0).toFixed(2)}`;
+    if (chequeEl) chequeEl.textContent = `Bs ${(tCheque || 0).toFixed(2)}`;
+    if (sinMetodoEl) sinMetodoEl.textContent = `Bs ${(tSinMetodo || 0).toFixed(2)}`;
 }
 
 function generateSalesPDF() {

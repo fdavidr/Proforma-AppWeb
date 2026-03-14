@@ -572,11 +572,15 @@ function saveToHistory(fileName) {
         docNumber = appData.currentDeliveryNumber;
     }
 
+    const paymentMethodEl = document.getElementById('salePaymentMethod');
+    const paymentMethod = (appData.documentType === 'notaventa' && paymentMethodEl) ? paymentMethodEl.value : '';
+
     const historyEntry = {
         id: Date.now(),
         type: appData.documentType,
         number: docNumber,
         city: appData.selectedSaleCity,
+        paymentMethod: paymentMethod,
         client: JSON.parse(JSON.stringify({
             name: appData.currentClient.name,
             phone: appData.currentClient.phone || '',

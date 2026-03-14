@@ -59,6 +59,7 @@ async function saveGasto() {
         category: categoryEl ? categoryEl.value : 'Otros',
         city: cityEl ? cityEl.value : (appData.inventories[0] ? appData.inventories[0].id : ''),
         date: dateStr,
+        paymentMethod: (document.getElementById('gastoPaymentMethod') || {}).value || 'EFECTIVO',
         notes: notesEl ? notesEl.value.trim().toUpperCase() : ''
     };
 
