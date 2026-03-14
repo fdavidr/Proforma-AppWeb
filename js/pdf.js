@@ -252,27 +252,30 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     doc.setFontSize(10);
     doc.text('Fecha: ' + getSelectedPdfDate(), pageWidth - margin, 34, { align: 'right' });
     
-    // Nombre del inventario debajo de la fecha
+    // Nombre del inventario y método de pago en la misma fila
     const inventory = appData.inventories.find(inv => inv.id === appData.selectedSaleCity);
     const cityName = inventory ? inventory.name.toUpperCase() : '';
-    let nextY = 41;
-    if (cityName) {
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'bold');
-        doc.text(cityName, pageWidth - margin, nextY, { align: 'right' });
-        nextY += 7;
-    }
 
-    // Método de pago (solo Nota de Venta)
     if (appData.documentType === 'notaventa') {
         const pmEl = document.getElementById('salePaymentMethod');
         const pm = pmEl ? pmEl.value : '';
+
+        // Ciudad a la derecha, método de pago centrado — misma fila (y=41)
+        if (cityName) {
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
+        }
         if (pm) {
             doc.setFontSize(9);
-            doc.setFont(undefined, 'bold');
-            doc.text('PAGO: ', pageWidth - margin - doc.getTextWidth(pm), nextY);
             doc.setFont(undefined, 'normal');
-            doc.text(pm, pageWidth - margin, nextY, { align: 'right' });
+            doc.text(pm, pageWidth / 2, 41, { align: 'center' });
+        }
+    } else {
+        if (cityName) {
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text(cityName, pageWidth - margin, 41, { align: 'right' });
         }
     }
 }
