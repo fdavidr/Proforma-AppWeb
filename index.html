@@ -724,7 +724,14 @@
                 <div style="display:flex; align-items:center; gap:8px;">
                     <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">📅 Año:</label>
                     <select id="estadisticasYearFilter"
-                        onchange="estadisticasYear = this.value ? parseInt(this.value) : null; renderEstadisticas();"
+                        onchange="estadisticasYear = this.value ? parseInt(this.value) : null; estadisticasMonth = null; renderEstadisticasMonthFilter(); renderEstadisticas();"
+                        style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:#fff; cursor:pointer;">
+                    </select>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">📆 Mes:</label>
+                    <select id="estadisticasMonthFilter"
+                        onchange="estadisticasMonth = this.value ? parseInt(this.value) : null; renderEstadisticas();"
                         style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:#fff; cursor:pointer;">
                     </select>
                 </div>
@@ -799,7 +806,7 @@
             </div><!-- /charts-grid -->
 
             <!-- Volumen mensual (ancho completo) -->
-            <div class="chart-card chart-card-full">
+            <div id="monthlySalesCard" class="chart-card chart-card-full">
                 <div class="chart-card-header">
                     <span class="chart-card-icon">📈</span>
                     <div>

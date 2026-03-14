@@ -2,6 +2,7 @@
 
 let estadisticasCity = null;
 let estadisticasYear = new Date().getFullYear();
+let estadisticasMonth = null;
 const chartInstances = {};
 
 function openEstadisticas() {
@@ -13,6 +14,7 @@ function openEstadisticas() {
     setActiveMenuButton('estadisticasBtn');
     renderEstadisticasCityButtons();
     renderEstadisticasYearFilter();
+    renderEstadisticasMonthFilter();
     renderEstadisticas();
 }
 
@@ -60,19 +62,38 @@ function renderEstadisticasYearFilter() {
         select.appendChild(opt);
     });
 
-    // Pre-select current year if not already set
     if (estadisticasYear && !currentVal) {
         select.value = estadisticasYear;
     }
+}
+
+function renderEstadisticasMonthFilter() {
+    const select = document.getElementById('estadisticasMonthFilter');
+    if (!select) return;
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    select.innerHTML = '<option value="">Todos los meses</option>';
+    monthNames.forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = i + 1;
+        opt.textContent = name;
+        if (estadisticasMonth === i + 1) opt.selected = true;
+        select.appendChild(opt);
+    });
+    // Disable month filter if no year selected
+    select.disabled = !estadisticasYear;
+    select.style.opacity = estadisticasYear ? '1' : '0.45';
+    select.title = estadisticasYear ? '' : 'Selecciona un año primero';
 }
 
 function getFilteredSalesForStats() {
     return (appData.pdfHistory || []).filter(e => {
         if (e.type !== 'notaventa' || e.cancelled) return false;
         if (estadisticasCity && e.city !== estadisticasCity) return false;
-        if (estadisticasYear) {
-            const parts = e.date.split(',')[0].trim().split('/');
-            if (parts.length === 3 && parseInt(parts[2]) !== estadisticasYear) return false;
+        const parts = e.date.split(',')[0].trim().split('/');
+        if (parts.length === 3) {
+            if (estadisticasYear && parseInt(parts[2]) !== estadisticasYear) return false;
+            if (estadisticasMonth && parseInt(parts[1]) !== estadisticasMonth) return false;
         }
         return true;
     });
@@ -282,6 +303,18 @@ function renderPaymentMethods(sales) {
 }
 
 function renderMonthlySales(sales) {
+    destroyChart('monthlySales');
+    const ctx = document.getElementById('chartMonthlySales');
+    const cardFull = document.getElementById('monthlySalesCard');
+    if (!ctx) return;
+
+    // Hide the monthly chart when a specific month is selected (not useful)
+    if (estadisticasMonth) {
+        if (cardFull) cardFull.style.display = 'none';
+        return;
+    }
+    if (cardFull) cardFull.style.display = '';
+
     const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     let months = [];
 
