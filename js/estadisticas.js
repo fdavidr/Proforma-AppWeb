@@ -345,9 +345,6 @@ function renderMonthlySales(sales) {
     });
 
     const data = months.map(m => parseFloat(byMonth[m.key].toFixed(2)));
-    destroyChart('monthlySales');
-    const ctx = document.getElementById('chartMonthlySales');
-    if (!ctx) return;
     const emptyEl = ctx.parentElement.querySelector('.chart-empty');
 
     if (data.every(v => v === 0)) {
