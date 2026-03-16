@@ -370,9 +370,12 @@ function generateSalesPDF() {
     doc.text(`Período: ${monthName} ${year}`, pageWidth / 2, yPos, { align: 'center' });
 
     // Filtrar ventas del mes y ciudad
+    const isVendedor = appData.userRole === 'vendedor' && appData.loggedSeller;
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa') return false;
         if (entry.city !== selectedSalesCity) return false;
+        // Si es vendedor, solo sus propias ventas
+        if (isVendedor && !(entry.seller && entry.seller.name === appData.loggedSeller.name)) return false;
         const datePart = entry.date.split(',')[0].trim();
         const [day, month, year] = datePart.split('/');
         const saleDate = `${year}-${month.padStart(2, '0')}`;
@@ -420,9 +423,9 @@ function generateSalesPDF() {
 
     const balance = totalPrice - totalCost;
 
-    // Filtrar gastos del mismo mes y ciudad
+    // Filtrar gastos del mismo mes y ciudad (no aplica para vendedor)
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
-    const filteredGastos = allGastos.filter(g => {
+    const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
         if (g.city !== selectedSalesCity) return false;
         if (!selectedMonth) return true;
         const datePart = g.date.split(',')[0].trim();

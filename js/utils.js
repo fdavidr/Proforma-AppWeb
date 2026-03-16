@@ -45,6 +45,7 @@ function updateUI() {
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
     const estadisticasBtn = document.getElementById('estadisticasBtn');
+    const productActionBtn = document.getElementById('productActionBtn');
     
     if (appData.userRole === 'vendedor') {
         // Vendedor ve: Operaciones, Movimientos, Historial, Estadísticas
@@ -55,6 +56,7 @@ function updateUI() {
         if (exportBtn) exportBtn.style.display = 'none';
         if (importBtn) importBtn.style.display = 'none';
         if (estadisticasBtn) estadisticasBtn.style.display = '';
+        if (productActionBtn) productActionBtn.style.display = 'none';
         
         // Bloquear campo de vendedor y establecer vendedor logueado
         if (appData.loggedSeller) {
@@ -80,6 +82,7 @@ function updateUI() {
         if (exportBtn) exportBtn.style.display = '';
         if (importBtn) importBtn.style.display = '';
         if (estadisticasBtn) estadisticasBtn.style.display = '';
+        if (productActionBtn) productActionBtn.style.display = '';
         
         // Admin puede cambiar vendedor
         const sellerInput = document.getElementById('sellerSelect');
