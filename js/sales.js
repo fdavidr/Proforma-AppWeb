@@ -158,8 +158,6 @@ function filterSalesByMonth() {
         });
     }
 
-    const isVendedor = appData.userRole === 'vendedor';
-
     if (filteredSales.length === 0) {
         const cols = isVendedor ? 9 : 11;
         tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>`;
