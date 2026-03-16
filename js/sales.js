@@ -119,6 +119,10 @@ function filterSalesByMonth() {
     // --- Gastos: calcular siempre, independientemente de si hay ventas ---
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
     let filteredGastos = allGastos.filter(g => g.city === selectedSalesCity);
+    // Vendedor solo ve sus propios gastos
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        filteredGastos = filteredGastos.filter(g => g.seller === appData.loggedSeller.name);
+    }
     if (selectedMonth) {
         filteredGastos = filteredGastos.filter(g => {
             const datePart = g.date.split(',')[0].trim();
@@ -270,7 +274,7 @@ function renderGastosTable(gastos) {
     if (!tbody) return;
 
     if (!gastos || gastos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#7f8c8d;">No hay gastos en este período</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#7f8c8d;">No hay gastos en este período</td></tr>';
         return;
     }
 
@@ -284,6 +288,7 @@ function renderGastosTable(gastos) {
             <td>${g.category}</td>
             <td style="color:#e67e22; font-weight:bold;">Bs ${(g.amount || 0).toFixed(2)}</td>
             <td>${cityName}</td>
+            <td>${g.seller || '—'}</td>
             <td>${g.date}</td>
             <td>${g.paymentMethod || '—'}</td>
             <td>${g.notes || '-'}</td>

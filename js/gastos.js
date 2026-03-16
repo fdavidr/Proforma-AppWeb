@@ -27,6 +27,26 @@ function initGastoForm() {
         }
     }
 
+    // Poblar el select de vendedor
+    const sellerSelect = document.getElementById('gastoSeller');
+    if (sellerSelect && appData.sellers) {
+        sellerSelect.innerHTML = '<option value="">— Sin vendedor —</option>';
+        appData.sellers.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.name;
+            opt.textContent = s.name;
+            sellerSelect.appendChild(opt);
+        });
+        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+            sellerSelect.value = appData.loggedSeller.name;
+            sellerSelect.disabled = true;
+            sellerSelect.style.opacity = '0.6';
+        } else {
+            sellerSelect.disabled = false;
+            sellerSelect.style.opacity = '1';
+        }
+    }
+
     renderGastosList();
 }
 
@@ -67,6 +87,7 @@ async function saveGasto() {
         amount,
         category: categoryEl ? categoryEl.value : 'Otros',
         city: cityEl ? cityEl.value : (appData.inventories[0] ? appData.inventories[0].id : ''),
+        seller: (document.getElementById('gastoSeller') || {}).value || '',
         date: dateStr,
         paymentMethod: (document.getElementById('gastoPaymentMethod') || {}).value || 'EFECTIVO',
         notes: notesEl ? notesEl.value.trim().toUpperCase() : ''
@@ -94,7 +115,13 @@ function renderGastosList() {
     const container = document.getElementById('gastoRecentList');
     if (!container) return;
 
-    const gastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+    let gastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+
+    // Vendedor solo ve sus propios gastos
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        gastos = gastos.filter(g => g.seller === appData.loggedSeller.name);
+    }
+
     const last10 = gastos.slice(0, 10);
 
     if (last10.length === 0) {
