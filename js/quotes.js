@@ -129,6 +129,9 @@ function selectSaleCity(city) {
             btn.classList.add('active');
         }
     });
+
+    // Actualizar numeración mostrada según la ciudad seleccionada
+    updateDocumentNumber();
 }
 
 function loadTerms() {
