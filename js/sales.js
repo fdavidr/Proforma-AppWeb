@@ -115,9 +115,14 @@ function filterSalesByMonth() {
     tbody.innerHTML = '';
 
     // Filtrar solo notas de venta y por ciudad
-    const sales = appData.pdfHistory.filter(entry => 
-        entry.type === 'notaventa' && entry.city === selectedSalesCity
-    );
+    const sales = appData.pdfHistory.filter(entry => {
+        if (entry.type !== 'notaventa' || entry.city !== selectedSalesCity) return false;
+        // Si es vendedor, mostrar solo sus propias ventas
+        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+            return entry.seller && entry.seller.name === appData.loggedSeller.name;
+        }
+        return true;
+    });
 
     if (sales.length === 0) {
         tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';

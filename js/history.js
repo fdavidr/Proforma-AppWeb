@@ -16,9 +16,11 @@ function renderHistory() {
     // Filtrar cotizaciones
     let cotizaciones = appData.pdfHistory.filter(entry => entry.type === 'cotizacion');
     
-    // Si es vendedor, filtrar solo las de su ciudad
+    // Si es vendedor, filtrar solo las suyas
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
-        cotizaciones = cotizaciones.filter(entry => entry.city === appData.loggedSeller.city);
+        cotizaciones = cotizaciones.filter(entry =>
+            entry.seller && entry.seller.name === appData.loggedSeller.name
+        );
     }
 
     if (cotizaciones.length === 0) {

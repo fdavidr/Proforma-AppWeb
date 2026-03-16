@@ -12,6 +12,17 @@ function openEstadisticas() {
     document.getElementById('salesSection').style.display = 'none';
     document.getElementById('estadisticasSection').style.display = 'block';
     setActiveMenuButton('estadisticasBtn');
+
+    // Si es vendedor, fijar ciudad a la suya y ocultar selector
+    const cityRow = document.getElementById('estadisticasCityRow');
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        estadisticasCity = appData.loggedSeller.city;
+        if (cityRow) cityRow.style.display = 'none';
+    } else {
+        estadisticasCity = null;
+        if (cityRow) cityRow.style.display = '';
+    }
+
     renderEstadisticasCityButtons();
     renderEstadisticasYearFilter();
     renderEstadisticasMonthFilter();
@@ -89,6 +100,10 @@ function renderEstadisticasMonthFilter() {
 function getFilteredSalesForStats() {
     return (appData.pdfHistory || []).filter(e => {
         if (e.type !== 'notaventa' || e.cancelled) return false;
+        // Si es vendedor, mostrar solo sus propias ventas
+        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+            if (!(e.seller && e.seller.name === appData.loggedSeller.name)) return false;
+        }
         if (estadisticasCity && e.city !== estadisticasCity) return false;
         const parts = e.date.split(',')[0].trim().split('/');
         if (parts.length === 3) {
