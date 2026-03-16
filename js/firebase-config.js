@@ -327,13 +327,20 @@ async function saveAllData(appData) {
                 firebasePayload.pdfHistory = [...mCotizaciones, ...mVentas, ...mEntregas]
                     .sort((a, b) => b.id - a.id);
 
-                // Merge gastos: combinar con los del servidor por id
+                // Merge gastos: local es autoritativo (preserva eliminaciones).
+                // Solo se agregan gastos del servidor creados DESPUÉS del más reciente
+                // local (adiciones concurrentes de otro dispositivo).
                 const existingGastos = existingData.gastos || [];
                 const localGastos = firebasePayload.gastos || [];
-                const mergedGastosMap = new Map();
-                existingGastos.forEach(g => mergedGastosMap.set(g.id, g));
-                localGastos.forEach(g => mergedGastosMap.set(g.id, g));
-                firebasePayload.gastos = Array.from(mergedGastosMap.values()).sort((a, b) => b.id - a.id);
+                const localGastoIds = new Set(localGastos.map(g => g.id));
+                const newestLocalGastoId = localGastos.length > 0
+                    ? Math.max(...localGastos.map(g => g.id))
+                    : Date.now();
+                const concurrentServerGastos = existingGastos.filter(
+                    g => !localGastoIds.has(g.id) && g.id > newestLocalGastoId
+                );
+                firebasePayload.gastos = [...localGastos, ...concurrentServerGastos]
+                    .sort((a, b) => b.id - a.id);
 
                 firebasePayload.currentQuoteNumber = Math.max(
                     firebasePayload.currentQuoteNumber || 100000,

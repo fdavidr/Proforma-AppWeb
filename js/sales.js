@@ -113,6 +113,19 @@ function filterSalesByMonth() {
     const selectedMonth = document.getElementById('salesMonthFilter').value;
     const tbody = document.getElementById('salesTableBody');
     tbody.innerHTML = '';
+    const isVendedor = appData.userRole === 'vendedor';
+
+    // --- Gastos: calcular siempre, independientemente de si hay ventas ---
+    const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+    let filteredGastos = allGastos.filter(g => g.city === selectedSalesCity);
+    if (selectedMonth) {
+        filteredGastos = filteredGastos.filter(g => {
+            const datePart = g.date.split(',')[0].trim();
+            const [gd, gm, gy] = datePart.split('/');
+            return `${gy}-${(gm || '').padStart(2, '0')}` === selectedMonth;
+        });
+    }
+    const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
 
     // Filtrar solo notas de venta y por ciudad
     const sales = appData.pdfHistory.filter(entry => {
@@ -125,9 +138,10 @@ function filterSalesByMonth() {
     });
 
     if (sales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>';
-        updateSalesTotals([], [0, 0, 0]);
-        renderGastosTable([]);
+        const cols = isVendedor ? 9 : 11;
+        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>`;
+        updateSalesTotals([], [0, 0, totalGastos]);
+        renderGastosTable(filteredGastos);
         return;
     }
 
@@ -148,8 +162,8 @@ function filterSalesByMonth() {
     if (filteredSales.length === 0) {
         const cols = isVendedor ? 9 : 11;
         tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>`;
-        updateSalesTotals([], [0, 0, 0]);
-        renderGastosTable([]);
+        updateSalesTotals([], [0, 0, totalGastos]);
+        renderGastosTable(filteredGastos);
         return;
     }
 
@@ -247,18 +261,7 @@ function filterSalesByMonth() {
         tbody.appendChild(tr);
     });
 
-    // Filtrar gastos por mes y ciudad para el mismo período
-    const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
-    let filteredGastos = allGastos.filter(g => g.city === selectedSalesCity);
-    if (selectedMonth) {
-        filteredGastos = filteredGastos.filter(g => {
-            const datePart = g.date.split(',')[0].trim();
-            const [gd, gm, gy] = datePart.split('/');
-            return `${gy}-${(gm || '').padStart(2, '0')}` === selectedMonth;
-        });
-    }
-    const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
-
+    // Gastos ya calculados al inicio — renderizar y actualizar totales
     renderGastosTable(filteredGastos);
     updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos], [totalEfectivo, totalTransferencia, totalCheque, totalSinMetodo]);
 }

@@ -16,6 +16,15 @@ function initGastoForm() {
             opt.textContent = inv.name;
             citySelect.appendChild(opt);
         });
+        // Preseleccionar ciudad del vendedor si corresponde
+        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+            citySelect.value = appData.loggedSeller.city;
+            citySelect.disabled = true;
+            citySelect.style.opacity = '0.6';
+        } else {
+            citySelect.disabled = false;
+            citySelect.style.opacity = '1';
+        }
     }
 
     renderGastosList();
