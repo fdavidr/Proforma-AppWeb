@@ -83,6 +83,7 @@ function openSales() {
     // Mostrar sección de ventas
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('historySection').style.display = 'none';
+    document.getElementById('estadisticasSection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'block';
 
