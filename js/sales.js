@@ -143,8 +143,11 @@ function filterSalesByMonth() {
         });
     }
 
+    const isVendedor = appData.userRole === 'vendedor';
+
     if (filteredSales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>';
+        const cols = isVendedor ? 9 : 11;
+        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>`;
         updateSalesTotals([], [0, 0, 0]);
         renderGastosTable([]);
         return;
@@ -219,9 +222,9 @@ function filterSalesByMonth() {
             <td>${sale.client.name || sale.client}</td>
             <td>${sale.seller.name || sale.seller}</td>
             <td>${productSummary}</td>
-            <td style="color: #e74c3c;">Bs ${saleCost.toFixed(2)}</td>
+            <td style="color: #e74c3c;${isVendedor ? ' display:none;' : ''}">Bs ${saleCost.toFixed(2)}</td>
             <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
-            <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;">Bs ${profit.toFixed(2)}</td>
+            <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;${isVendedor ? ' display:none;' : ''}">Bs ${profit.toFixed(2)}</td>
             <td style="white-space:nowrap;">${paymentBadge}</td>
             <td>${sale.date}</td>
             <td style="white-space: nowrap;">

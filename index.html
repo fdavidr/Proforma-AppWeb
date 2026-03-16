@@ -631,7 +631,7 @@
                 </div>
                 <!-- Fila 2: Totales centrados -->
                 <div style="display:flex; justify-content:center; gap:24px; flex-wrap:wrap; align-items:center;">
-                    <div style="text-align:center; min-width:85px;">
+                    <div style="text-align:center; min-width:85px;" id="cardCostoTotalSales">
                         <div style="font-size:13px; color:#666;">Costo Total</div>
                         <div style="font-size:20px; font-weight:bold; color:#e74c3c;" id="totalCostSales">Bs 0.00</div>
                     </div>
@@ -643,7 +643,7 @@
                         <div style="font-size:13px; color:#666;">Total Gastos</div>
                         <div style="font-size:20px; font-weight:bold; color:#e67e22;" id="totalGastosSales">Bs 0.00</div>
                     </div>
-                    <div style="text-align:center; min-width:105px;">
+                    <div style="text-align:center; min-width:105px;" id="cardGananciaLiquidaSales">
                         <div style="font-size:13px; color:#666;">Ganancia L&#xED;quida</div>
                         <div style="font-size:20px; font-weight:bold; color:#3498db;" id="gananciaLiquidaSales">Bs 0.00</div>
                     </div>
@@ -677,9 +677,9 @@
                                 <th>Cliente</th>
                                 <th>Vendedor</th>
                                 <th>Productos</th>
-                                <th>Costo</th>
+                                <th id="thSalesCosto">Costo</th>
                                 <th>Precio</th>
-                                <th>Ganancia</th>
+                                <th id="thSalesGanancia">Ganancia</th>
                                 <th>Método Pago</th>
                                 <th>Fecha</th>
                                 <th>Acciones</th>

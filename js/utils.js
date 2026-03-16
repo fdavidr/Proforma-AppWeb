@@ -46,6 +46,10 @@ function updateUI() {
     const importBtn = document.getElementById('importBtn');
     const estadisticasBtn = document.getElementById('estadisticasBtn');
     const productActionBtn = document.getElementById('productActionBtn');
+    const thSalesCosto = document.getElementById('thSalesCosto');
+    const thSalesGanancia = document.getElementById('thSalesGanancia');
+    const cardCostoTotal = document.getElementById('cardCostoTotalSales');
+    const cardGanancia = document.getElementById('cardGananciaLiquidaSales');
     
     if (appData.userRole === 'vendedor') {
         // Vendedor ve: Operaciones, Movimientos, Historial, Estadísticas
@@ -57,6 +61,11 @@ function updateUI() {
         if (importBtn) importBtn.style.display = 'none';
         if (estadisticasBtn) estadisticasBtn.style.display = '';
         if (productActionBtn) productActionBtn.style.display = 'none';
+        // Ocultar costo y ganancia
+        if (thSalesCosto) thSalesCosto.style.display = 'none';
+        if (thSalesGanancia) thSalesGanancia.style.display = 'none';
+        if (cardCostoTotal) cardCostoTotal.style.display = 'none';
+        if (cardGanancia) cardGanancia.style.display = 'none';
         
         // Bloquear campo de vendedor y establecer vendedor logueado
         if (appData.loggedSeller) {
@@ -83,6 +92,10 @@ function updateUI() {
         if (importBtn) importBtn.style.display = '';
         if (estadisticasBtn) estadisticasBtn.style.display = '';
         if (productActionBtn) productActionBtn.style.display = '';
+        if (thSalesCosto) thSalesCosto.style.display = '';
+        if (thSalesGanancia) thSalesGanancia.style.display = '';
+        if (cardCostoTotal) cardCostoTotal.style.display = '';
+        if (cardGanancia) cardGanancia.style.display = '';
         
         // Admin puede cambiar vendedor
         const sellerInput = document.getElementById('sellerSelect');
