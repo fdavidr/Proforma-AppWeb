@@ -98,6 +98,22 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// Número efectivo de Nota de Venta según ciudad activa (Cochabamba usa currentSaleNumber)
+function getEffectiveSaleNumber() {
+    const cityId = appData.selectedSaleCity;
+    if (!cityId || cityId === 'cochabamba') return appData.currentSaleNumber;
+    return (appData.currentSaleNumbers && appData.currentSaleNumbers[cityId]) || 100000;
+}
+
+function setEffectiveSaleNumber(cityId, value) {
+    if (!cityId || cityId === 'cochabamba') {
+        appData.currentSaleNumber = value;
+    } else {
+        if (!appData.currentSaleNumbers) appData.currentSaleNumbers = {};
+        appData.currentSaleNumbers[cityId] = value;
+    }
+}
+
 // Actualizar número de documento según el tipo
 function updateDocumentNumber() {
     const quoteNumberEl = document.getElementById('quoteNumber');
@@ -107,7 +123,7 @@ function updateDocumentNumber() {
         if (appData.documentType === 'cotizacion') {
             numText = 'Nº ' + appData.currentQuoteNumber;
         } else if (appData.documentType === 'notaventa') {
-            numText = 'Nº ' + appData.currentSaleNumber;
+            numText = 'Nº ' + getEffectiveSaleNumber();
         } else if (appData.documentType === 'notaentrega') {
             numText = 'Nº ' + appData.currentDeliveryNumber;
         }
@@ -159,6 +175,7 @@ function exportData() {
                 terms: appData.terms,
                 currentQuoteNumber: appData.currentQuoteNumber,
                 currentSaleNumber: appData.currentSaleNumber,
+                currentSaleNumbers: appData.currentSaleNumbers || {},
                 currentDeliveryNumber: appData.currentDeliveryNumber
             }
         };
@@ -222,6 +239,7 @@ function importData(event) {
             if (importedData.data.terms) appData.terms = importedData.data.terms;
             if (importedData.data.currentQuoteNumber) appData.currentQuoteNumber = importedData.data.currentQuoteNumber;
             if (importedData.data.currentSaleNumber) appData.currentSaleNumber = importedData.data.currentSaleNumber;
+            if (importedData.data.currentSaleNumbers) appData.currentSaleNumbers = importedData.data.currentSaleNumbers;
             if (importedData.data.currentDeliveryNumber) appData.currentDeliveryNumber = importedData.data.currentDeliveryNumber;
             
             // Guardar en localStorage

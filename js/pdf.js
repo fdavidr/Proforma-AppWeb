@@ -46,14 +46,14 @@ async function generatePDF() {
     isGeneratingPDF = true;
     try {
         const reservedNumber = typeof reserveDocumentNumber === 'function'
-            ? await reserveDocumentNumber(appData.documentType)
+            ? await reserveDocumentNumber(appData.documentType, appData.documentType === 'notaventa' ? appData.selectedSaleCity : null)
             : null;
 
         if (reservedNumber) {
             if (appData.documentType === 'cotizacion') {
                 appData.currentQuoteNumber = reservedNumber.number;
             } else if (appData.documentType === 'notaventa') {
-                appData.currentSaleNumber = reservedNumber.number;
+                setEffectiveSaleNumber(appData.selectedSaleCity, reservedNumber.number);
             } else if (appData.documentType === 'notaentrega') {
                 appData.currentDeliveryNumber = reservedNumber.number;
             }
@@ -127,7 +127,7 @@ async function generatePDF() {
         let docNumber = appData.currentQuoteNumber;
         if (appData.documentType === 'notaventa') {
             docTitle = 'NOTA_DE_VENTA';
-            docNumber = appData.currentSaleNumber;
+            docNumber = getEffectiveSaleNumber();
         } else if (appData.documentType === 'notaentrega') {
             docTitle = 'NOTA_DE_ENTREGA';
             docNumber = appData.currentDeliveryNumber;
@@ -156,7 +156,7 @@ async function generatePDF() {
             if (appData.documentType === 'cotizacion') {
                 appData.currentQuoteNumber = reservedNumber.next;
             } else if (appData.documentType === 'notaventa') {
-                appData.currentSaleNumber = reservedNumber.next;
+                setEffectiveSaleNumber(appData.selectedSaleCity, reservedNumber.next);
             } else if (appData.documentType === 'notaentrega') {
                 appData.currentDeliveryNumber = reservedNumber.next;
             }
@@ -164,7 +164,7 @@ async function generatePDF() {
             if (appData.documentType === 'cotizacion') {
                 appData.currentQuoteNumber++;
             } else if (appData.documentType === 'notaventa') {
-                appData.currentSaleNumber++;
+                setEffectiveSaleNumber(appData.selectedSaleCity, getEffectiveSaleNumber() + 1);
             } else if (appData.documentType === 'notaentrega') {
                 appData.currentDeliveryNumber++;
             }
@@ -243,7 +243,7 @@ function addPDFDocumentInfo(doc, margin, pageWidth) {
     doc.setFontSize(12);
     let docNumber = appData.currentQuoteNumber;
     if (appData.documentType === 'notaventa') {
-        docNumber = appData.currentSaleNumber;
+        docNumber = getEffectiveSaleNumber();
     } else if (appData.documentType === 'notaentrega') {
         docNumber = appData.currentDeliveryNumber;
     }
@@ -585,7 +585,7 @@ function saveToHistory(fileName) {
 
     let docNumber = appData.currentQuoteNumber;
     if (appData.documentType === 'notaventa') {
-        docNumber = appData.currentSaleNumber;
+        docNumber = getEffectiveSaleNumber();
     } else if (appData.documentType === 'notaentrega') {
         docNumber = appData.currentDeliveryNumber;
     }

@@ -19,6 +19,7 @@ let appData = {
     gastos: [],
     currentQuoteNumber: 100000,
     currentSaleNumber: 100000,
+    currentSaleNumbers: {},
     currentDeliveryNumber: 100000,
     currentClient: null,
     currentSeller: null,
@@ -81,6 +82,7 @@ async function loadData() {
             if (saved.currentQuoteNumber) appData.currentQuoteNumber = saved.currentQuoteNumber;
             if (saved.currentSaleNumber) appData.currentSaleNumber = saved.currentSaleNumber;
             if (saved.currentDeliveryNumber) appData.currentDeliveryNumber = saved.currentDeliveryNumber;
+            if (saved.currentSaleNumbers) appData.currentSaleNumbers = saved.currentSaleNumbers;
             
             // Cargar términos
             if (saved.terms) appData.terms = saved.terms;

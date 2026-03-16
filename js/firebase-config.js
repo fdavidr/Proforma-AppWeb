@@ -130,13 +130,18 @@ async function loadProductsFromChunks() {
     return products;
 }
 
-async function reserveDocumentNumber(documentType) {
-    const counterField = DOCUMENT_COUNTER_FIELDS[documentType];
-    if (!counterField) {
-        return null;
-    }
+async function reserveDocumentNumber(documentType, cityId) {
+    let counterField;
+    let localCurrent;
 
-    const localCurrent = appData[counterField] || 100000;
+    if (documentType === 'notaventa' && cityId && cityId !== 'cochabamba') {
+        counterField = `currentSaleNumber_${cityId}`;
+        localCurrent = (appData.currentSaleNumbers && appData.currentSaleNumbers[cityId]) || 100000;
+    } else {
+        counterField = DOCUMENT_COUNTER_FIELDS[documentType];
+        if (!counterField) return null;
+        localCurrent = appData[counterField] || 100000;
+    }
 
     if (!isFirebaseEnabled) {
         return {
@@ -196,6 +201,17 @@ async function syncDocumentCounters() {
                 hasChanges = true;
             }
         });
+
+        // Sync per-city sale numbers
+        if (data.currentSaleNumbers && typeof data.currentSaleNumbers === 'object') {
+            if (!appData.currentSaleNumbers) appData.currentSaleNumbers = {};
+            Object.entries(data.currentSaleNumbers).forEach(([cid, num]) => {
+                if (typeof num === 'number' && num > (appData.currentSaleNumbers[cid] || 0)) {
+                    appData.currentSaleNumbers[cid] = num;
+                    hasChanges = true;
+                }
+            });
+        }
 
         if (hasChanges && typeof updateDocumentNumber === 'function') {
             updateDocumentNumber();
@@ -265,6 +281,7 @@ async function saveAllData(appData) {
         gastos: appData.gastos || [],
         currentQuoteNumber: appData.currentQuoteNumber,
         currentSaleNumber: appData.currentSaleNumber,
+        currentSaleNumbers: appData.currentSaleNumbers || {},
         currentDeliveryNumber: appData.currentDeliveryNumber,
         terms: appData.terms,
         documentType: appData.documentType,
@@ -331,12 +348,22 @@ async function saveAllData(appData) {
                     existingData.currentDeliveryNumber || 100000
                 );
 
+                // Merge per-city sale numbers
+                const localCityNums = firebasePayload.currentSaleNumbers || {};
+                const existingCityNums = existingData.currentSaleNumbers || {};
+                const mergedCityNums = {};
+                new Set([...Object.keys(localCityNums), ...Object.keys(existingCityNums)]).forEach(cid => {
+                    mergedCityNums[cid] = Math.max(localCityNums[cid] || 100000, existingCityNums[cid] || 100000);
+                });
+                firebasePayload.currentSaleNumbers = mergedCityNums;
+
                 transaction.set(appDocRef, firebasePayload, { merge: true });
             });
 
             appData.currentQuoteNumber = firebasePayload.currentQuoteNumber;
             appData.currentSaleNumber = firebasePayload.currentSaleNumber;
             appData.currentDeliveryNumber = firebasePayload.currentDeliveryNumber;
+            appData.currentSaleNumbers = firebasePayload.currentSaleNumbers || {};
             // Sincronizar historial y gastos fusionados de vuelta al estado local
             appData.pdfHistory = firebasePayload.pdfHistory;
             dataToSave.pdfHistory = firebasePayload.pdfHistory;
