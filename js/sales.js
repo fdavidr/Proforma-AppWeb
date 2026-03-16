@@ -24,14 +24,17 @@ function parseDateStr(dateStr) {
 }
 
 function switchMovimientosTab(tab) {
-
     const tabVentas = document.getElementById('tabVentas');
     const tabGastos = document.getElementById('tabGastos');
     const salesContent = document.getElementById('salesContent');
     const gastosContent = document.getElementById('gastosContent');
 
-    if (tabVentas) tabVentas.classList.toggle('active', tab === 'ventas');
-    if (tabGastos) tabGastos.classList.toggle('active', tab === 'gastos');
+    if (tabVentas) {
+        tabVentas.className = tab === 'ventas' ? 'btn btn-primary' : 'btn btn-secondary';
+    }
+    if (tabGastos) {
+        tabGastos.className = tab === 'gastos' ? 'btn btn-primary' : 'btn btn-secondary';
+    }
     if (salesContent) salesContent.style.display = tab === 'ventas' ? '' : 'none';
     if (gastosContent) gastosContent.style.display = tab === 'gastos' ? '' : 'none';
 
