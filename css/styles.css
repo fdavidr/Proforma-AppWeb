@@ -1124,24 +1124,12 @@ input[type="file"] {
     }
 
     /* ---- Ciudad ---- */
-    .city-selector .city-full-name {
-        display: none;
-    }
-    
-    .city-selector .city-initials {
-        display: inline;
-    }
-    
-    .city-selector {
-        min-width: 50px;
-        padding: 8px 12px;
-        font-size: 14px;
-        font-weight: bold;
-    }
-    
     #citySelectorButtons {
-        padding: 5px 0;
-        -webkit-overflow-scrolling: touch;
+        display: none !important;
+    }
+
+    #citySelectorMobile {
+        display: block !important;
     }
 
     /* ---- Main content padding ---- */
@@ -1354,7 +1342,7 @@ tr.cancelled-sale:hover {
     }
 }
 
-/* ==================== ESTADÍSTICAS ==================== */
+/* ==================== ESTADï¿½STICAS ==================== */
 
 .stats-header {
     padding: 24px 24px 8px;

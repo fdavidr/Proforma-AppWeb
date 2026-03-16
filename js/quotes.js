@@ -37,6 +37,24 @@ function generateCitySelectorButtons() {
     if (appData.inventories.length > 0) {
         appData.selectedSaleCity = appData.inventories[0].id;
     }
+
+    // Generar select para móvil
+    const mobileContainer = document.getElementById('citySelectorMobile');
+    if (mobileContainer) {
+        mobileContainer.innerHTML = '';
+        const select = document.createElement('select');
+        select.id = 'citySelectorSelect';
+        select.style.cssText = 'width:100%; padding:9px 12px; border:2px solid #3498db; border-radius:8px; font-size:15px; font-weight:600; color:#2c3e50; background:#fff; cursor:pointer; outline:none;';
+        appData.inventories.forEach(inventory => {
+            const opt = document.createElement('option');
+            opt.value = inventory.id;
+            opt.textContent = inventory.name;
+            if (inventory.id === appData.selectedSaleCity) opt.selected = true;
+            select.appendChild(opt);
+        });
+        select.addEventListener('change', () => selectSaleCity(select.value));
+        mobileContainer.appendChild(select);
+    }
 }
 
 function setDocumentType(type) {
@@ -104,6 +122,14 @@ function setDocumentType(type) {
                     btn.classList.add('active');
                 }
             });
+            // Bloquear también el select móvil
+            const mobileSelect = document.getElementById('citySelectorSelect');
+            if (mobileSelect) {
+                mobileSelect.value = appData.loggedSeller.city;
+                mobileSelect.disabled = true;
+                mobileSelect.style.opacity = '0.5';
+                mobileSelect.style.cursor = 'not-allowed';
+            }
         } else {
             // Admin puede seleccionar cualquier ciudad
             document.querySelectorAll('.city-selector').forEach(btn => {
@@ -129,6 +155,10 @@ function selectSaleCity(city) {
             btn.classList.add('active');
         }
     });
+
+    // Sincronizar select móvil
+    const mobileSelect = document.getElementById('citySelectorSelect');
+    if (mobileSelect) mobileSelect.value = city;
 
     // Actualizar numeración mostrada según la ciudad seleccionada
     updateDocumentNumber();
