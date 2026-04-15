@@ -420,7 +420,7 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
 }
 
 function addPDFProductsTableDelivery(doc, margin, yPos, pageWidth, pageHeight) {
-    // Header de la tabla simplificada para nota de entrega
+    // Header de la tabla para nota de entrega con columna de imagen
     doc.setFont(undefined, 'bold');
     doc.setFillColor(112, 55, 205);
     doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
@@ -428,8 +428,9 @@ function addPDFProductsTableDelivery(doc, margin, yPos, pageWidth, pageHeight) {
     doc.setTextColor(255, 255, 255);
     doc.text('#', margin + 2, yPos + 5);
     doc.text('Código', margin + 10, yPos + 5);
-    doc.text('Descripción', margin + 45, yPos + 5);
-    doc.text('Cantidad', pageWidth - margin - 25, yPos + 5, { align: 'right' });
+    doc.text('IMG', margin + 33, yPos + 5);
+    doc.text('Descripción', margin + 58, yPos + 5);
+    doc.text('Cantidad', pageWidth - margin - 2, yPos + 5, { align: 'right' });
     
     yPos += 10;
     doc.setTextColor(0, 0, 0);
@@ -445,20 +446,31 @@ function addPDFProductsTableDelivery(doc, margin, yPos, pageWidth, pageHeight) {
             yPos = margin;
         }
 
-        // Calcular altura de la fila
-        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 120);
-        const rowHeight = Math.max(7, description.length * 5);
+        // Calcular altura de la fila considerando imagen
+        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 93);
+        const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
         const textYCenter = yPos + (rowHeight / 2);
 
         // Textos
         doc.text((index + 1).toString(), margin + 2, textYCenter);
         doc.text((item.product.code || '-').toUpperCase(), margin + 10, textYCenter);
+
+        // Imagen del producto
+        if (item.product.image) {
+            try {
+                const imgHeight = 24;
+                const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
+                doc.addImage(item.product.image, 'PNG', margin + 31, imgY, 24, imgHeight);
+            } catch(e) {
+                // Imagen del producto no disponible
+            }
+        }
         
         const descHeight = description.length * 5;
         const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
-        doc.text(description, margin + 45, descYCenter);
+        doc.text(description, margin + 58, descYCenter);
         
-        doc.text(item.quantity.toString(), pageWidth - margin - 25, textYCenter, { align: 'right' });
+        doc.text(item.quantity.toString(), pageWidth - margin - 2, textYCenter, { align: 'right' });
         
         // Bordes de la fila
         doc.setDrawColor(200, 200, 200);
@@ -468,7 +480,9 @@ function addPDFProductsTableDelivery(doc, margin, yPos, pageWidth, pageHeight) {
         
         // Líneas verticales entre columnas
         doc.line(margin + 8, yPos - 3, margin + 8, yPos + rowHeight - 3);
-        doc.line(margin + 40, yPos - 3, margin + 40, yPos + rowHeight - 3);
+        doc.line(margin + 30, yPos - 3, margin + 30, yPos + rowHeight - 3);
+        doc.line(margin + 56, yPos - 3, margin + 56, yPos + rowHeight - 3);
+        doc.line(pageWidth - margin - 25, yPos - 3, pageWidth - margin - 25, yPos + rowHeight - 3);
         
         yPos += rowHeight;
     });
