@@ -1,5 +1,41 @@
 // ==================== GENERACIÓN DE PDF ====================
 
+// Convierte una URL de Storage a base64, la guarda en cache y la asigna al producto.
+async function resolveStorageImagesForPDF(items) {
+    for (const item of items) {
+        if (!item.product || !item.product.image) continue;
+        if (!item.product.image.startsWith('http')) continue;
+
+        // Intentar cache primero
+        const cached = getProductImageFromCache(item.product.id);
+        if (cached) {
+            item.product.image = cached;
+            // Actualizar en appData también para que quede en memoria
+            const p = appData.products.find(p => p.id === item.product.id);
+            if (p) p.image = cached;
+            continue;
+        }
+
+        // Descargar desde Storage y cachear
+        try {
+            const response = await fetch(item.product.image);
+            const blob = await response.blob();
+            const base64 = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+            saveProductImageToCache(item.product.id, base64);
+            item.product.image = base64;
+            const p = appData.products.find(p => p.id === item.product.id);
+            if (p) p.image = base64;
+        } catch (e) {
+            // Si falla la descarga, quitar la imagen para no romper el PDF
+            item.product.image = '';
+        }
+    }
+}
+
 // Función para obtener la fecha seleccionada o actual
 function getSelectedPdfDate() {
     const dateInput = document.getElementById('pdfDate');
@@ -45,6 +81,9 @@ async function generatePDF() {
 
     isGeneratingPDF = true;
     try {
+        // Asegurar que las imágenes de productos estén en base64 (jsPDF no acepta URLs HTTP)
+        await resolveStorageImagesForPDF(appData.currentQuoteItems);
+
         const reservedNumber = typeof reserveDocumentNumber === 'function'
             ? await reserveDocumentNumber(appData.documentType, appData.documentType === 'notaventa' ? appData.selectedSaleCity : null)
             : null;

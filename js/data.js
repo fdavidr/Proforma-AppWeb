@@ -66,7 +66,11 @@ async function loadData() {
             // Cargar listas de datos
             if (saved.clients) appData.clients = saved.clients;
             if (saved.sellers) appData.sellers = saved.sellers;
-            if (saved.products) appData.products = saved.products;
+            if (saved.products) {
+                appData.products = saved.products;
+                // Restaurar imágenes base64 desde el cache local para productos con URL de Storage
+                hydrateProductImagesFromCache(appData.products);
+            }
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
             if (saved.gastos) appData.gastos = saved.gastos;
             

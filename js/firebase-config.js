@@ -59,6 +59,42 @@ async function uploadProductImageToStorage(productId, base64Image) {
     }
 }
 
+// ==================== CACHE DE IMÁGENES EN BASE64 ====================
+// Cache separado del appData para no inflar Firestore ni el localStorage principal.
+// Clave: productId (string), Valor: base64 data URL.
+
+const IMAGE_CACHE_KEY = 'proformaImageCache';
+
+function saveProductImageToCache(productId, base64) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || '{}');
+        cache[String(productId)] = base64;
+        localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) { /* ignorar errores de cuota */ }
+}
+
+function getProductImageFromCache(productId) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || '{}');
+        return cache[String(productId)] || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Para cada producto con URL de Storage, reemplaza product.image con el base64 del cache.
+// Operación síncrona — solo usa localStorage.
+function hydrateProductImagesFromCache(products) {
+    (products || []).forEach(product => {
+        if (product.image && product.image.startsWith('http')) {
+            const cached = getProductImageFromCache(product.id);
+            if (cached) {
+                product.image = cached;
+            }
+        }
+    });
+}
+
 // ==================== FUNCIONES DE BASE DE DATOS ====================
 
 function createLocalCachePayload(data) {
@@ -550,3 +586,7 @@ window.reserveDocumentNumber = reserveDocumentNumber;
 window.syncDocumentCounters = syncDocumentCounters;
 window.startCountersSync = startCountersSync;
 window.stopCountersSync = stopCountersSync;
+window.uploadProductImageToStorage = uploadProductImageToStorage;
+window.saveProductImageToCache = saveProductImageToCache;
+window.getProductImageFromCache = getProductImageFromCache;
+window.hydrateProductImagesFromCache = hydrateProductImagesFromCache;

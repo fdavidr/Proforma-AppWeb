@@ -226,14 +226,16 @@ async function saveProduct() {
     const imgPreview = document.getElementById('productImagePreview');
     if (imgPreview.style.display !== 'none' && imgPreview.src) {
         if (imgPreview.src.startsWith('data:')) {
-            // Nueva imagen base64: subir a Firebase Storage
+            // Nueva imagen base64: guardar en cache local ANTES de subir a Storage
+            const base64ToUpload = imgPreview.src;
+            saveProductImageToCache(product.id, base64ToUpload);
             const confirmBtn = document.querySelector('#productModal .btn-primary');
             if (confirmBtn) {
                 confirmBtn.disabled = true;
                 confirmBtn.textContent = 'Subiendo imagen...';
             }
             try {
-                product.image = await uploadProductImageToStorage(product.id, imgPreview.src);
+                product.image = await uploadProductImageToStorage(product.id, base64ToUpload);
             } finally {
                 if (confirmBtn) {
                     confirmBtn.disabled = false;
