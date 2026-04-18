@@ -181,7 +181,7 @@ function compressImage(base64, maxWidth, maxHeight, callback) {
     img.src = base64;
 }
 
-function saveProduct() {
+async function saveProduct() {
     const description = document.getElementById('modalProductDescription').value.trim();
     if (!description) {
         alert('La descripción es obligatoria');
@@ -224,8 +224,26 @@ function saveProduct() {
     };
 
     const imgPreview = document.getElementById('productImagePreview');
-    if (imgPreview.style.display !== 'none') {
-        product.image = imgPreview.src;
+    if (imgPreview.style.display !== 'none' && imgPreview.src) {
+        if (imgPreview.src.startsWith('data:')) {
+            // Nueva imagen base64: subir a Firebase Storage
+            const confirmBtn = document.querySelector('#productModal .btn-primary');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Subiendo imagen...';
+            }
+            try {
+                product.image = await uploadProductImageToStorage(product.id, imgPreview.src);
+            } finally {
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Confirmar';
+                }
+            }
+        } else {
+            // Ya es una URL de Storage, conservar
+            product.image = imgPreview.src;
+        }
     }
 
     if (appData.currentProduct) {

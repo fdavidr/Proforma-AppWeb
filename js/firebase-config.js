@@ -18,6 +18,7 @@ const firebaseConfig = {
 
 // Inicializar Firebase (solo si está configurado)
 let db = null;
+let storage = null;
 let isFirebaseEnabled = false;
 const FIREBASE_PRODUCTS_CHUNK_SIZE = 20;
 const DOCUMENT_COUNTER_FIELDS = {
@@ -32,11 +33,29 @@ function initFirebase() {
         // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        storage = firebase.storage();
         isFirebaseEnabled = true;
         return true;
     } catch (error) {
         isFirebaseEnabled = false;
         return false;
+    }
+}
+
+// Sube una imagen base64 a Firebase Storage y retorna la URL pública.
+// Si Firebase no está disponible, retorna la misma imagen base64 como fallback.
+async function uploadProductImageToStorage(productId, base64Image) {
+    if (!isFirebaseEnabled || !storage) {
+        return base64Image;
+    }
+    try {
+        const ref = storage.ref(`product-images/${productId}`);
+        await ref.putString(base64Image, 'data_url');
+        const url = await ref.getDownloadURL();
+        return url;
+    } catch (error) {
+        console.error('Error al subir imagen a Firebase Storage:', error);
+        return base64Image;
     }
 }
 
@@ -47,7 +66,8 @@ function createLocalCachePayload(data) {
         ...data,
         products: (data.products || []).map(product => ({
             ...product,
-            image: ''
+            // Conservar URLs de Storage; solo eliminar base64 para reducir tamaño del cache
+            image: (product.image && product.image.startsWith('data:')) ? '' : (product.image || '')
         })),
         pdfHistory: (data.pdfHistory || []).slice(0, 150)
     };
@@ -80,9 +100,12 @@ async function saveProductsInChunks(products) {
     const productsCollection = db.collection('proformaProducts');
     const chunks = [];
 
-    // Eliminar imágenes antes de guardar en Firestore para evitar superar el límite de 1MB
-    // por documento. Las imágenes se conservan en localStorage y se restauran al cargar.
-    const productsForStorage = products.map(p => ({ ...p, image: '' }));
+    // Conservar URLs de Firebase Storage en Firestore; solo eliminar base64 para evitar
+    // superar el límite de 1MB por documento.
+    const productsForStorage = products.map(p => ({
+        ...p,
+        image: (p.image && p.image.startsWith('data:')) ? '' : (p.image || '')
+    }));
 
     for (let i = 0; i < productsForStorage.length; i += FIREBASE_PRODUCTS_CHUNK_SIZE) {
         chunks.push(productsForStorage.slice(i, i + FIREBASE_PRODUCTS_CHUNK_SIZE));
@@ -241,14 +264,18 @@ function stopCountersSync() {
     }
 }
 
-// Elimina las imágenes de los productos dentro de los items del historial
+// Elimina las imágenes base64 de los productos dentro de los items del historial
 // para mantener el tamaño del documento Firestore por debajo del límite de 1MB.
+// Las URLs de Firebase Storage se conservan (son cadenas cortas).
 function stripImagesFromHistoryItems(historyArray) {
     return (historyArray || []).map(entry => ({
         ...entry,
         items: (entry.items || []).map(item => ({
             ...item,
-            product: item.product ? { ...item.product, image: '' } : item.product
+            product: item.product ? {
+                ...item.product,
+                image: (item.product.image && item.product.image.startsWith('data:')) ? '' : (item.product.image || '')
+            } : item.product
         }))
     }));
 }
