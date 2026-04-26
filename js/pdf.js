@@ -371,26 +371,27 @@ function addPDFSellerInfo(doc, margin, yPos) {
 }
 
 function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
-    // Header de la tabla
+    // Columnas: # | Código | IMG | Descripción | Cant. | Descuento | Precio U. | Subtotal
+    // Separadores (offset desde margin): 6, 24, 50, 98, 110, 130, 152, 180(=pageRight)
     doc.setFont(undefined, 'bold');
     doc.setFillColor(112, 55, 205);
     doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
-    
+
     doc.setTextColor(255, 255, 255);
-    doc.text('#', margin + 2, yPos + 5);
-    doc.text('Código', margin + 8, yPos + 5);
-    doc.text('IMG', margin + 28, yPos + 5);
-    doc.text('Descripción', margin + 52, yPos + 5);
-    doc.text('Cant.', margin + 108, yPos + 5);
-    doc.text('P.Unit.', margin + 122, yPos + 5);
-    doc.text('Desc.', margin + 147, yPos + 5);
-    doc.text('Subtotal', pageWidth - margin - 2, yPos + 5, { align: 'right' });
-    
+    doc.text('#',           margin + 2,   yPos + 5);
+    doc.text('Código',      margin + 7,   yPos + 5);
+    doc.text('IMG',         margin + 33,  yPos + 5);
+    doc.text('Descripción', margin + 52,  yPos + 5);
+    doc.text('Cant.',       margin + 99,  yPos + 5);
+    doc.text('Descuento',   margin + 111, yPos + 5);
+    doc.text('Precio U.',   margin + 131, yPos + 5);
+    doc.text('Subtotal',    pageWidth - margin - 2, yPos + 5, { align: 'right' });
+
     yPos += 10;
     doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'normal');
 
-    const tableLeft = margin;
+    const tableLeft  = margin;
     const tableRight = pageWidth - margin;
 
     // Filas de productos
@@ -400,51 +401,66 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
             yPos = margin;
         }
 
-        // Calcular altura de la fila primero
-        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 56);
-        const rowHeight = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
-        const textYCenter = yPos + (rowHeight / 2); // Centro vertical de la fila
+        // Calcular altura de la fila
+        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 46);
+        const rowHeight   = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
+        const textYCenter = yPos + (rowHeight / 2);
 
-        // Textos centrados verticalmente
+        // #
         doc.text((index + 1).toString(), margin + 2, textYCenter);
-        doc.text((item.product.code || '-').toUpperCase(), margin + 8, textYCenter);
-        
-        // Imagen del producto en su propia columna
+
+        // Código
+        doc.text((item.product.code || '-').toUpperCase(), margin + 7, textYCenter);
+
+        // Imagen del producto
         if (item.product.image) {
             try {
                 const imgHeight = 24;
                 const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
-                doc.addImage(item.product.image, 'PNG', margin + 26, imgY, 24, imgHeight);
+                doc.addImage(item.product.image, 'PNG', margin + 25, imgY, 24, imgHeight);
             } catch(e) {
                 // Imagen del producto no disponible
             }
         }
-        
+
         // Descripción centrada verticalmente
-        const descHeight = description.length * 5;
+        const descHeight  = description.length * 5;
         const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
         doc.text(description, margin + 52, descYCenter);
-        
-        doc.text(item.quantity.toString(), margin + 108, textYCenter);
-        doc.text('Bs ' + item.price.toFixed(2), margin + 122, textYCenter);
-        doc.text(item.discount + ' ' + item.discountType, margin + 147, textYCenter);
+
+        // Cantidad
+        doc.text(item.quantity.toString(), margin + 99, textYCenter);
+
+        // Descuento
+        const discountText = (item.discount && item.discount > 0)
+            ? item.discount + ' ' + item.discountType
+            : '-';
+        doc.text(discountText, margin + 111, textYCenter);
+
+        // Precio unitario: con descuento aplicado si corresponde
+        const displayPrice = (item.discount && item.discount > 0 && item.quantity > 0)
+            ? item.subtotal / item.quantity
+            : item.price;
+        doc.text('Bs ' + displayPrice.toFixed(2), margin + 131, textYCenter);
+
+        // Subtotal
         doc.text('Bs ' + item.subtotal.toFixed(2), pageWidth - margin - 2, textYCenter, { align: 'right' });
-        
+
         // Bordes de la fila
         doc.setDrawColor(200, 200, 200);
-        doc.line(tableLeft, yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
-        doc.line(tableLeft, yPos - 3, tableLeft, yPos + rowHeight - 3);
+        doc.line(tableLeft,  yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
+        doc.line(tableLeft,  yPos - 3, tableLeft,  yPos + rowHeight - 3);
         doc.line(tableRight, yPos - 3, tableRight, yPos + rowHeight - 3);
-        
+
         // Líneas verticales entre columnas
-        doc.line(margin + 6, yPos - 3, margin + 6, yPos + rowHeight - 3);
-        doc.line(margin + 25, yPos - 3, margin + 25, yPos + rowHeight - 3);
-        doc.line(margin + 51, yPos - 3, margin + 51, yPos + rowHeight - 3); // Línea después de IMG
-        doc.line(margin + 107, yPos - 3, margin + 107, yPos + rowHeight - 3);
-        doc.line(margin + 120, yPos - 3, margin + 120, yPos + rowHeight - 3);
-        doc.line(margin + 145, yPos - 3, margin + 145, yPos + rowHeight - 3);
-        doc.line(margin + 160, yPos - 3, margin + 160, yPos + rowHeight - 3);
-        
+        doc.line(margin +   6, yPos - 3, margin +   6, yPos + rowHeight - 3); // # | Código
+        doc.line(margin +  24, yPos - 3, margin +  24, yPos + rowHeight - 3); // Código | IMG
+        doc.line(margin +  50, yPos - 3, margin +  50, yPos + rowHeight - 3); // IMG | Desc
+        doc.line(margin +  98, yPos - 3, margin +  98, yPos + rowHeight - 3); // Desc | Cant
+        doc.line(margin + 110, yPos - 3, margin + 110, yPos + rowHeight - 3); // Cant | Desc
+        doc.line(margin + 130, yPos - 3, margin + 130, yPos + rowHeight - 3); // Desc | PU
+        doc.line(margin + 152, yPos - 3, margin + 152, yPos + rowHeight - 3); // PU | Sub
+
         yPos += rowHeight;
     });
 
