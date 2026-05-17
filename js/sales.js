@@ -41,6 +41,34 @@ function switchMovimientosTab(tab) {
     filterSalesByMonth();
 }
 
+// Generar lista desplegable de filtro de vendedor
+function generateSalesSellerFilter() {
+    const select = document.getElementById('salesSellerFilter');
+    const container = document.getElementById('salesSellerFilterContainer');
+    if (!select) return;
+
+    // Para vendedores, ocultar el filtro (solo ven sus propios datos)
+    if (appData.userRole === 'vendedor') {
+        if (container) container.style.display = 'none';
+        return;
+    }
+    if (container) container.style.display = 'flex';
+
+    const currentValue = select.value;
+    select.innerHTML = '<option value="all">Todos</option>';
+    const sellers = Array.isArray(appData.sellers) ? appData.sellers : [];
+    sellers.forEach(seller => {
+        const option = document.createElement('option');
+        option.value = seller.name;
+        option.textContent = seller.name;
+        select.appendChild(option);
+    });
+    // Restaurar selección previa si sigue siendo válida
+    if (currentValue && [...select.options].some(o => o.value === currentValue)) {
+        select.value = currentValue;
+    }
+}
+
 // Generar lista desplegable de filtro de ciudad
 function generateSalesCityFilterButtons() {
     const container = document.getElementById('salesCityFilterButtons');
@@ -74,6 +102,9 @@ function openSales() {
 
     // Generar lista desplegable de ciudad (usa selectedSalesCity ya establecido)
     generateSalesCityFilterButtons();
+
+    // Generar lista desplegable de vendedor
+    generateSalesSellerFilter();
 
     // Establecer mes actual por defecto
     const today = new Date();
@@ -185,6 +216,11 @@ function filterSalesByMonth() {
         if (isVendedor && appData.loggedSeller) {
             return entry.seller && entry.seller.name === appData.loggedSeller.name;
         }
+        // Admin: aplicar filtro de vendedor si está seleccionado
+        const sellerFilter = document.getElementById('salesSellerFilter');
+        if (sellerFilter && sellerFilter.value !== 'all') {
+            return entry.seller && entry.seller.name === sellerFilter.value;
+        }
         return true;
     }
 
@@ -206,6 +242,12 @@ function filterSalesByMonth() {
     // Vendedor solo ve sus propios gastos
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
         filteredGastos = filteredGastos.filter(g => g.seller === appData.loggedSeller.name);
+    } else {
+        // Admin: aplicar filtro de vendedor si está seleccionado
+        const sellerFilter = document.getElementById('salesSellerFilter');
+        if (sellerFilter && sellerFilter.value !== 'all') {
+            filteredGastos = filteredGastos.filter(g => g.seller === sellerFilter.value);
+        }
     }
     if (selectedMonth) {
         filteredGastos = filteredGastos.filter(g => {
@@ -220,8 +262,13 @@ function filterSalesByMonth() {
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa' || entry.city !== selectedSalesCity) return false;
         // Si es vendedor, mostrar solo sus propias ventas
-        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        if (isVendedor && appData.loggedSeller) {
             return entry.seller && entry.seller.name === appData.loggedSeller.name;
+        }
+        // Admin: aplicar filtro de vendedor si está seleccionado
+        const sellerFilter = document.getElementById('salesSellerFilter');
+        if (sellerFilter && sellerFilter.value !== 'all') {
+            return entry.seller && entry.seller.name === sellerFilter.value;
         }
         return true;
     });
@@ -234,7 +281,7 @@ function filterSalesByMonth() {
         return;
     }
 
-    // Filtrar por mes si hay selección
+    // Filtrar por mes si hay selección (notas de venta, ya filtradas por ciudad/vendedor arriba)
     let filteredSales = sales;
     if (selectedMonth) {
         filteredSales = sales.filter(sale => {
@@ -350,7 +397,7 @@ function filterSalesByMonth() {
 
     // Gastos ya calculados al inicio — renderizar y actualizar totales
     renderGastosTable(filteredGastos);
-    updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos], [totalEfectivo, totalTransferencia, totalCheque, totalSinMetodo]);
+    updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos]);
 }
 
 function renderGastosTable(gastos) {
@@ -382,7 +429,7 @@ function renderGastosTable(gastos) {
     });
 }
 
-function updateSalesTotals(sales, totals, paymentTotals) {
+function updateSalesTotals(sales, totals) {
     const [totalCost, totalPrice, totalGastos] = totals;
     const gananciaLiquida = (totalPrice || 0) - (totalCost || 0) - (totalGastos || 0);
 
@@ -398,16 +445,6 @@ function updateSalesTotals(sales, totals, paymentTotals) {
         gananciaEl.textContent = `Bs ${gananciaLiquida.toFixed(2)}`;
         gananciaEl.style.color = gananciaLiquida >= 0 ? '#3498db' : '#e74c3c';
     }
-
-    const [tEfectivo, tTransferencia, tCheque, tSinMetodo] = paymentTotals || [0, 0, 0, 0];
-    const efectivoEl = document.getElementById('totalEfectivoSales');
-    const transferenciaEl = document.getElementById('totalTransferenciaSales');
-    const chequeEl = document.getElementById('totalChequeSales');
-    const sinMetodoEl = document.getElementById('totalSinMetodoSales');
-    if (efectivoEl) efectivoEl.textContent = `Bs ${(tEfectivo || 0).toFixed(2)}`;
-    if (transferenciaEl) transferenciaEl.textContent = `Bs ${(tTransferencia || 0).toFixed(2)}`;
-    if (chequeEl) chequeEl.textContent = `Bs ${(tCheque || 0).toFixed(2)}`;
-    if (sinMetodoEl) sinMetodoEl.textContent = `Bs ${(tSinMetodo || 0).toFixed(2)}`;
 }
 
 function generateSalesPDF() {

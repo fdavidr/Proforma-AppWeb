@@ -85,7 +85,7 @@
                         <span class="text">Operaciones</span>
                     </button>
                     <button id="salesBtn" class="btn btn-sidebar" onclick="openSales(); closeMobileMenuOnNav()">
-                        <span class="icon">📊</span>
+                        <span class="icon">�</span>
                         <span class="text">Movimientos</span>
                     </button>
                     <button id="inventoryBtn" class="btn btn-sidebar" onclick="openInventory(); closeMobileMenuOnNav()">
@@ -599,6 +599,13 @@
                         <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F3DB;&#xFE0F; Ciudad:</label>
                         <div id="salesCityFilterButtons"></div>
                     </div>
+                    <!-- Filtro vendedor -->
+                    <div id="salesSellerFilterContainer" style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F464; Vendedor:</label>
+                        <select id="salesSellerFilter" onchange="filterSalesByMonth()" style="padding:7px 12px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; font-weight:600; color:#2c3e50; background:#fff; cursor:pointer; min-width:140px; outline:none;">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
                     <!-- Filtro mes -->
                     <div style="display:flex; align-items:center; gap:8px;">
                         <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F4C5; Mes:</label>
@@ -625,25 +632,7 @@
                         <div style="font-size:20px; font-weight:bold; color:#3498db;" id="gananciaLiquidaSales">Bs 0.00</div>
                     </div>
                 </div>
-                <!-- Fila 3: Totales por método de pago -->
-                <div style="display:flex; justify-content:center; gap:24px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid #eee;">
-                    <div style="text-align:center; min-width:85px;">
-                        <div style="font-size:12px; color:#666;">💵 Efectivo</div>
-                        <div style="font-size:17px; font-weight:bold; color:#27ae60;" id="totalEfectivoSales">Bs 0.00</div>
-                    </div>
-                    <div style="text-align:center; min-width:130px;">
-                        <div style="font-size:12px; color:#666;">🏦 Transferencia</div>
-                        <div style="font-size:17px; font-weight:bold; color:#2980b9;" id="totalTransferenciaSales">Bs 0.00</div>
-                    </div>
-                    <div style="text-align:center; min-width:85px;">
-                        <div style="font-size:12px; color:#666;">🧾 Cheque</div>
-                        <div style="font-size:17px; font-weight:bold; color:#8e44ad;" id="totalChequeSales">Bs 0.00</div>
-                    </div>
-                    <div style="text-align:center; min-width:105px;">
-                        <div style="font-size:12px; color:#666;">❓ Sin Especificar</div>
-                        <div style="font-size:17px; font-weight:bold; color:#95a5a6;" id="totalSinMetodoSales">Bs 0.00</div>
-                    </div>
-                </div>
+
             </div>
 <div id="cotizacionesContent" class="table-responsive">
                     <table class="products-table">
