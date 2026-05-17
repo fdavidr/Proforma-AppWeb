@@ -52,6 +52,7 @@ async function uploadProductImageToStorage(productId, base64Image) {
         const ref = storage.ref(`product-images/${productId}`);
         await ref.putString(base64Image, 'data_url');
         const url = await ref.getDownloadURL();
+        saveProductImageUrlToCache(productId, url);
         return url;
     } catch (error) {
         console.error('Error al subir imagen a Firebase Storage:', error);
@@ -64,6 +65,26 @@ async function uploadProductImageToStorage(productId, base64Image) {
 // Clave: productId (string), Valor: base64 data URL.
 
 const IMAGE_CACHE_KEY = 'proformaImageCache';
+// Cache de URLs de Firebase Storage. Permite recuperar la URL original cuando
+// product.image ha sido reemplazado por base64 en memoria (hidratación).
+const IMAGE_URL_CACHE_KEY = 'proformaImageUrlCache';
+
+function saveProductImageUrlToCache(productId, url) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(IMAGE_URL_CACHE_KEY) || '{}');
+        cache[String(productId)] = url;
+        localStorage.setItem(IMAGE_URL_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) { /* ignorar errores de cuota */ }
+}
+
+function getProductImageUrlFromCache(productId) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(IMAGE_URL_CACHE_KEY) || '{}');
+        return cache[String(productId)] || null;
+    } catch (e) {
+        return null;
+    }
+}
 
 function saveProductImageToCache(productId, base64) {
     try {
@@ -83,10 +104,14 @@ function getProductImageFromCache(productId) {
 }
 
 // Para cada producto con URL de Storage, reemplaza product.image con el base64 del cache.
+// Guarda la URL original en el cache de URLs para que saveProductsInChunks pueda
+// recuperarla aunque product.image haya sido sobreescrito con base64 en memoria.
 // Operación síncrona — solo usa localStorage.
 function hydrateProductImagesFromCache(products) {
     (products || []).forEach(product => {
         if (product.image && product.image.startsWith('http')) {
+            // Guardar la URL de Storage antes de sobreescribir con base64
+            saveProductImageUrlToCache(product.id, product.image);
             const cached = getProductImageFromCache(product.id);
             if (cached) {
                 product.image = cached;
@@ -138,9 +163,13 @@ async function saveProductsInChunks(products) {
 
     // Conservar URLs de Firebase Storage en Firestore; solo eliminar base64 para evitar
     // superar el límite de 1MB por documento.
+    // Si product.image fue hidratado con base64 en memoria, recuperar la URL original
+    // del cache de URLs para no perderla en Firestore.
     const productsForStorage = products.map(p => ({
         ...p,
-        image: (p.image && p.image.startsWith('data:')) ? '' : (p.image || '')
+        image: (p.image && p.image.startsWith('data:'))
+            ? (getProductImageUrlFromCache(p.id) || '')
+            : (p.image || '')
     }));
 
     for (let i = 0; i < productsForStorage.length; i += FIREBASE_PRODUCTS_CHUNK_SIZE) {
