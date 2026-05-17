@@ -95,7 +95,7 @@ function loadInventoryData() {
             <td>Bs ${costTotal.toFixed(2)}</td>
             <td>Bs ${priceTotal.toFixed(2)}</td>
             <td style="white-space: nowrap;">
-                <button class="btn-action-icon btn-action-success" onclick="saveInventoryRowChanges(${index}, this)" title="Guardar cambios">💾</button>
+                <button class="btn-action-icon btn-action-primary inventory-action-btn" data-mode="edit" onclick="handleInventoryRowAction(${index}, this)" title="Editar producto">✏️</button>
                 <button class="btn-action-icon btn-action-danger" onclick="deleteProductFromInventory(${index})" title="Eliminar">🗑️</button>
             </td>
         `;
@@ -106,15 +106,17 @@ function loadInventoryData() {
         row.querySelector('.inventory-cost').value = cost.toFixed(2);
         row.querySelector('.inventory-price').value = price.toFixed(2);
 
-        // Agregar listeners para detectar cambios
-        const saveButton = row.querySelector('.btn-action-success');
+        // Cambiar botón a modo guardar cuando se detectan cambios en los inputs
+        const actionBtn = row.querySelector('.inventory-action-btn');
         const inputs = row.querySelectorAll('.inventory-inline-input');
-        
+
         inputs.forEach(input => {
             input.addEventListener('input', () => {
-                if (saveButton && !saveButton.classList.contains('btn-action-modified')) {
-                    saveButton.classList.add('btn-action-modified');
-                    saveButton.title = '¡Hay cambios sin guardar!';
+                if (actionBtn && actionBtn.dataset.mode !== 'save') {
+                    actionBtn.dataset.mode = 'save';
+                    actionBtn.textContent = '💾';
+                    actionBtn.title = 'Guardar cambios';
+                    actionBtn.className = 'btn-action-icon btn-action-success inventory-action-btn';
                 }
             });
         });
@@ -142,6 +144,19 @@ function updateInventoryTotals() {
     });
     document.getElementById('totalCostInventory').textContent = `Bs ${totalCost.toFixed(2)}`;
     document.getElementById('totalPriceInventory').textContent = `Bs ${totalPrice.toFixed(2)}`;
+}
+
+function handleInventoryRowAction(index, btn) {
+    if (btn.dataset.mode === 'save') {
+        saveInventoryRowChanges(index, btn);
+    } else {
+        openInventoryEditModal(index);
+    }
+}
+
+function openInventoryEditModal(index) {
+    appData.currentProduct = appData.products[index];
+    handleProductAction();
 }
 
 async function saveInventoryRowChanges(index, buttonElement) {
@@ -192,9 +207,6 @@ async function saveInventoryRowChanges(index, buttonElement) {
 
     buttonElement.disabled = true;
     buttonElement.textContent = '⏳';
-
-    // Remover clase de modificado
-    buttonElement.classList.remove('btn-action-modified');
     buttonElement.title = 'Guardando...';
 
     let saveOk = false;
@@ -216,13 +228,15 @@ async function saveInventoryRowChanges(index, buttonElement) {
         // Recalcular totales del pie de tabla
         updateInventoryTotals();
 
-        // Indicador visual de éxito
+        // Indicador visual de éxito, luego volver a modo editar
         buttonElement.textContent = '✅';
         buttonElement.title = 'Guardado exitosamente';
         buttonElement.disabled = false;
         setTimeout(() => {
-            buttonElement.textContent = '💾';
-            buttonElement.title = 'Guardar cambios';
+            buttonElement.textContent = '✏️';
+            buttonElement.title = 'Editar producto';
+            buttonElement.className = 'btn-action-icon btn-action-primary inventory-action-btn';
+            buttonElement.dataset.mode = 'edit';
         }, 1500);
     } else {
         // En caso de fallo, recargar tabla para reflejar estado real
@@ -478,5 +492,7 @@ window.filterInventoryByCity = filterInventoryByCity;
 window.loadInventoryData = loadInventoryData;
 window.saveInventoryRowChanges = saveInventoryRowChanges;
 window.deleteProductFromInventory = deleteProductFromInventory;
+window.handleInventoryRowAction = handleInventoryRowAction;
+window.openInventoryEditModal = openInventoryEditModal;
 window.generateInventoryPDF = generateInventoryPDF;
 window.generateInventoryExcel = generateInventoryExcel;
