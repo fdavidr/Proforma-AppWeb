@@ -20,7 +20,7 @@ const firebaseConfig = {
 let db = null;
 let storage = null;
 let isFirebaseEnabled = false;
-const FIREBASE_PRODUCTS_CHUNK_SIZE = 20;
+const FIREBASE_PRODUCTS_CHUNK_SIZE = 10;
 const DOCUMENT_COUNTER_FIELDS = {
     cotizacion: 'currentQuoteNumber',
     notaventa: 'currentSaleNumber',
@@ -103,9 +103,10 @@ function getProductImageFromCache(productId) {
     }
 }
 
-// Para cada producto con URL de Storage, reemplaza product.image con el base64 del cache.
-// Guarda la URL original en el cache de URLs para que saveProductsInChunks pueda
-// recuperarla aunque product.image haya sido sobreescrito con base64 en memoria.
+// Reemplaza URLs de Storage o imágenes vacías con el base64 guardado en el cache local.
+// Caso 1: product.image = URL de Storage → guarda URL en URL-cache, reemplaza con base64.
+// Caso 2: product.image = '' (URL ya perdida) → intenta restaurar desde el cache de base64.
+// Caso 3: product.image ya es base64 → no hace nada.
 // Operación síncrona — solo usa localStorage.
 function hydrateProductImagesFromCache(products) {
     (products || []).forEach(product => {
@@ -113,10 +114,13 @@ function hydrateProductImagesFromCache(products) {
             // Guardar la URL de Storage antes de sobreescribir con base64
             saveProductImageUrlToCache(product.id, product.image);
             const cached = getProductImageFromCache(product.id);
-            if (cached) {
-                product.image = cached;
-            }
+            if (cached) product.image = cached;
+        } else if (!product.image) {
+            // Imagen vacía (URL perdida o nunca guardada) — restaurar desde cache de base64
+            const cached = getProductImageFromCache(product.id);
+            if (cached) product.image = cached;
         }
+        // Si ya es base64 (data:...), no se toca
     });
 }
 
@@ -161,16 +165,11 @@ async function saveProductsInChunks(products) {
     const productsCollection = db.collection('proformaProducts');
     const chunks = [];
 
-    // Conservar URLs de Firebase Storage en Firestore; solo eliminar base64 para evitar
-    // superar el límite de 1MB por documento.
-    // Si product.image fue hidratado con base64 en memoria, recuperar la URL original
-    // del cache de URLs para no perderla en Firestore.
-    const productsForStorage = products.map(p => ({
-        ...p,
-        image: (p.image && p.image.startsWith('data:'))
-            ? (getProductImageUrlFromCache(p.id) || '')
-            : (p.image || '')
-    }));
+    // Guardar la imagen tal como está (base64 o URL). Las imágenes base64 comprimidas
+    // son ~15-40KB; con chunks de 10 productos el documento queda muy por debajo del
+    // límite de 1MB de Firestore. Esto garantiza que CUALQUIER navegador cargue la imagen
+    // directamente de Firestore sin depender de Firebase Storage ni de localStorage.
+    const productsForStorage = products.map(p => ({ ...p, image: p.image || '' }));
 
     for (let i = 0; i < productsForStorage.length; i += FIREBASE_PRODUCTS_CHUNK_SIZE) {
         chunks.push(productsForStorage.slice(i, i + FIREBASE_PRODUCTS_CHUNK_SIZE));
