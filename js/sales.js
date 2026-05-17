@@ -24,19 +24,14 @@ function parseDateStr(dateStr) {
 }
 
 function switchMovimientosTab(tab) {
-    const tabCotizaciones = document.getElementById('tabCotizaciones');
-    const tabVentas = document.getElementById('tabVentas');
-    const tabEntregas = document.getElementById('tabEntregas');
-    const tabGastos = document.getElementById('tabGastos');
+    // Sincronizar el select desplegable
+    const tipoSelect = document.getElementById('movimientosTipoSelect');
+    if (tipoSelect && tipoSelect.value !== tab) tipoSelect.value = tab;
+
     const cotizacionesContent = document.getElementById('cotizacionesContent');
     const salesContent = document.getElementById('salesContent');
     const entregasContent = document.getElementById('entregasContent');
     const gastosContent = document.getElementById('gastosContent');
-
-    const tabs = { cotizaciones: tabCotizaciones, ventas: tabVentas, entregas: tabEntregas, gastos: tabGastos };
-    Object.entries(tabs).forEach(([key, btn]) => {
-        if (btn) btn.className = key === tab ? 'btn btn-primary' : 'btn btn-secondary';
-    });
 
     if (cotizacionesContent) cotizacionesContent.style.display = tab === 'cotizaciones' ? '' : 'none';
     if (salesContent) salesContent.style.display = tab === 'ventas' ? '' : 'none';

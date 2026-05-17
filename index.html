@@ -84,13 +84,13 @@
                         <span class="icon">📄</span>
                         <span class="text">Operaciones</span>
                     </button>
-                    <button id="inventoryBtn" class="btn btn-sidebar" onclick="openInventory(); closeMobileMenuOnNav()">
-                        <span class="icon">📦</span>
-                        <span class="text">Inventario</span>
-                    </button>
                     <button id="salesBtn" class="btn btn-sidebar" onclick="openSales(); closeMobileMenuOnNav()">
                         <span class="icon">📊</span>
                         <span class="text">Movimientos</span>
+                    </button>
+                    <button id="inventoryBtn" class="btn btn-sidebar" onclick="openInventory(); closeMobileMenuOnNav()">
+                        <span class="icon">📦</span>
+                        <span class="text">Inventario</span>
                     </button>
                     <button id="estadisticasBtn" class="btn btn-sidebar" onclick="openEstadisticas(); closeMobileMenuOnNav()">
                         <span class="icon">📊</span>
@@ -513,15 +513,19 @@
     <!-- Inventory Section -->
     <div id="inventorySection" class="content-section" style="display: none;">
         <div style="padding: 20px;">
-            <div style="margin-bottom: 20px;">
-                <h2>📦 Inventario de Productos</h2>
+            <!-- Título + botones en la misma fila -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+                <h2 style="margin:0;">📦 Inventario de Productos</h2>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-success" onclick="handleProductAction()" style="white-space:nowrap;">➕ Producto</button>
+                    <button class="btn btn-primary" onclick="generateInventoryPDF()" style="white-space:nowrap;">📄 PDF</button>
+                    <button class="btn btn-success" onclick="generateInventoryExcel()" style="white-space:nowrap; background:#1d6f42;">📊 Excel</button>
+                </div>
             </div>
             
             <!-- Panel de Control Unificado -->
             <div style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
-                
-                
-                <!-- Fila 2: Filtros, Totales y Acciones -->
+                <!-- Filtros y Totales -->
                 <div class="inventory-control-grid">
                     <!-- Selector de Inventario -->
                     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
@@ -541,13 +545,6 @@
                     <div style="text-align: center; padding: 12px; background: #e8f5e9; border-radius: 8px;">
                         <div style="font-size: 12px; color: #2e7d32; font-weight: 600; margin-bottom: 4px;">PRECIO TOTAL</div>
                         <div style="font-size: 22px; font-weight: bold; color: #27ae60;" id="totalPriceInventory">Bs 0.00</div>
-                    </div>
-                    
-                    <!-- Botones de Acción -->
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-success" onclick="handleProductAction()" style="white-space: nowrap;">➕ Producto</button>
-                        <button class="btn btn-primary" onclick="generateInventoryPDF()" style="white-space: nowrap;">📄 PDF</button>
-                        <button class="btn btn-success" onclick="generateInventoryExcel()" style="white-space: nowrap; background:#1d6f42;">📊 Excel</button>
                     </div>
                 </div>
             </div>
@@ -587,12 +584,15 @@
             <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:8px;">
                 <!-- Fila 1: Tabs + Filtros -->
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                    <!-- Tabs Ventas / Gastos -->
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button id="tabCotizaciones" class="btn btn-primary" onclick="switchMovimientosTab('cotizaciones')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4CB; Cotizaciones</button>
-                        <button id="tabVentas" class="btn btn-secondary" onclick="switchMovimientosTab('ventas')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4B0; Notas de Venta</button>
-                        <button id="tabEntregas" class="btn btn-secondary" onclick="switchMovimientosTab('entregas')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4E6; Notas de Entrega</button>
-                        <button id="tabGastos" class="btn btn-secondary" onclick="switchMovimientosTab('gastos')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4B8; Gastos</button>
+                    <!-- Desplegable filtro tipo de movimiento -->
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F4C2; Tipo:</label>
+                        <select id="movimientosTipoSelect" onchange="switchMovimientosTab(this.value)" style="padding:8px 12px; border:1px solid #ddd; border-radius:4px; font-size:14px; background:#fff; cursor:pointer;">
+                            <option value="cotizaciones">&#x1F4CB; Cotizaciones</option>
+                            <option value="ventas">&#x1F4B0; Notas de Venta</option>
+                            <option value="entregas">&#x1F4E6; Notas de Entrega</option>
+                            <option value="gastos">&#x1F4B8; Gastos</option>
+                        </select>
                     </div>
                     <!-- Filtro ciudad -->
                     <div style="display:flex; align-items:center; gap:8px;">
