@@ -181,7 +181,7 @@ function compressImage(base64, maxWidth, maxHeight, callback) {
     img.src = base64;
 }
 
-async function saveProduct() {
+function saveProduct() {
     const description = document.getElementById('modalProductDescription').value.trim();
     if (!description) {
         alert('La descripción es obligatoria');
@@ -225,26 +225,9 @@ async function saveProduct() {
 
     const imgPreview = document.getElementById('productImagePreview');
     if (imgPreview.style.display !== 'none' && imgPreview.src) {
+        product.image = imgPreview.src;
         if (imgPreview.src.startsWith('data:')) {
-            // Nueva imagen base64: guardar en cache local ANTES de subir a Storage
-            const base64ToUpload = imgPreview.src;
-            saveProductImageToCache(product.id, base64ToUpload);
-            const confirmBtn = document.querySelector('#productModal .btn-primary');
-            if (confirmBtn) {
-                confirmBtn.disabled = true;
-                confirmBtn.textContent = 'Subiendo imagen...';
-            }
-            try {
-                product.image = await uploadProductImageToStorage(product.id, base64ToUpload);
-            } finally {
-                if (confirmBtn) {
-                    confirmBtn.disabled = false;
-                    confirmBtn.textContent = 'Confirmar';
-                }
-            }
-        } else {
-            // Ya es una URL de Storage, conservar
-            product.image = imgPreview.src;
+            saveProductImageToCache(product.id, imgPreview.src);
         }
     }
 
