@@ -129,10 +129,11 @@ function openSales() {
     generateSalesCityFilterButtons();
     generateSalesSellerFilter();
 
-    // Poblar el select de año con los años existentes; sin filtro activo por defecto
+    // Poblar el select de año y establecer mes actual por defecto
     populateSalesYearFilter();
-    document.getElementById('salesYearFilter').value = '';
-    document.getElementById('salesMonthFilter').value = '';
+    const today = new Date();
+    document.getElementById('salesYearFilter').value = String(today.getFullYear());
+    document.getElementById('salesMonthFilter').value = String(today.getMonth() + 1).padStart(2, '0');
 
     setActiveMenuButton('salesBtn');
 
