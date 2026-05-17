@@ -38,12 +38,9 @@ function updateUI() {
     updateDocumentNumber();
     
     // Ocultar/mostrar botones según rol
-    const historyBtn = document.getElementById('historyBtn');
     const configBtn = document.getElementById('configBtn');
     const inventoryBtn = document.getElementById('inventoryBtn');
     const salesBtn = document.getElementById('salesBtn');
-    const exportBtn = document.getElementById('exportBtn');
-    const importBtn = document.getElementById('importBtn');
     const estadisticasBtn = document.getElementById('estadisticasBtn');
     const productActionBtn = document.getElementById('productActionBtn');
     const thSalesCosto = document.getElementById('thSalesCosto');
@@ -52,13 +49,10 @@ function updateUI() {
     const cardGanancia = document.getElementById('cardGananciaLiquidaSales');
     
     if (appData.userRole === 'vendedor') {
-        // Vendedor ve: Operaciones, Movimientos, Historial, Estadísticas
-        if (historyBtn) historyBtn.style.display = '';
+        // Vendedor ve: Operaciones, Movimientos, Estadísticas
         if (configBtn) configBtn.style.display = 'none';
         if (inventoryBtn) inventoryBtn.style.display = 'none';
         if (salesBtn) salesBtn.style.display = '';
-        if (exportBtn) exportBtn.style.display = 'none';
-        if (importBtn) importBtn.style.display = 'none';
         if (estadisticasBtn) estadisticasBtn.style.display = '';
         if (productActionBtn) productActionBtn.style.display = 'none';
         // Ocultar costo y ganancia
@@ -84,12 +78,9 @@ function updateUI() {
         }
     } else {
         // Admin ve todo
-        if (historyBtn) historyBtn.style.display = '';
         if (configBtn) configBtn.style.display = '';
         if (inventoryBtn) inventoryBtn.style.display = '';
         if (salesBtn) salesBtn.style.display = '';
-        if (exportBtn) exportBtn.style.display = '';
-        if (importBtn) importBtn.style.display = '';
         if (estadisticasBtn) estadisticasBtn.style.display = '';
         if (productActionBtn) productActionBtn.style.display = '';
         if (thSalesCosto) thSalesCosto.style.display = '';
@@ -168,7 +159,6 @@ function setActiveMenuButton(buttonId) {
 // Mostrar contenido principal y ocultar secciones
 function showMainContent() {
     document.getElementById('mainContent').style.display = 'block';
-    document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'none';
     document.getElementById('estadisticasSection').style.display = 'none';

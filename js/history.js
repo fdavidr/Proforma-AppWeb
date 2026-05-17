@@ -1,13 +1,8 @@
 // ==================== GESTIÓN DE HISTORIAL ====================
 
 function openHistory() {
-    renderHistory();
-    document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('historySection').style.display = 'block';
-    document.getElementById('inventorySection').style.display = 'none';
-    document.getElementById('salesSection').style.display = 'none';
-    document.getElementById('estadisticasSection').style.display = 'none';
-    setActiveMenuButton('historyBtn');
+    // Movimientos e Historial están unificados en la sección Movimientos
+    openSales();
 }
 
 function renderHistory() {
@@ -53,7 +48,7 @@ function deleteHistoryEntry(entryId) {
     if (confirm('¿Está seguro de eliminar este registro del historial?')) {
         appData.pdfHistory = appData.pdfHistory.filter(entry => entry.id !== entryId);
         saveData();
-        renderHistory();
+        filterSalesByMonth();
     }
 }
 

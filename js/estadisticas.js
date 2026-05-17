@@ -7,7 +7,6 @@ const chartInstances = {};
 
 function openEstadisticas() {
     document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'none';
     document.getElementById('estadisticasSection').style.display = 'block';

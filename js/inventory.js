@@ -11,7 +11,6 @@ function openInventory() {
     
     loadInventoryData();
     document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('historySection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'block';
     document.getElementById('salesSection').style.display = 'none';
     document.getElementById('estadisticasSection').style.display = 'none';

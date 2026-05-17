@@ -89,26 +89,13 @@
                         <span class="text">Inventario</span>
                     </button>
                     <button id="salesBtn" class="btn btn-sidebar" onclick="openSales(); closeMobileMenuOnNav()">
-                        <span class="icon">�</span>
+                        <span class="icon">📊</span>
                         <span class="text">Movimientos</span>
-                    </button>
-                    <button id="historyBtn" class="btn btn-sidebar" onclick="openHistory(); closeMobileMenuOnNav()">
-                        <span class="icon">📋</span>
-                        <span class="text">Historial</span>
                     </button>
                     <button id="estadisticasBtn" class="btn btn-sidebar" onclick="openEstadisticas(); closeMobileMenuOnNav()">
                         <span class="icon">📊</span>
                         <span class="text">Estadísticas</span>
                     </button>
-                    <button id="exportBtn" class="btn btn-sidebar" onclick="exportData()" style="display: none;">
-                        <span class="icon">📤</span>
-                        <span class="text">Exportar</span>
-                    </button>
-                    <button id="importBtn" class="btn btn-sidebar" onclick="document.getElementById('importFileInput').click()" style="display: none;">
-                        <span class="icon">📥</span>
-                        <span class="text">Importar</span>
-                    </button>
-                    <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
                 </nav>
                 
                 <div class="sidebar-footer">
@@ -398,6 +385,15 @@
                         <button class="btn btn-success" onclick="addInventoryFromModal()" style="white-space: nowrap;">➕ Agregar</button>
                     </div>
                 </div>
+                <!-- Importar / Exportar Datos -->
+                <div class="form-group" style="border-top: 2px solid #f0f0f0; padding-top: 16px; margin-top: 4px;">
+                    <label style="font-weight: 700; color: #2c3e50; font-size: 14px;">💾 Importar / Exportar Datos</label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="exportData()" style="flex: 1; min-width: 120px;">📤 Exportar</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()" style="flex: 1; min-width: 120px;">📥 Importar</button>
+                        <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importData(event)">
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('companyModal')">Cancelar</button>
@@ -514,32 +510,6 @@
         </div>
     </div>
 
-    <!-- History Section -->
-    <div id="historySection" class="content-section" style="display: none;">
-        <div style="padding: 20px;">
-            <div style="margin-bottom: 20px;">
-                <h2>📋 Historial de PDFs Generados</h2>
-            </div>
-            <div id="historyContent" class="table-responsive">
-                <table class="products-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Tipo</th>
-                                <th>Nº Doc.</th>
-                                <th>Cliente</th>
-                                <th>Vendedor</th>
-                                <th>Total</th>
-                                <th>Fecha</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyTableBody"></tbody>
-                    </table>
-                </div>
-        </div>
-    </div>
-
     <!-- Inventory Section -->
     <div id="inventorySection" class="content-section" style="display: none;">
         <div style="padding: 20px;">
@@ -618,9 +588,11 @@
                 <!-- Fila 1: Tabs + Filtros -->
                 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                     <!-- Tabs Ventas / Gastos -->
-                    <div style="display:flex; gap:8px;">
-                        <button id="tabVentas" class="btn btn-primary" onclick="switchMovimientosTab('ventas')" style="padding:7px 0; font-size:13px; width:130px;">&#x1F4B0; Ventas</button>
-                        <button id="tabGastos" class="btn btn-secondary" onclick="switchMovimientosTab('gastos')" style="padding:7px 0; font-size:13px; width:130px;">&#x1F4B8; Gastos</button>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button id="tabCotizaciones" class="btn btn-primary" onclick="switchMovimientosTab('cotizaciones')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4CB; Cotizaciones</button>
+                        <button id="tabVentas" class="btn btn-secondary" onclick="switchMovimientosTab('ventas')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4B0; Notas de Venta</button>
+                        <button id="tabEntregas" class="btn btn-secondary" onclick="switchMovimientosTab('entregas')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4E6; Notas de Entrega</button>
+                        <button id="tabGastos" class="btn btn-secondary" onclick="switchMovimientosTab('gastos')" style="padding:7px 0; font-size:13px; min-width:130px;">&#x1F4B8; Gastos</button>
                     </div>
                     <!-- Filtro ciudad -->
                     <div style="display:flex; align-items:center; gap:8px;">
@@ -673,7 +645,23 @@
                     </div>
                 </div>
             </div>
-<div id="salesContent" class="table-responsive">
+<div id="cotizacionesContent" class="table-responsive">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nº Doc.</th>
+                                <th>Cliente</th>
+                                <th>Vendedor</th>
+                                <th>Total</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cotizacionesTableBody"></tbody>
+                    </table>
+                </div>
+<div id="salesContent" class="table-responsive" style="display:none;">
                     <table class="products-table">
                         <thead>
                             <tr>
@@ -691,6 +679,21 @@
                             </tr>
                         </thead>
                         <tbody id="salesTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="entregasContent" class="table-responsive" style="display:none;">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nº Doc.</th>
+                                <th>Cliente</th>
+                                <th>Vendedor</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entregasTableBody"></tbody>
                     </table>
                 </div>
                 <div id="gastosContent" class="table-responsive" style="display:none;">

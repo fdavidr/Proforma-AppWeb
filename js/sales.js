@@ -24,18 +24,23 @@ function parseDateStr(dateStr) {
 }
 
 function switchMovimientosTab(tab) {
+    const tabCotizaciones = document.getElementById('tabCotizaciones');
     const tabVentas = document.getElementById('tabVentas');
+    const tabEntregas = document.getElementById('tabEntregas');
     const tabGastos = document.getElementById('tabGastos');
+    const cotizacionesContent = document.getElementById('cotizacionesContent');
     const salesContent = document.getElementById('salesContent');
+    const entregasContent = document.getElementById('entregasContent');
     const gastosContent = document.getElementById('gastosContent');
 
-    if (tabVentas) {
-        tabVentas.className = tab === 'ventas' ? 'btn btn-primary' : 'btn btn-secondary';
-    }
-    if (tabGastos) {
-        tabGastos.className = tab === 'gastos' ? 'btn btn-primary' : 'btn btn-secondary';
-    }
+    const tabs = { cotizaciones: tabCotizaciones, ventas: tabVentas, entregas: tabEntregas, gastos: tabGastos };
+    Object.entries(tabs).forEach(([key, btn]) => {
+        if (btn) btn.className = key === tab ? 'btn btn-primary' : 'btn btn-secondary';
+    });
+
+    if (cotizacionesContent) cotizacionesContent.style.display = tab === 'cotizaciones' ? '' : 'none';
     if (salesContent) salesContent.style.display = tab === 'ventas' ? '' : 'none';
+    if (entregasContent) entregasContent.style.display = tab === 'entregas' ? '' : 'none';
     if (gastosContent) gastosContent.style.display = tab === 'gastos' ? '' : 'none';
 
     filterSalesByMonth();
@@ -80,15 +85,16 @@ function openSales() {
     const currentMonth = today.toISOString().slice(0, 7);
     document.getElementById('salesMonthFilter').value = currentMonth;
 
-    filterSalesByMonth();
     setActiveMenuButton('salesBtn');
 
     // Mostrar sección de ventas
     document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('historySection').style.display = 'none';
     document.getElementById('estadisticasSection').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
     document.getElementById('salesSection').style.display = 'block';
+
+    // Activar pestaña de cotizaciones por defecto
+    switchMovimientosTab('cotizaciones');
 
     // Si es vendedor, deshabilitar el select de ciudad
     const citySelect = document.getElementById('salesCitySelect');
@@ -106,6 +112,57 @@ function openSales() {
     }
 }
 
+function renderCotizacionesTable(cotizaciones) {
+    const tbody = document.getElementById('cotizacionesTableBody');
+    if (!tbody) return;
+    if (!cotizaciones || cotizaciones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:#7f8c8d;">No hay cotizaciones en este período</td></tr>';
+        return;
+    }
+    tbody.innerHTML = '';
+    cotizaciones.forEach((entry, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${entry.number}</td>
+            <td>${entry.client.name || entry.client}</td>
+            <td>${entry.seller.name || entry.seller}</td>
+            <td style="color:#27ae60;">Bs ${(entry.total || 0).toFixed(2)}</td>
+            <td>${entry.date}</td>
+            <td style="white-space:nowrap;">
+                <button class="btn-action-icon btn-action-primary" onclick="redownloadPDF(${entry.id})" title="Descargar PDF">📄</button>
+                <button class="btn-action-icon btn-action-danger" onclick="deleteHistoryEntry(${entry.id})" title="Eliminar">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderEntregasTable(entregas) {
+    const tbody = document.getElementById('entregasTableBody');
+    if (!tbody) return;
+    if (!entregas || entregas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#7f8c8d;">No hay notas de entrega en este período</td></tr>';
+        return;
+    }
+    tbody.innerHTML = '';
+    entregas.forEach((entry, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${entry.number}</td>
+            <td>${entry.client.name || entry.client}</td>
+            <td>${entry.seller.name || entry.seller}</td>
+            <td>${entry.date}</td>
+            <td style="white-space:nowrap;">
+                <button class="btn-action-icon btn-action-primary" onclick="redownloadPDF(${entry.id})" title="Descargar PDF">📄</button>
+                <button class="btn-action-icon btn-action-danger" onclick="deleteHistoryEntry(${entry.id})" title="Eliminar">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 function filterSalesByCity(city) {
     selectedSalesCity = city;
     const select = document.getElementById('salesCitySelect');
@@ -118,6 +175,35 @@ function filterSalesByMonth() {
     const tbody = document.getElementById('salesTableBody');
     tbody.innerHTML = '';
     const isVendedor = appData.userRole === 'vendedor';
+
+    // Helper: filtrar entrada de pdfHistory por mes
+    function matchesMonth(entry) {
+        if (!selectedMonth) return true;
+        const datePart = entry.date.split(',')[0].trim();
+        const [d, m, y] = datePart.split('/');
+        return `${y}-${(m || '').padStart(2, '0')}` === selectedMonth;
+    }
+
+    // Helper: filtrar entrada por ciudad y vendedor
+    function matchesCityAndSeller(entry) {
+        if (entry.city !== selectedSalesCity) return false;
+        if (isVendedor && appData.loggedSeller) {
+            return entry.seller && entry.seller.name === appData.loggedSeller.name;
+        }
+        return true;
+    }
+
+    // --- Cotizaciones ---
+    const filteredCotizaciones = appData.pdfHistory
+        .filter(e => e.type === 'cotizacion' && matchesCityAndSeller(e) && matchesMonth(e))
+        .sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
+    renderCotizacionesTable(filteredCotizaciones);
+
+    // --- Notas de Entrega ---
+    const filteredEntregas = appData.pdfHistory
+        .filter(e => e.type === 'notaentrega' && matchesCityAndSeller(e) && matchesMonth(e))
+        .sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
+    renderEntregasTable(filteredEntregas);
 
     // --- Gastos: calcular siempre, independientemente de si hay ventas ---
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
@@ -1214,6 +1300,8 @@ window.closeActionsMenu = closeActionsMenu;
 window.toggleInvoiced = toggleInvoiced;
 window.switchMovimientosTab = switchMovimientosTab;
 window.renderGastosTable = renderGastosTable;
+window.renderCotizacionesTable = renderCotizacionesTable;
+window.renderEntregasTable = renderEntregasTable;
 
 function showAllSales() {
     document.getElementById('salesMonthFilter').value = '';
