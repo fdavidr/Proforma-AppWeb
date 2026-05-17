@@ -68,8 +68,15 @@ async function loadData() {
             if (saved.sellers) appData.sellers = saved.sellers;
             if (saved.products) {
                 appData.products = saved.products;
-                // Restaurar imágenes base64 desde el cache local para productos con URL de Storage
-                hydrateProductImagesFromCache(appData.products);
+                // Restaurar imágenes base64 desde el cache local.
+                // Si alguna imagen estaba vacía en Firestore pero existe en el cache local,
+                // hydrateProductImagesFromCache la restaura y retorna true. En ese caso
+                // guardamos en segundo plano para que Firestore quede actualizado y otros
+                // navegadores puedan ver la imagen también.
+                const restoredImages = hydrateProductImagesFromCache(appData.products);
+                if (restoredImages) {
+                    setTimeout(() => saveData().catch(() => {}), 500);
+                }
             }
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
             if (saved.gastos) appData.gastos = saved.gastos;

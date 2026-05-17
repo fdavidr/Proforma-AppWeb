@@ -107,8 +107,10 @@ function getProductImageFromCache(productId) {
 // Caso 1: product.image = URL de Storage → guarda URL en URL-cache, reemplaza con base64.
 // Caso 2: product.image = '' (URL ya perdida) → intenta restaurar desde el cache de base64.
 // Caso 3: product.image ya es base64 → no hace nada.
+// Retorna true si algún producto vacío fue restaurado (Firestore necesita actualizarse).
 // Operación síncrona — solo usa localStorage.
 function hydrateProductImagesFromCache(products) {
+    let restoredFromEmpty = false;
     (products || []).forEach(product => {
         if (product.image && product.image.startsWith('http')) {
             // Guardar la URL de Storage antes de sobreescribir con base64
@@ -118,10 +120,14 @@ function hydrateProductImagesFromCache(products) {
         } else if (!product.image) {
             // Imagen vacía (URL perdida o nunca guardada) — restaurar desde cache de base64
             const cached = getProductImageFromCache(product.id);
-            if (cached) product.image = cached;
+            if (cached) {
+                product.image = cached;
+                restoredFromEmpty = true;
+            }
         }
         // Si ya es base64 (data:...), no se toca
     });
+    return restoredFromEmpty;
 }
 
 // ==================== FUNCIONES DE BASE DE DATOS ====================
