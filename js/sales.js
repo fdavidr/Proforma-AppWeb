@@ -91,6 +91,32 @@ function generateSalesCityFilterButtons() {
     container.appendChild(select);
 }
 
+// Poblar el select de año con los años presentes en los datos
+function populateSalesYearFilter() {
+    const select = document.getElementById('salesYearFilter');
+    if (!select) return;
+    const currentValue = select.value;
+    const years = new Set();
+    const thisYear = String(new Date().getFullYear());
+    years.add(thisYear);
+    (appData.pdfHistory || []).forEach(entry => {
+        const parts = entry.date.split(',')[0].trim().split('/');
+        if (parts[2]) years.add(parts[2]);
+    });
+    (appData.gastos || []).forEach(g => {
+        const parts = g.date.split(',')[0].trim().split('/');
+        if (parts[2]) years.add(parts[2]);
+    });
+    select.innerHTML = '<option value="">Todos</option>';
+    Array.from(years).sort((a, b) => b - a).forEach(y => {
+        const option = document.createElement('option');
+        option.value = y;
+        option.textContent = y;
+        select.appendChild(option);
+    });
+    select.value = (currentValue && [...select.options].some(o => o.value === currentValue)) ? currentValue : thisYear;
+}
+
 function openSales() {
     // Establecer ciudad antes de generar el select para que quede preseleccionada
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
@@ -103,10 +129,11 @@ function openSales() {
     generateSalesCityFilterButtons();
     generateSalesSellerFilter();
 
-    // Establecer mes actual por defecto
+    // Poblar y establecer año/mes actual por defecto
+    populateSalesYearFilter();
     const today = new Date();
-    const currentMonth = today.toISOString().slice(0, 7);
-    document.getElementById('salesMonthFilter').value = currentMonth;
+    document.getElementById('salesYearFilter').value = String(today.getFullYear());
+    document.getElementById('salesMonthFilter').value = String(today.getMonth() + 1).padStart(2, '0');
 
     setActiveMenuButton('salesBtn');
 
@@ -194,17 +221,20 @@ function filterSalesByCity(city) {
 }
 
 function filterSalesByMonth() {
-    const selectedMonth = document.getElementById('salesMonthFilter').value;
+    const selectedYear = document.getElementById('salesYearFilter').value;
+    const selectedMonthVal = document.getElementById('salesMonthFilter').value;
     const tbody = document.getElementById('salesTableBody');
     tbody.innerHTML = '';
     const isVendedor = appData.userRole === 'vendedor';
 
-    // Helper: filtrar entrada de pdfHistory por mes
+    // Helper: filtrar entrada de pdfHistory por año/mes
     function matchesMonth(entry) {
-        if (!selectedMonth) return true;
+        if (!selectedYear) return true;
         const datePart = entry.date.split(',')[0].trim();
         const [d, m, y] = datePart.split('/');
-        return `${y}-${(m || '').padStart(2, '0')}` === selectedMonth;
+        if (y !== selectedYear) return false;
+        if (!selectedMonthVal) return true;
+        return (m || '').padStart(2, '0') === selectedMonthVal;
     }
 
     // Helper: filtrar entrada por ciudad y vendedor
@@ -244,11 +274,13 @@ function filterSalesByMonth() {
             filteredGastos = filteredGastos.filter(g => g.seller === sellerFilter.value);
         }
     }
-    if (selectedMonth) {
+    if (selectedYear) {
         filteredGastos = filteredGastos.filter(g => {
             const datePart = g.date.split(',')[0].trim();
             const [gd, gm, gy] = datePart.split('/');
-            return `${gy}-${(gm || '').padStart(2, '0')}` === selectedMonth;
+            if (gy !== selectedYear) return false;
+            if (!selectedMonthVal) return true;
+            return (gm || '').padStart(2, '0') === selectedMonthVal;
         });
     }
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
@@ -274,15 +306,15 @@ function filterSalesByMonth() {
         return;
     }
 
-    // Filtrar por mes si hay selección (notas de venta, ya filtradas por ciudad/vendedor arriba)
+    // Filtrar por año/mes si hay selección (notas de venta, ya filtradas por ciudad/vendedor arriba)
     let filteredSales = sales;
-    if (selectedMonth) {
+    if (selectedYear) {
         filteredSales = sales.filter(sale => {
-            // Extraer solo la fecha de la cadena "DD/MM/YYYY, HH:MM:SS" o "DD/MM/YYYY"
-            const datePart = sale.date.split(',')[0].trim(); // Obtener solo DD/MM/YYYY
+            const datePart = sale.date.split(',')[0].trim();
             const [day, month, year] = datePart.split('/');
-            const saleDate = `${year}-${month.padStart(2, '0')}`; // Formato YYYY-MM
-            return saleDate === selectedMonth;
+            if (year !== selectedYear) return false;
+            if (!selectedMonthVal) return true;
+            return month.padStart(2, '0') === selectedMonthVal;
         });
     }
 
@@ -441,9 +473,10 @@ function updateSalesTotals(sales, totals) {
 }
 
 function generateSalesPDF() {
-    const selectedMonth = document.getElementById('salesMonthFilter').value;
-    if (!selectedMonth) {
-        alert('Seleccione un mes para generar el reporte');
+    const selectedYear = document.getElementById('salesYearFilter').value;
+    const selectedMonthVal = document.getElementById('salesMonthFilter').value;
+    if (!selectedYear) {
+        alert('Seleccione un año para generar el reporte');
         return;
     }
 
@@ -484,16 +517,15 @@ function generateSalesPDF() {
     const cityTitle = inventory ? inventory.name.toUpperCase() : selectedSalesCity.toUpperCase();
     doc.text(`REPORTE DE VENTAS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
-    // Mes seleccionado
+    // Período seleccionado
     yPos += 8;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    const [year, month] = selectedMonth.split('-');
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const monthName = monthNames[parseInt(month) - 1];
-    doc.text(`Período: ${monthName} ${year}`, pageWidth / 2, yPos, { align: 'center' });
+    const periodoText = selectedMonthVal ? `${monthNames[parseInt(selectedMonthVal) - 1]} ${selectedYear}` : `Año ${selectedYear}`;
+    doc.text(`Período: ${periodoText}`, pageWidth / 2, yPos, { align: 'center' });
 
-    // Filtrar ventas del mes y ciudad
+    // Filtrar ventas del período y ciudad
     const isVendedor = appData.userRole === 'vendedor' && appData.loggedSeller;
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa') return false;
@@ -502,8 +534,9 @@ function generateSalesPDF() {
         if (isVendedor && !(entry.seller && entry.seller.name === appData.loggedSeller.name)) return false;
         const datePart = entry.date.split(',')[0].trim();
         const [day, month, year] = datePart.split('/');
-        const saleDate = `${year}-${month.padStart(2, '0')}`;
-        return saleDate === selectedMonth;
+        if (year !== selectedYear) return false;
+        if (!selectedMonthVal) return true;
+        return month.padStart(2, '0') === selectedMonthVal;
     });
 
     // Ordenar por fecha (más recientes primero)
@@ -547,14 +580,15 @@ function generateSalesPDF() {
 
     const balance = totalPrice - totalCost;
 
-    // Filtrar gastos del mismo mes y ciudad (no aplica para vendedor)
+    // Filtrar gastos del mismo período y ciudad (no aplica para vendedor)
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
     const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
         if (g.city !== selectedSalesCity) return false;
-        if (!selectedMonth) return true;
         const datePart = g.date.split(',')[0].trim();
         const [gd, gm, gy] = datePart.split('/');
-        return `${gy}-${(gm || '').padStart(2, '0')}` === selectedMonth;
+        if (gy !== selectedYear) return false;
+        if (!selectedMonthVal) return true;
+        return (gm || '').padStart(2, '0') === selectedMonthVal;
     });
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
     const gananciaLiquida = totalPrice - totalCost - totalGastos;
@@ -1329,6 +1363,7 @@ window.renderCotizacionesTable = renderCotizacionesTable;
 window.renderEntregasTable = renderEntregasTable;
 
 function showAllSales() {
+    document.getElementById('salesYearFilter').value = '';
     document.getElementById('salesMonthFilter').value = '';
     filterSalesByMonth();
 }
