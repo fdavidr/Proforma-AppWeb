@@ -43,69 +43,15 @@ function switchMovimientosTab(tab) {
 
 // Generar lista desplegable de filtro de vendedor
 function generateSalesSellerFilter() {
-    const select = document.getElementById('salesSellerFilter');
-    const container = document.getElementById('salesSellerFilterContainer');
-    if (!select) return;
-
-    // Para vendedores, ocultar el filtro (solo ven sus propios datos)
-    if (appData.userRole === 'vendedor') {
-        if (container) container.style.display = 'none';
-        return;
-    }
-    if (container) container.style.display = 'flex';
-
-    const currentValue = select.value;
-    select.innerHTML = '<option value="all">Todos</option>';
-    const sellers = Array.isArray(appData.sellers) ? appData.sellers : [];
-    sellers.forEach(seller => {
-        const option = document.createElement('option');
-        option.value = seller.name;
-        option.textContent = seller.name;
-        select.appendChild(option);
-    });
-    // Restaurar selección previa si sigue siendo válida
-    if (currentValue && [...select.options].some(o => o.value === currentValue)) {
-        select.value = currentValue;
-    }
+    // Filtro de vendedor eliminado de la UI (solo filtro por mes/año)
 }
 
 // Generar lista desplegable de filtro de ciudad
 function generateSalesCityFilterButtons() {
-    const container = document.getElementById('salesCityFilterButtons');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    const select = document.createElement('select');
-    select.id = 'salesCitySelect';
-    select.style.cssText = 'padding: 7px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-weight: 600; color: #2c3e50; background: #fff; cursor: pointer; min-width: 160px; outline: none;';
-
-    appData.inventories.forEach(inventory => {
-        const option = document.createElement('option');
-        option.value = inventory.id;
-        option.textContent = inventory.name;
-        if (inventory.id === selectedSalesCity) option.selected = true;
-        select.appendChild(option);
-    });
-
-    select.addEventListener('change', () => filterSalesByCity(select.value));
-    container.appendChild(select);
+    // Filtro de ciudad eliminado de la UI (solo filtro por mes/año)
 }
 
 function openSales() {
-    // Establecer ciudad antes de generar el select para que quede preseleccionada
-    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
-        selectedSalesCity = appData.loggedSeller.city;
-    } else {
-        selectedSalesCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
-    }
-
-    // Generar lista desplegable de ciudad (usa selectedSalesCity ya establecido)
-    generateSalesCityFilterButtons();
-
-    // Generar lista desplegable de vendedor
-    generateSalesSellerFilter();
-
     // Establecer mes actual por defecto
     const today = new Date();
     const currentMonth = today.toISOString().slice(0, 7);
@@ -121,21 +67,6 @@ function openSales() {
 
     // Activar pestaña de cotizaciones por defecto
     switchMovimientosTab('cotizaciones');
-
-    // Si es vendedor, deshabilitar el select de ciudad
-    const citySelect = document.getElementById('salesCitySelect');
-    if (citySelect) {
-        if (appData.userRole === 'vendedor' && appData.loggedSeller) {
-            citySelect.value = appData.loggedSeller.city;
-            citySelect.disabled = true;
-            citySelect.style.opacity = '0.5';
-            citySelect.style.cursor = 'not-allowed';
-        } else {
-            citySelect.disabled = false;
-            citySelect.style.opacity = '1';
-            citySelect.style.cursor = 'pointer';
-        }
-    }
 }
 
 function renderCotizacionesTable(cotizaciones) {
@@ -210,44 +141,32 @@ function filterSalesByMonth() {
         return `${y}-${(m || '').padStart(2, '0')}` === selectedMonth;
     }
 
-    // Helper: filtrar entrada por ciudad y vendedor
-    function matchesCityAndSeller(entry) {
-        if (entry.city !== selectedSalesCity) return false;
+    // Helper: filtrar entrada por vendedor (solo para rol vendedor)
+    function matchesSeller(entry) {
         if (isVendedor && appData.loggedSeller) {
             return entry.seller && entry.seller.name === appData.loggedSeller.name;
-        }
-        // Admin: aplicar filtro de vendedor si está seleccionado
-        const sellerFilter = document.getElementById('salesSellerFilter');
-        if (sellerFilter && sellerFilter.value !== 'all') {
-            return entry.seller && entry.seller.name === sellerFilter.value;
         }
         return true;
     }
 
     // --- Cotizaciones ---
     const filteredCotizaciones = appData.pdfHistory
-        .filter(e => e.type === 'cotizacion' && matchesCityAndSeller(e) && matchesMonth(e))
+        .filter(e => e.type === 'cotizacion' && matchesSeller(e) && matchesMonth(e))
         .sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
     renderCotizacionesTable(filteredCotizaciones);
 
     // --- Notas de Entrega ---
     const filteredEntregas = appData.pdfHistory
-        .filter(e => e.type === 'notaentrega' && matchesCityAndSeller(e) && matchesMonth(e))
+        .filter(e => e.type === 'notaentrega' && matchesSeller(e) && matchesMonth(e))
         .sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
     renderEntregasTable(filteredEntregas);
 
     // --- Gastos: calcular siempre, independientemente de si hay ventas ---
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
-    let filteredGastos = allGastos.filter(g => g.city === selectedSalesCity);
+    let filteredGastos = allGastos.slice();
     // Vendedor solo ve sus propios gastos
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
         filteredGastos = filteredGastos.filter(g => g.seller === appData.loggedSeller.name);
-    } else {
-        // Admin: aplicar filtro de vendedor si está seleccionado
-        const sellerFilter = document.getElementById('salesSellerFilter');
-        if (sellerFilter && sellerFilter.value !== 'all') {
-            filteredGastos = filteredGastos.filter(g => g.seller === sellerFilter.value);
-        }
     }
     if (selectedMonth) {
         filteredGastos = filteredGastos.filter(g => {
@@ -258,17 +177,12 @@ function filterSalesByMonth() {
     }
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
 
-    // Filtrar solo notas de venta y por ciudad
+    // Filtrar solo notas de venta (todas las ciudades)
     const sales = appData.pdfHistory.filter(entry => {
-        if (entry.type !== 'notaventa' || entry.city !== selectedSalesCity) return false;
+        if (entry.type !== 'notaventa') return false;
         // Si es vendedor, mostrar solo sus propias ventas
         if (isVendedor && appData.loggedSeller) {
             return entry.seller && entry.seller.name === appData.loggedSeller.name;
-        }
-        // Admin: aplicar filtro de vendedor si está seleccionado
-        const sellerFilter = document.getElementById('salesSellerFilter');
-        if (sellerFilter && sellerFilter.value !== 'all') {
-            return entry.seller && entry.seller.name === sellerFilter.value;
         }
         return true;
     });
@@ -487,8 +401,8 @@ function generateSalesPDF() {
     yPos += 40;
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    const inventory = appData.inventories.find(inv => inv.id === selectedSalesCity);
-    const cityTitle = inventory ? inventory.name.toUpperCase() : selectedSalesCity.toUpperCase();
+    const inventory = selectedSalesCity ? appData.inventories.find(inv => inv.id === selectedSalesCity) : null;
+    const cityTitle = inventory ? inventory.name.toUpperCase() : 'TODAS LAS CIUDADES';
     doc.text(`REPORTE DE VENTAS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
     // Mes seleccionado
@@ -504,7 +418,7 @@ function generateSalesPDF() {
     const isVendedor = appData.userRole === 'vendedor' && appData.loggedSeller;
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa') return false;
-        if (entry.city !== selectedSalesCity) return false;
+        if (selectedSalesCity && entry.city !== selectedSalesCity) return false;
         // Si es vendedor, solo sus propias ventas
         if (isVendedor && !(entry.seller && entry.seller.name === appData.loggedSeller.name)) return false;
         const datePart = entry.date.split(',')[0].trim();
@@ -557,7 +471,7 @@ function generateSalesPDF() {
     // Filtrar gastos del mismo mes y ciudad (no aplica para vendedor)
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
     const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
-        if (g.city !== selectedSalesCity) return false;
+        if (selectedSalesCity && g.city !== selectedSalesCity) return false;
         if (!selectedMonth) return true;
         const datePart = g.date.split(',')[0].trim();
         const [gd, gm, gy] = datePart.split('/');

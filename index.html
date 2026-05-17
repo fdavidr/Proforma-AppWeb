@@ -594,18 +594,6 @@
                             <option value="gastos">&#x1F4B8; Gastos</option>
                         </select>
                     </div>
-                    <!-- Filtro ciudad -->
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F3DB;&#xFE0F; Ciudad:</label>
-                        <div id="salesCityFilterButtons"></div>
-                    </div>
-                    <!-- Filtro vendedor -->
-                    <div id="salesSellerFilterContainer" style="display:flex; align-items:center; gap:8px;">
-                        <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F464; Vendedor:</label>
-                        <select id="salesSellerFilter" onchange="filterSalesByMonth()" style="padding:7px 12px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; font-weight:600; color:#2c3e50; background:#fff; cursor:pointer; min-width:140px; outline:none;">
-                            <option value="all">Todos</option>
-                        </select>
-                    </div>
                     <!-- Filtro mes -->
                     <div style="display:flex; align-items:center; gap:8px;">
                         <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F4C5; Mes:</label>
@@ -718,9 +706,9 @@
 
             <!-- Filtros -->
             <div class="stats-filters">
-                <div id="estadisticasCityRow" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div id="estadisticasCityRow" style="display:flex; align-items:center; gap:8px;">
                     <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">🏛️ Ciudad:</label>
-                    <div id="estadisticasCityButtons" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                    <select id="estadisticasCitySelect" onchange="estadisticasCity = this.value || null; renderEstadisticas();" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:#fff; cursor:pointer;"></select>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">📅 Año:</label>
