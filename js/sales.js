@@ -129,11 +129,10 @@ function openSales() {
     generateSalesCityFilterButtons();
     generateSalesSellerFilter();
 
-    // Poblar y establecer año/mes actual por defecto
+    // Poblar el select de año con los años existentes; sin filtro activo por defecto
     populateSalesYearFilter();
-    const today = new Date();
-    document.getElementById('salesYearFilter').value = String(today.getFullYear());
-    document.getElementById('salesMonthFilter').value = String(today.getMonth() + 1).padStart(2, '0');
+    document.getElementById('salesYearFilter').value = '';
+    document.getElementById('salesMonthFilter').value = '';
 
     setActiveMenuButton('salesBtn');
 
@@ -320,7 +319,7 @@ function filterSalesByMonth() {
 
     if (filteredSales.length === 0) {
         const cols = isVendedor ? 9 : 11;
-        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el mes seleccionado</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el período seleccionado</td></tr>`;
         updateSalesTotals([], [0, 0, totalGastos]);
         renderGastosTable(filteredGastos);
         return;
