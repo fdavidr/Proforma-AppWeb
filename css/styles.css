@@ -415,6 +415,17 @@ select:focus {
     width: 100%;
 }
 
+#inventoryContent {
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+}
+
+#inventorySection .products-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
 /* Botones de acción compactos (solo iconos) */
 .btn-action-icon {
     padding: 6px 10px;
