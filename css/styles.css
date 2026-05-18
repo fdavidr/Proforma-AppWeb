@@ -416,8 +416,7 @@ select:focus {
 }
 
 #inventoryContent {
-    overflow-y: auto;
-    max-height: calc(100vh - 280px);
+    overflow-x: auto;
 }
 
 #inventorySection .products-table th {
