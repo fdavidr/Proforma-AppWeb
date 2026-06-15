@@ -28,6 +28,11 @@ async function init() {
     if (typeof startCountersSync === 'function') {
         startCountersSync();
     }
+
+    // Escuchar cambios en tiempo real del historial (documentos de otros navegadores)
+    if (typeof startHistorySync === 'function') {
+        startHistorySync();
+    }
 }
 
 // ==================== MENÚ MÓVIL ====================

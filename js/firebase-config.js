@@ -334,6 +334,62 @@ function stopCountersSync() {
     }
 }
 
+// ==================== SINCRONIZACIÓN EN TIEMPO REAL DEL HISTORIAL ====================
+let historyUnsubscribe = null;
+let isSavingNow = false; // flag para ignorar el snapshot que dispara el propio guardado
+
+function startHistorySync() {
+    if (!isFirebaseEnabled || !db) return;
+    if (historyUnsubscribe) historyUnsubscribe();
+
+    historyUnsubscribe = db.collection('proformaApp').doc('appData')
+        .onSnapshot(snapshot => {
+            // Ignorar el disparo inmediato causado por el propio guardado de este navegador
+            if (isSavingNow) return;
+            if (!snapshot.exists) return;
+
+            const remoteData = snapshot.data();
+            const remoteHistory = remoteData.pdfHistory || [];
+            const remoteGastos = remoteData.gastos || [];
+
+            // Fusionar historial remoto con el local (sin perder entradas de ninguno)
+            const mergedMap = new Map();
+            remoteHistory.forEach(e => mergedMap.set(e.id, e));
+            (appData.pdfHistory || []).forEach(e => mergedMap.set(e.id, e));
+            const merged = Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
+
+            // Fusionar gastos: agregar del remoto los que no existen localmente
+            const localGastoIds = new Set((appData.gastos || []).map(g => g.id));
+            const newRemoteGastos = remoteGastos.filter(g => !localGastoIds.has(g.id));
+            const mergedGastos = [...(appData.gastos || []), ...newRemoteGastos]
+                .sort((a, b) => b.id - a.id);
+
+            const historyChanged = merged.length !== (appData.pdfHistory || []).length ||
+                (merged.length > 0 && (appData.pdfHistory || []).length > 0 &&
+                 merged[0].id !== appData.pdfHistory[0].id);
+            const gastosChanged = newRemoteGastos.length > 0;
+
+            if (historyChanged || gastosChanged) {
+                appData.pdfHistory = merged;
+                appData.gastos = mergedGastos;
+                // Refrescar la sección de movimientos si está visible
+                const salesSection = document.getElementById('salesSection');
+                if (salesSection && salesSection.style.display !== 'none') {
+                    if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
+                }
+            }
+        }, error => {
+            // Error en listener — no interrumpir la app
+        });
+}
+
+function stopHistorySync() {
+    if (historyUnsubscribe) {
+        historyUnsubscribe();
+        historyUnsubscribe = null;
+    }
+}
+
 // Elimina las imágenes base64 de los productos dentro de los items del historial
 // para mantener el tamaño del documento Firestore por debajo del límite de 1MB.
 // Las URLs de Firebase Storage se conservan (son cadenas cortas).
@@ -352,20 +408,9 @@ function stripImagesFromHistoryItems(historyArray) {
 
 // Función para guardar todos los datos de la aplicación
 async function saveAllData(appData) {
-    // Limitar cotizaciones a 10 y mantener todas las ventas y entregas
-    let limitedHistory = appData.pdfHistory || [];
-    const cotizaciones = limitedHistory.filter(entry => entry.type === 'cotizacion');
-    const ventas = limitedHistory.filter(entry => entry.type === 'notaventa');
-    const entregas = limitedHistory.filter(entry => entry.type === 'notaentrega');
-    
-    // Ordenar cotizaciones por ID descendente (más recientes primero) y tomar las 10 más recientes
-    const sortedCotizaciones = cotizaciones.sort((a, b) => b.id - a.id);
-    const limitedCotizaciones = sortedCotizaciones.slice(0, 10);
-    
-    // Combinar cotizaciones limitadas con todas las ventas y entregas, y ordenar por ID
-    // Eliminar imágenes de productos en items del historial para no superar el límite de 1MB de Firestore
-    limitedHistory = stripImagesFromHistoryItems(
-        [...limitedCotizaciones, ...ventas, ...entregas].sort((a, b) => b.id - a.id)
+    // Mantener todas las cotizaciones, ventas y entregas sin límite
+    let limitedHistory = stripImagesFromHistoryItems(
+        (appData.pdfHistory || []).sort((a, b) => b.id - a.id)
     );
     
     const dataToSave = {
@@ -403,6 +448,7 @@ async function saveAllData(appData) {
             };
 
             const appDocRef = db.collection('proformaApp').doc('appData');
+            isSavingNow = true;
             await db.runTransaction(async transaction => {
                 const snapshot = await transaction.get(appDocRef);
                 const existingData = snapshot.exists ? snapshot.data() : {};
@@ -417,12 +463,7 @@ async function saveAllData(appData) {
                 existingHistory.forEach(entry => mergedMap.set(entry.id, entry));
                 localHistory.forEach(entry => mergedMap.set(entry.id, entry));
                 let mergedHistory = Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
-                // Aplicar límite de 10 cotizaciones
-                const mCotizaciones = mergedHistory.filter(e => e.type === 'cotizacion').slice(0, 10);
-                const mVentas = mergedHistory.filter(e => e.type === 'notaventa');
-                const mEntregas = mergedHistory.filter(e => e.type === 'notaentrega');
-                firebasePayload.pdfHistory = [...mCotizaciones, ...mVentas, ...mEntregas]
-                    .sort((a, b) => b.id - a.id);
+                firebasePayload.pdfHistory = mergedHistory;
 
                 // Merge gastos: local es autoritativo (preserva eliminaciones).
                 // Solo se agregan gastos del servidor creados DESPUÉS del más reciente
@@ -463,6 +504,7 @@ async function saveAllData(appData) {
 
                 transaction.set(appDocRef, firebasePayload, { merge: true });
             });
+            isSavingNow = false;
 
             appData.currentQuoteNumber = firebasePayload.currentQuoteNumber;
             appData.currentSaleNumber = firebasePayload.currentSaleNumber;
@@ -480,6 +522,7 @@ async function saveAllData(appData) {
             saveLocalCacheSafe(dataToSave);
             return true;
         } catch (error) {
+            isSavingNow = false;
             // Fallo en Firebase — guardar solo en localStorage como respaldo
         }
     }
@@ -620,6 +663,8 @@ window.reserveDocumentNumber = reserveDocumentNumber;
 window.syncDocumentCounters = syncDocumentCounters;
 window.startCountersSync = startCountersSync;
 window.stopCountersSync = stopCountersSync;
+window.startHistorySync = startHistorySync;
+window.stopHistorySync = stopHistorySync;
 window.uploadProductImageToStorage = uploadProductImageToStorage;
 window.saveProductImageToCache = saveProductImageToCache;
 window.getProductImageFromCache = getProductImageFromCache;
