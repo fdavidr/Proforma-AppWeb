@@ -351,6 +351,7 @@ function startHistorySync() {
             const remoteData = snapshot.data();
             const remoteHistory = remoteData.pdfHistory || [];
             const remoteGastos = remoteData.gastos || [];
+            const remoteClients = remoteData.clients || [];
 
             // Fusionar historial remoto con el local (sin perder entradas de ninguno)
             const mergedMap = new Map();
@@ -364,10 +365,16 @@ function startHistorySync() {
             const mergedGastos = [...(appData.gastos || []), ...newRemoteGastos]
                 .sort((a, b) => b.id - a.id);
 
+            // Fusionar clientes: agregar del remoto los que no existen localmente
+            const localClientIds = new Set((appData.clients || []).map(c => c.id));
+            const newRemoteClients = remoteClients.filter(c => !localClientIds.has(c.id));
+            const mergedClients = [...(appData.clients || []), ...newRemoteClients];
+
             const historyChanged = merged.length !== (appData.pdfHistory || []).length ||
                 (merged.length > 0 && (appData.pdfHistory || []).length > 0 &&
                  merged[0].id !== appData.pdfHistory[0].id);
             const gastosChanged = newRemoteGastos.length > 0;
+            const clientsChanged = newRemoteClients.length > 0;
 
             if (historyChanged || gastosChanged) {
                 appData.pdfHistory = merged;
@@ -377,6 +384,10 @@ function startHistorySync() {
                 if (salesSection && salesSection.style.display !== 'none') {
                     if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
                 }
+            }
+
+            if (clientsChanged) {
+                appData.clients = mergedClients;
             }
         }, error => {
             // Error en listener — no interrumpir la app
@@ -480,6 +491,16 @@ async function saveAllData(appData) {
                 firebasePayload.gastos = [...localGastos, ...concurrentServerGastos]
                     .sort((a, b) => b.id - a.id);
 
+                // Merge clients: combinar clientes del servidor con los locales para evitar
+                // que guardados concurrentes de dos navegadores se sobreescriban entre sí.
+                // Los locales tienen prioridad (preservan ediciones recientes).
+                const existingClients = existingData.clients || [];
+                const localClients = firebasePayload.clients || [];
+                const mergedClientsMap = new Map();
+                existingClients.forEach(c => mergedClientsMap.set(c.id, c));
+                localClients.forEach(c => mergedClientsMap.set(c.id, c));
+                firebasePayload.clients = Array.from(mergedClientsMap.values());
+
                 firebasePayload.currentQuoteNumber = Math.max(
                     firebasePayload.currentQuoteNumber || 100000,
                     existingData.currentQuoteNumber || 100000
@@ -515,6 +536,9 @@ async function saveAllData(appData) {
             dataToSave.pdfHistory = firebasePayload.pdfHistory;
             appData.gastos = firebasePayload.gastos;
             dataToSave.gastos = firebasePayload.gastos;
+            // Sincronizar clientes fusionados de vuelta al estado local
+            appData.clients = firebasePayload.clients;
+            dataToSave.clients = firebasePayload.clients;
             // Sincronizar productsUpdatedAt para que localStorage lo tenga
             dataToSave.productsUpdatedAt = firebasePayload.productsUpdatedAt;
 
