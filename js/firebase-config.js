@@ -322,9 +322,11 @@ function startCountersSync() {
     }
 
     syncDocumentCounters();
+    syncMovementsFromFirestore();
     countersSyncInterval = setInterval(() => {
         syncDocumentCounters();
-    }, 10000);
+        syncMovementsFromFirestore();
+    }, 30000); // sync movimientos cada 30 segundos como fallback al onSnapshot
 }
 
 function stopCountersSync() {
@@ -390,7 +392,9 @@ function startHistorySync() {
                 appData.clients = mergedClients;
             }
         }, error => {
-            // Error en listener — no interrumpir la app
+            // Error en listener — reintentar la suscripción automáticamente
+            if (historyUnsubscribe) { historyUnsubscribe(); historyUnsubscribe = null; }
+            setTimeout(() => startHistorySync(), 5000);
         });
 }
 
@@ -398,6 +402,57 @@ function stopHistorySync() {
     if (historyUnsubscribe) {
         historyUnsubscribe();
         historyUnsubscribe = null;
+    }
+}
+
+// ==================== SYNC PERIÓDICO DE MOVIMIENTOS (FALLBACK) ====================
+// Complementa al onSnapshot: re-fusiona desde Firestore cada 30 s para capturar
+// cualquier actualización que se haya perdido (p.ej. si la conexión cayó brevemente).
+async function syncMovementsFromFirestore() {
+    if (!isFirebaseEnabled || !db || isSavingNow) return;
+    try {
+        const doc = await db.collection('proformaApp').doc('appData').get();
+        if (!doc.exists) return;
+        const remoteData = doc.data();
+
+        // Merge pdfHistory
+        const remoteHistory = remoteData.pdfHistory || [];
+        const histMap = new Map();
+        remoteHistory.forEach(e => histMap.set(e.id, e));
+        (appData.pdfHistory || []).forEach(e => histMap.set(e.id, e));
+        const mergedHistory = Array.from(histMap.values()).sort((a, b) => b.id - a.id);
+
+        // Merge gastos
+        const remoteGastos = remoteData.gastos || [];
+        const gastMap = new Map();
+        remoteGastos.forEach(g => gastMap.set(g.id, g));
+        (appData.gastos || []).forEach(g => gastMap.set(g.id, g));
+        const mergedGastos = Array.from(gastMap.values()).sort((a, b) => b.id - a.id);
+
+        // Merge clientes
+        const remoteClients = remoteData.clients || [];
+        const cliMap = new Map();
+        remoteClients.forEach(c => cliMap.set(c.id, c));
+        (appData.clients || []).forEach(c => cliMap.set(c.id, c));
+        const mergedClients = Array.from(cliMap.values());
+
+        const histChanged = mergedHistory.length !== (appData.pdfHistory || []).length;
+        const gastChanged = mergedGastos.length !== (appData.gastos || []).length;
+        const cliChanged  = mergedClients.length  !== (appData.clients  || []).length;
+
+        if (histChanged || gastChanged) {
+            appData.pdfHistory = mergedHistory;
+            appData.gastos     = mergedGastos;
+            const salesSection = document.getElementById('salesSection');
+            if (salesSection && salesSection.style.display !== 'none') {
+                if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
+            }
+        }
+        if (cliChanged) {
+            appData.clients = mergedClients;
+        }
+    } catch (e) {
+        // Ignorar errores de red silenciosamente
     }
 }
 
@@ -476,19 +531,16 @@ async function saveAllData(appData) {
                 let mergedHistory = Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
                 firebasePayload.pdfHistory = mergedHistory;
 
-                // Merge gastos: local es autoritativo (preserva eliminaciones).
-                // Solo se agregan gastos del servidor creados DESPUÉS del más reciente
-                // local (adiciones concurrentes de otro dispositivo).
+                // Merge gastos: combinar TODOS los gastos del servidor con los locales,
+                // igual que pdfHistory. Los locales tienen prioridad (preservan ediciones).
+                // El enfoque anterior (filtrar por id > newestLocalId) perdía gastos de
+                // otros navegadores cuando su timestamp era anterior al más reciente local.
                 const existingGastos = existingData.gastos || [];
                 const localGastos = firebasePayload.gastos || [];
-                const localGastoIds = new Set(localGastos.map(g => g.id));
-                const newestLocalGastoId = localGastos.length > 0
-                    ? Math.max(...localGastos.map(g => g.id))
-                    : Date.now();
-                const concurrentServerGastos = existingGastos.filter(
-                    g => !localGastoIds.has(g.id) && g.id > newestLocalGastoId
-                );
-                firebasePayload.gastos = [...localGastos, ...concurrentServerGastos]
+                const mergedGastosMap = new Map();
+                existingGastos.forEach(g => mergedGastosMap.set(g.id, g));
+                localGastos.forEach(g => mergedGastosMap.set(g.id, g)); // local tiene prioridad
+                firebasePayload.gastos = Array.from(mergedGastosMap.values())
                     .sort((a, b) => b.id - a.id);
 
                 // Merge clients: combinar clientes del servidor con los locales para evitar
@@ -689,6 +741,7 @@ window.startCountersSync = startCountersSync;
 window.stopCountersSync = stopCountersSync;
 window.startHistorySync = startHistorySync;
 window.stopHistorySync = stopHistorySync;
+window.syncMovementsFromFirestore = syncMovementsFromFirestore;
 window.uploadProductImageToStorage = uploadProductImageToStorage;
 window.saveProductImageToCache = saveProductImageToCache;
 window.getProductImageFromCache = getProductImageFromCache;
