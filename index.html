@@ -735,8 +735,12 @@
             <!-- Filtros -->
             <div class="stats-filters">
                 <div id="estadisticasCityRow" style="display:flex; align-items:center; gap:8px;">
-                    <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">🏛️ Ciudad:</label>
+                    <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">🏛️ Inventario:</label>
                     <select id="estadisticasCitySelect" onchange="estadisticasCity = this.value || null; renderEstadisticas();" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:#fff; cursor:pointer;"></select>
+                </div>
+                <div id="estadisticasSellerRow" style="display:flex; align-items:center; gap:8px;">
+                    <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">👤 Vendedor:</label>
+                    <select id="estadisticasSellerSelect" onchange="estadisticasSeller = this.value || null; renderEstadisticas();" style="padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; background:#fff; cursor:pointer;"></select>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <label style="font-size:13px; font-weight:600; color:#555; white-space:nowrap;">📅 Año:</label>
@@ -858,7 +862,7 @@
     <script src="js/quotes.js?v=20260315b"></script>
     <script src="js/pdf.js?v=20260315b"></script>
     <script src="js/history.js?v=20260315c"></script>
-    <script src="js/estadisticas.js?v=20260315b"></script>
+    <script src="js/estadisticas.js?v=20260617"></script>
     <script src="js/app.js?v=20260315b"></script>
 </body>
 </html>

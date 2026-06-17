@@ -2,7 +2,8 @@
 
 let estadisticasCity = null;
 let estadisticasYear = new Date().getFullYear();
-let estadisticasMonth = null;
+let estadisticasMonth = new Date().getMonth() + 1;
+let estadisticasSeller = null;
 const chartInstances = {};
 
 function openEstadisticas() {
@@ -22,7 +23,18 @@ function openEstadisticas() {
         if (cityRow) cityRow.style.display = '';
     }
 
+    // Si es vendedor, fijar vendedor al propio y ocultar el selector
+    const sellerRow = document.getElementById('estadisticasSellerRow');
+    if (appData.userRole === 'vendedor' && appData.loggedSeller) {
+        estadisticasSeller = appData.loggedSeller.name;
+        if (sellerRow) sellerRow.style.display = 'none';
+    } else {
+        estadisticasSeller = null;
+        if (sellerRow) sellerRow.style.display = '';
+    }
+
     renderEstadisticasCityButtons();
+    renderEstadisticasSellerFilter();
     renderEstadisticasYearFilter();
     renderEstadisticasMonthFilter();
     renderEstadisticas();
@@ -44,6 +56,25 @@ function renderEstadisticasCityButtons() {
     });
 
     select.value = currentCity || '';
+}
+
+function renderEstadisticasSellerFilter() {
+    const select = document.getElementById('estadisticasSellerSelect');
+    if (!select) return;
+
+    const currentSeller = estadisticasSeller;
+    select.innerHTML = '<option value="">\uD83D\uDC65 Todos</option>';
+
+    const sellers = Array.isArray(appData.sellers) ? appData.sellers : [];
+    sellers.forEach(seller => {
+        const option = document.createElement('option');
+        option.value = seller.name;
+        option.textContent = seller.name;
+        if (seller.name === currentSeller) option.selected = true;
+        select.appendChild(option);
+    });
+
+    select.value = currentSeller || '';
 }
 
 function renderEstadisticasYearFilter() {
@@ -101,6 +132,7 @@ function getFilteredSalesForStats() {
             if (!(e.seller && e.seller.name === appData.loggedSeller.name)) return false;
         }
         if (estadisticasCity && e.city !== estadisticasCity) return false;
+        if (estadisticasSeller && !(e.seller && e.seller.name === estadisticasSeller)) return false;
         const parts = e.date.split(',')[0].trim().split('/');
         if (parts.length === 3) {
             if (estadisticasYear && parseInt(parts[2]) !== estadisticasYear) return false;
