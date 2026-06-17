@@ -457,11 +457,14 @@ async function syncMovementsFromFirestore() {
 }
 
 // Elimina las imágenes base64 de los productos dentro de los items del historial
-// para mantener el tamaño del documento Firestore por debajo del límite de 1MB.
-// Las URLs de Firebase Storage se conservan (son cadenas cortas).
+// Y el logo de la empresa de cada entrada — el logo se guarda una sola vez en el
+// documento principal (company.logo). Esto es crítico para mantenerse bajo el límite
+// de 1MB de Firestore: con 50+ entradas un logo de 80KB = 4MB solo en logos.
 function stripImagesFromHistoryItems(historyArray) {
     return (historyArray || []).map(entry => ({
         ...entry,
+        // Quitar logo de cada entrada: el logo actual siempre está en appData.company.logo
+        company: entry.company ? { ...entry.company, logo: '' } : entry.company,
         items: (entry.items || []).map(item => ({
             ...item,
             product: item.product ? {

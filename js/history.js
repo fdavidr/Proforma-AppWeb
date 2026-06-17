@@ -59,7 +59,9 @@ function redownloadPDF(entryId) {
         return;
     }
 
-    const company = entry.company || {};
+    // Usar el logo actual de la empresa; el logo se quitó de las entradas del historial
+    // para reducir el tamaño del documento Firestore (ver stripImagesFromHistoryItems).
+    const company = { ...(entry.company || {}), logo: (entry.company && entry.company.logo) || appData.company.logo || '' };
     const client = typeof entry.client === 'object' ? entry.client : { name: entry.client };
     const seller = typeof entry.seller === 'object' ? entry.seller : { name: entry.seller };
     const items = Array.isArray(entry.items) ? entry.items : [];
