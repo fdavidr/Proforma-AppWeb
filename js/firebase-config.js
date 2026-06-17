@@ -27,6 +27,10 @@ const DOCUMENT_COUNTER_FIELDS = {
     notaentrega: 'currentDeliveryNumber'
 };
 let countersSyncInterval = null;
+// Bandera: indica que el localStorage local tenía datos (ventas/gastos) que NO estaban
+// en Firestore al cargar. loadData() la usa para forzar un re-guardado y empujar esos
+// datos a la nube, de modo que otros dispositivos (celular) puedan verlos.
+let pendingFirestoreResync = false;
 
 function initFirebase() {
     try {
@@ -532,7 +536,11 @@ async function saveAllData(appData) {
                 existingHistory.forEach(entry => mergedMap.set(entry.id, entry));
                 localHistory.forEach(entry => mergedMap.set(entry.id, entry));
                 let mergedHistory = Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
-                firebasePayload.pdfHistory = mergedHistory;
+                // Limpiar logos/imágenes base64 del historial COMPLETO (incluidas las
+                // entradas que solo existían en el servidor). Esto garantiza que el
+                // documento se mantenga por debajo del límite de 1MB de Firestore aunque
+                // antes se hubieran guardado entradas con logos pesados.
+                firebasePayload.pdfHistory = stripImagesFromHistoryItems(mergedHistory);
 
                 // Merge gastos: combinar TODOS los gastos del servidor con los locales,
                 // igual que pdfHistory. Los locales tienen prioridad (preservan ediciones).
@@ -703,6 +711,34 @@ async function loadAllData() {
                             localHistory.forEach(e => mergedMap.set(e.id, e));
                             firebaseData.pdfHistory = Array.from(mergedMap.values())
                                 .sort((a, b) => b.id - a.id);
+                            // Hay ventas locales que faltan en Firestore → reenviar a la nube
+                            pendingFirestoreResync = true;
+                        }
+
+                        // Fusionar gastos del localStorage que no estén en Firestore
+                        const localGastos = localData.gastos || [];
+                        const fbGastos = firebaseData.gastos || [];
+                        const fbGastoIds = new Set(fbGastos.map(g => g.id));
+                        const missingGastos = localGastos.filter(g => !fbGastoIds.has(g.id));
+                        if (missingGastos.length > 0) {
+                            const gMap = new Map();
+                            fbGastos.forEach(g => gMap.set(g.id, g));
+                            localGastos.forEach(g => gMap.set(g.id, g));
+                            firebaseData.gastos = Array.from(gMap.values()).sort((a, b) => b.id - a.id);
+                            pendingFirestoreResync = true;
+                        }
+
+                        // Fusionar clientes del localStorage que no estén en Firestore
+                        const localClients = localData.clients || [];
+                        const fbClients = firebaseData.clients || [];
+                        const fbClientIds = new Set(fbClients.map(c => c.id));
+                        const missingClients = localClients.filter(c => !fbClientIds.has(c.id));
+                        if (missingClients.length > 0) {
+                            const cMap = new Map();
+                            fbClients.forEach(c => cMap.set(c.id, c));
+                            localClients.forEach(c => cMap.set(c.id, c));
+                            firebaseData.clients = Array.from(cMap.values());
+                            pendingFirestoreResync = true;
                         }
                     } catch (e) { /* ignorar errores de parseo */ }
                 }
@@ -745,6 +781,8 @@ window.stopCountersSync = stopCountersSync;
 window.startHistorySync = startHistorySync;
 window.stopHistorySync = stopHistorySync;
 window.syncMovementsFromFirestore = syncMovementsFromFirestore;
+window.needsFirestoreResync = () => pendingFirestoreResync;
+window.clearFirestoreResyncFlag = () => { pendingFirestoreResync = false; };
 window.uploadProductImageToStorage = uploadProductImageToStorage;
 window.saveProductImageToCache = saveProductImageToCache;
 window.getProductImageFromCache = getProductImageFromCache;

@@ -100,6 +100,15 @@ async function loadData() {
         }
     } catch (e) {
     }
+
+    // Si al cargar se detectaron ventas/gastos/clientes locales que no estaban en
+    // Firestore, reenviarlos a la nube en segundo plano para que otros dispositivos
+    // (p.ej. el celular) puedan verlos. Sin esto, los datos quedarían atrapados en
+    // el localStorage de esta computadora.
+    if (typeof window.needsFirestoreResync === 'function' && window.needsFirestoreResync()) {
+        window.clearFirestoreResyncFlag();
+        setTimeout(() => { saveData().catch(() => {}); }, 1000);
+    }
 }
 
 async function saveData() {
