@@ -64,20 +64,6 @@ function renderLoginCompanyDropdown() {
         menu.appendChild(item);
     });
 
-    const divider = document.createElement('div');
-    divider.className = 'company-dropdown-divider';
-    menu.appendChild(divider);
-
-    const createBtn = document.createElement('div');
-    createBtn.className = 'company-dropdown-item company-dropdown-create';
-    createBtn.innerHTML = '<span>➕ Nueva Empresa</span>';
-    createBtn.style.cursor = 'pointer';
-    createBtn.addEventListener('click', function () {
-        menu.style.display = 'none';
-        document.removeEventListener('click', _closeLoginDropdownOutside);
-        openModal('createCompanyModal');
-    });
-    menu.appendChild(createBtn);
 }
 
 // ---- Selector de empresa en el HEADER ----
