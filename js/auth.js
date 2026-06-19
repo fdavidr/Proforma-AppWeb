@@ -1,56 +1,75 @@
 // ==================== AUTENTICACIÓN ====================
 
 function initLogin() {
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+        errorDiv.classList.add('hidden');
 
-        let isValid = false;
+        let targetCompanyId = null;
         let userRole = null;
         let sellerData = null;
 
-        // Detectar rol automáticamente por credenciales (credenciales según empresa activa)
-        const _creds = (typeof getActiveCompanyCredentials === 'function')
-            ? getActiveCompanyCredentials()
-            : { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
-        if (username === _creds.adminUsername && password === _creds.adminPassword) {
-            isValid = true;
+        // 1) Detectar ADMIN por credenciales (busca en todas las empresas)
+        const adminCompany = (typeof detectCompanyByAdmin === 'function')
+            ? detectCompanyByAdmin(username, password)
+            : null;
+
+        if (adminCompany) {
+            targetCompanyId = adminCompany.id;
             userRole = 'admin';
         } else {
-            const seller = appData.sellers.find(s => 
-                s.username === username && s.password === password
-            );
-
-            if (seller) {
-                isValid = true;
+            // 2) Detectar VENDEDOR entre todas las empresas
+            const sellerMatch = (typeof detectCompanyBySeller === 'function')
+                ? await detectCompanyBySeller(username, password)
+                : null;
+            if (sellerMatch) {
+                targetCompanyId = sellerMatch.companyId;
                 userRole = 'vendedor';
-                sellerData = seller;
+                sellerData = sellerMatch.seller;
             }
         }
 
-        if (isValid) {
-            appData.userRole = userRole;
-            appData.loggedSeller = sellerData;
-            
-            // Si es vendedor, configurar ciudad automáticamente
-            if (userRole === 'vendedor' && sellerData) {
-                appData.selectedSaleCity = sellerData.city;
-            }
-            
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-            
-            // Actualizar label de empresa en header
-            if (typeof updateCompanySelectorLabel === 'function') updateCompanySelectorLabel();
-            
-            // Forzar render del DOM antes de init
-            setTimeout(() => init(), 0);
-        } else {
-            const errorDiv = document.getElementById('loginError');
+        if (!userRole) {
             errorDiv.textContent = 'Usuario o contraseña incorrectos';
             errorDiv.classList.remove('hidden');
+            return;
         }
+
+        // Si la empresa detectada no es la activa, cambiar y cargar sus datos
+        if (targetCompanyId !== getActiveCompanyId() && typeof switchCompanyData === 'function') {
+            await switchCompanyData(targetCompanyId);
+        }
+
+        // Si es una empresa creada y aún no tiene datos guardados, sembrar su nombre
+        // (el ingresado al crearla) para que aparezca en el encabezado.
+        if (userRole === 'admin' && targetCompanyId !== 'default' && typeof getCompanies === 'function') {
+            const comp = getCompanies().find(c => c.id === targetCompanyId);
+            if (comp && (!appData.company.name || appData.company.name === 'Nombre de la Empresa')) {
+                appData.company.name = comp.name;
+                if (comp.slogan) appData.company.slogan = comp.slogan;
+                if (comp.nit) appData.company.nit = comp.nit;
+            }
+        }
+
+        appData.userRole = userRole;
+        appData.loggedSeller = sellerData;
+
+        // Si es vendedor, configurar ciudad automáticamente
+        if (userRole === 'vendedor' && sellerData) {
+            appData.selectedSaleCity = sellerData.city;
+        }
+
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        // Actualizar label de empresa en header
+        if (typeof updateCompanySelectorLabel === 'function') updateCompanySelectorLabel();
+
+        // Forzar render del DOM antes de init
+        setTimeout(() => init(), 0);
     });
 }
 

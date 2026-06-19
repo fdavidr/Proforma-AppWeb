@@ -72,6 +72,36 @@ function getActiveCompanyCredentials() {
     return { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
 }
 
+// Lee, de forma segura y sin efectos secundarios, la lista de vendedores de una empresa.
+// Se usa en el login para detectar a qué empresa pertenece un vendedor.
+async function readCompanySellers(companyId) {
+    // 1) Intentar leer desde Firestore
+    try {
+        if (isFirebaseEnabled && db) {
+            const ref = companyId === 'default'
+                ? db.collection('proformaApp').doc('appData')
+                : db.collection('companies').doc(companyId).collection('data').doc('appData');
+            const doc = await ref.get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (Array.isArray(data.sellers)) return data.sellers;
+            }
+        }
+    } catch (e) { /* ignorar y usar fallback */ }
+
+    // 2) Fallback al cache de localStorage de esa empresa
+    try {
+        const key = companyId === 'default' ? 'proformaAppData' : `proformaAppData_${companyId}`;
+        const raw = localStorage.getItem(key);
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (Array.isArray(data.sellers)) return data.sellers;
+        }
+    } catch (e) { /* ignorar */ }
+
+    return [];
+}
+
 // Clave dinámica de localStorage según empresa activa
 function getLocalCacheKey() {
     const id = getActiveCompanyId();
@@ -864,4 +894,5 @@ window.saveCompaniesList = saveCompaniesList;
 window.getActiveCompanyId = getActiveCompanyId;
 window.setActiveCompanyId = setActiveCompanyId;
 window.getActiveCompanyCredentials = getActiveCompanyCredentials;
+window.readCompanySellers = readCompanySellers;
 window.getLocalCacheKey = getLocalCacheKey;

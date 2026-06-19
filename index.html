@@ -23,14 +23,6 @@
     <div id="loginScreen" class="login-container">
         <div class="login-box">
             <h1>Sistema de Cotizaciones</h1>
-            <!-- Selector de empresa activa -->
-            <div class="login-company-selector-wrap" id="loginCompanySelectorWrap">
-                <button type="button" class="btn-login-company-selector" onclick="toggleLoginCompanyDropdown()">
-                    <span id="loginCompanyLabel">🏢 Empresa</span>
-                    <span class="company-selector-arrow">&#9660;</span>
-                </button>
-                <div id="loginCompanyDropdownMenu" class="company-dropdown-menu login-company-dropdown-menu" style="display:none;"></div>
-            </div>
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">Usuario</label>
@@ -46,6 +38,9 @@
                 <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
                 <div id="loginError" class="error-message hidden"></div>
             </form>
+            <div class="login-create-company">
+                <button type="button" class="btn-link-create-company" onclick="openCreateCompanyModal()">➕ Crear nueva empresa</button>
+            </div>
         </div>
     </div>
 
@@ -74,14 +69,6 @@
                     <p id="companySlogan">Eslogan de la empresa</p>
                     <p id="companyNit" class="company-nit" style="display: none;"></p>
                 </div>
-            </div>
-            <!-- Selector de empresa (multi-empresa) -->
-            <div class="company-selector-wrap" id="companySelectorContainer">
-                <button class="btn-company-selector" onclick="toggleCompanyDropdown()" type="button">
-                    <span id="activeBranchLabel">🏢 Empresa</span>
-                    <span class="company-selector-arrow">&#9660;</span>
-                </button>
-                <div id="companyDropdownMenu" class="company-dropdown-menu" style="display:none;"></div>
             </div>
         </div>
         
@@ -429,7 +416,18 @@
                     <label>Nombre de la Empresa <span style="color:#e74c3c;">*</span></label>
                     <input type="text" id="newCompanyName" placeholder="Ej: Mi Empresa S.A." style="text-transform:none;">
                 </div>
-                <p style="font-size:12px; color:#7f8c8d; margin:8px 0 0;">💡 El logo, eslogan y NIT puedes completarlos después desde <strong>Configuración de Empresa</strong>.</p>
+                <div style="border-top:1px solid #f0f0f0; padding-top:14px; margin-top:6px;">
+                    <label style="font-weight:700; color:#2c3e50; font-size:14px; display:block; margin-bottom:12px;">🔐 Credenciales de Administrador</label>
+                    <div class="form-group">
+                        <label>Usuario Admin <span style="color:#e74c3c;">*</span></label>
+                        <input type="text" id="newCompanyAdminUser" placeholder="usuario_admin" style="text-transform:none;">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña Admin <span style="color:#e74c3c;">*</span></label>
+                        <input type="password" id="newCompanyAdminPass" placeholder="Mínimo 4 caracteres">
+                    </div>
+                </div>
+                <p style="font-size:12px; color:#7f8c8d; margin:8px 0 0;">💡 El logo, eslogan y NIT puedes completarlos después desde <strong>Configuración de Empresa</strong>. Con estas credenciales iniciarás sesión en la nueva empresa.</p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('createCompanyModal')">Cancelar</button>

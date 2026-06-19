@@ -1,172 +1,172 @@
 // ==================== GESTIÓN MULTI-EMPRESA ====================
+//
+// Modelo:
+// - Cada empresa tiene credenciales de administrador propias.
+// - La empresa "default" (Ciam) usa las credenciales del sistema (CiamP25 / CiamP25).
+// - Las empresas creadas se guardan en localStorage (proformaCompanies). Máximo 3.
+// - En el login NO se selecciona empresa: el sistema detecta a qué empresa
+//   pertenecen las credenciales ingresadas y carga sus datos automáticamente.
+// - La creación de empresas solo está disponible desde la pantalla de login.
 
-// ---- Selector de empresa en el LOGIN ----
+const MAX_COMPANIES = 3; // máximo de empresas que se pueden crear (sin contar la default)
+const DEFAULT_ADMIN_USERNAME = 'CiamP25';
+const DEFAULT_ADMIN_PASSWORD = 'CiamP25';
 
-function toggleLoginCompanyDropdown() {
-    const menu = document.getElementById('loginCompanyDropdownMenu');
-    if (!menu) return;
-    if (menu.style.display === 'none' || menu.style.display === '') {
-        renderLoginCompanyDropdown();
-        menu.style.display = 'block';
-        setTimeout(() => document.addEventListener('click', _closeLoginDropdownOutside), 0);
-    } else {
-        menu.style.display = 'none';
-    }
-}
+// ---- Detección de empresa por credenciales ----
 
-function _closeLoginDropdownOutside(e) {
-    const container = document.getElementById('loginCompanySelectorWrap');
-    if (container && !container.contains(e.target)) {
-        const menu = document.getElementById('loginCompanyDropdownMenu');
-        if (menu) menu.style.display = 'none';
-        document.removeEventListener('click', _closeLoginDropdownOutside);
-    }
-}
-
-function renderLoginCompanyDropdown() {
-    const menu = document.getElementById('loginCompanyDropdownMenu');
-    if (!menu) return;
-
-    const activeId = getActiveCompanyId();
-    const companies = getCompanies();
-    const defaultName = (typeof appData !== 'undefined' && appData.company && appData.company.name)
-        ? appData.company.name
-        : 'Empresa Principal';
-
-    const allCompanies = [{ id: 'default', name: defaultName }].concat(companies);
-
-    menu.innerHTML = '';
-
-    allCompanies.forEach(company => {
-        const item = document.createElement('div');
-        item.className = 'company-dropdown-item' + (company.id === activeId ? ' active' : '');
-
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'company-dropdown-name';
-        nameSpan.textContent = company.name;
-        item.appendChild(nameSpan);
-
-        if (company.id === activeId) {
-            const check = document.createElement('span');
-            check.className = 'company-dropdown-check';
-            check.textContent = '✓';
-            item.appendChild(check);
-        } else {
-            item.style.cursor = 'pointer';
-            item.addEventListener('click', function () {
-                menu.style.display = 'none';
-                document.removeEventListener('click', _closeLoginDropdownOutside);
-                setActiveCompanyId(company.id);
-                window.location.reload();
-            });
-        }
-
-        menu.appendChild(item);
-    });
-
-}
-
-// ---- Selector de empresa en el HEADER ----
-
-// Muestra/oculta el dropdown de selección de empresa en el header
-function toggleCompanyDropdown() {
-    const menu = document.getElementById('companyDropdownMenu');
-    if (!menu) return;
-    if (menu.style.display === 'none' || menu.style.display === '') {
-        renderCompanyDropdown();
-        menu.style.display = 'block';
-        setTimeout(() => document.addEventListener('click', _closeCompanyDropdownOutside), 0);
-    } else {
-        menu.style.display = 'none';
-    }
-}
-
-function _closeCompanyDropdownOutside(e) {
-    const container = document.getElementById('companySelectorContainer');
-    if (container && !container.contains(e.target)) {
-        const menu = document.getElementById('companyDropdownMenu');
-        if (menu) menu.style.display = 'none';
-        document.removeEventListener('click', _closeCompanyDropdownOutside);
-    }
-}
-
-// Construye el contenido del dropdown con todas las empresas registradas
-function renderCompanyDropdown() {
-    const menu = document.getElementById('companyDropdownMenu');
-    if (!menu) return;
-
-    const activeId = getActiveCompanyId();
-    const companies = getCompanies();
+// Detecta de forma sincrónica si las credenciales corresponden al admin de alguna empresa.
+// Retorna el objeto empresa (incluye id) o null.
+function detectCompanyByAdmin(username, password) {
     const defaultName = (typeof appData !== 'undefined' && appData.company && appData.company.name)
         ? appData.company.name
         : 'Empresa Principal';
 
     const allCompanies = [
-        { id: 'default', name: defaultName }
-    ].concat(companies);
+        { id: 'default', name: defaultName, adminUsername: DEFAULT_ADMIN_USERNAME, adminPassword: DEFAULT_ADMIN_PASSWORD }
+    ].concat(getCompanies());
 
-    menu.innerHTML = '';
-
-    allCompanies.forEach(company => {
-        const item = document.createElement('div');
-        item.className = 'company-dropdown-item' + (company.id === activeId ? ' active' : '');
-
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'company-dropdown-name';
-        nameSpan.textContent = company.name;
-
-        item.appendChild(nameSpan);
-
-        if (company.id === activeId) {
-            const check = document.createElement('span');
-            check.className = 'company-dropdown-check';
-            check.textContent = '✓';
-            item.appendChild(check);
-        }
-
-        if (company.id !== 'default') {
-            const delBtn = document.createElement('button');
-            delBtn.className = 'company-dropdown-del';
-            delBtn.title = 'Quitar empresa de este dispositivo';
-            delBtn.textContent = '✕';
-            delBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                confirmRemoveCompany(company.id, company.name);
-            });
-            item.appendChild(delBtn);
-        }
-
-        if (company.id !== activeId) {
-            item.style.cursor = 'pointer';
-            item.addEventListener('click', function() {
-                menu.style.display = 'none';
-                document.removeEventListener('click', _closeCompanyDropdownOutside);
-                switchToCompany(company.id);
-            });
-        }
-
-        menu.appendChild(item);
-    });
-
-    // Separador
-    const divider = document.createElement('div');
-    divider.className = 'company-dropdown-divider';
-    menu.appendChild(divider);
-
-    // Botón "Nueva Empresa"
-    const createBtn = document.createElement('div');
-    createBtn.className = 'company-dropdown-item company-dropdown-create';
-    createBtn.innerHTML = '<span>➕ Nueva Empresa</span>';
-    createBtn.style.cursor = 'pointer';
-    createBtn.addEventListener('click', function() {
-        menu.style.display = 'none';
-        document.removeEventListener('click', _closeCompanyDropdownOutside);
-        openModal('createCompanyModal');
-    });
-    menu.appendChild(createBtn);
+    return allCompanies.find(c => c.adminUsername === username && c.adminPassword === password) || null;
 }
 
-// Actualiza la etiqueta visible del selector en el header y en la pantalla de login
+// Detecta (de forma asíncrona) a qué empresa pertenece un vendedor con esas credenciales.
+// Recorre todas las empresas leyendo su lista de vendedores sin alterar el estado global.
+async function detectCompanyBySeller(username, password) {
+    const allCompanies = [{ id: 'default' }].concat(getCompanies());
+
+    for (const company of allCompanies) {
+        let sellers = [];
+        if (typeof readCompanySellers === 'function') {
+            sellers = await readCompanySellers(company.id);
+        }
+        const seller = sellers.find(s => s.username === username && s.password === password);
+        if (seller) {
+            return { companyId: company.id, seller };
+        }
+    }
+    return null;
+}
+
+// Cambia la empresa activa y recarga sus datos en memoria, evitando que queden
+// datos de la empresa anterior. No recarga la página.
+async function switchCompanyData(companyId) {
+    if (typeof stopCountersSync === 'function') stopCountersSync();
+    if (typeof stopHistorySync === 'function') stopHistorySync();
+
+    setActiveCompanyId(companyId);
+    resetCompanyScopedData();
+    if (typeof loadData === 'function') {
+        await loadData();
+    }
+}
+
+// Restaura a valores por defecto los campos de datos propios de cada empresa,
+// para evitar fugas de información entre empresas al cambiar sin recargar.
+function resetCompanyScopedData() {
+    appData.company = {
+        name: 'Nombre de la Empresa',
+        slogan: 'Eslogan de la empresa',
+        nit: '',
+        adminRecoveryEmail: '',
+        logo: ''
+    };
+    appData.clients = [];
+    appData.sellers = [];
+    appData.products = [];
+    appData.pdfHistory = [];
+    appData.gastos = [];
+    appData.inventories = [
+        { id: 'cochabamba', name: 'Cochabamba' },
+        { id: 'santacruz', name: 'Santa Cruz' }
+    ];
+    appData.currentQuoteNumber = 100000;
+    appData.currentSaleNumber = 100000;
+    appData.currentSaleNumbers = {};
+    appData.currentDeliveryNumber = 100000;
+}
+
+// ---- Creación de empresa (solo desde el login) ----
+
+// Abre el modal de creación de empresa
+function openCreateCompanyModal() {
+    if (getCompanies().length >= MAX_COMPANIES) {
+        alert(`Solo se pueden crear un máximo de ${MAX_COMPANIES} empresas.`);
+        return;
+    }
+    const nameInput = document.getElementById('newCompanyName');
+    const userInput = document.getElementById('newCompanyAdminUser');
+    const passInput = document.getElementById('newCompanyAdminPass');
+    if (nameInput) nameInput.value = '';
+    if (userInput) userInput.value = '';
+    if (passInput) passInput.value = '';
+    openModal('createCompanyModal');
+}
+
+// Verifica que un nombre de usuario de administrador esté disponible (no usado por
+// la empresa por defecto ni por otra empresa creada). Comparación sin distinción de mayúsculas.
+function isAdminUsernameAvailable(username) {
+    const u = (username || '').trim().toLowerCase();
+    if (!u) return false;
+    if (u === DEFAULT_ADMIN_USERNAME.toLowerCase()) return false;
+    return !getCompanies().some(c => (c.adminUsername || '').toLowerCase() === u);
+}
+
+// Crea una nueva empresa con credenciales propias y la activa.
+function createNewCompany() {
+    const name = document.getElementById('newCompanyName').value.trim();
+    const adminUser = document.getElementById('newCompanyAdminUser').value.trim();
+    const adminPass = document.getElementById('newCompanyAdminPass').value.trim();
+
+    if (!name) {
+        alert('El nombre de la empresa es obligatorio.');
+        document.getElementById('newCompanyName').focus();
+        return;
+    }
+    if (!adminUser || !adminPass) {
+        alert('Debes definir un usuario y una contraseña de administrador.');
+        return;
+    }
+    if (adminPass.length < 4) {
+        alert('La contraseña debe tener al menos 4 caracteres.');
+        return;
+    }
+
+    const companies = getCompanies();
+    if (companies.length >= MAX_COMPANIES) {
+        alert(`Solo se pueden crear un máximo de ${MAX_COMPANIES} empresas.`);
+        return;
+    }
+
+    // Verificar disponibilidad del nombre de usuario
+    if (!isAdminUsernameAvailable(adminUser)) {
+        alert('El nombre de usuario ya está en uso por otra empresa. Elige uno diferente.');
+        document.getElementById('newCompanyAdminUser').focus();
+        return;
+    }
+
+    const id = 'company_' + Date.now();
+    companies.push({
+        id,
+        name,
+        slogan: '',
+        nit: '',
+        adminUsername: adminUser,
+        adminPassword: adminPass
+    });
+    saveCompaniesList(companies);
+
+    closeModal('createCompanyModal');
+    document.getElementById('newCompanyName').value = '';
+    document.getElementById('newCompanyAdminUser').value = '';
+    document.getElementById('newCompanyAdminPass').value = '';
+
+    // Activar la nueva empresa y recargar para arrancar con datos limpios.
+    setActiveCompanyId(id);
+    alert('Empresa creada correctamente.\n\nInicia sesión con el usuario y la contraseña que configuraste.');
+    window.location.reload();
+}
+
+// Actualiza la etiqueta del header (si existiera). El selector fue removido, pero
+// se conserva la función por compatibilidad con llamadas existentes.
 function updateCompanySelectorLabel() {
     const activeId = getActiveCompanyId();
     let name;
@@ -176,101 +176,20 @@ function updateCompanySelectorLabel() {
             ? appData.company.name
             : 'Empresa Principal';
     } else {
-        const companies = getCompanies();
-        const company = companies.find(c => c.id === activeId);
+        const company = getCompanies().find(c => c.id === activeId);
         name = company ? company.name : 'Empresa';
     }
 
     const label = document.getElementById('activeBranchLabel');
     if (label) label.textContent = '🏢 ' + name;
-
-    const loginLabel = document.getElementById('loginCompanyLabel');
-    if (loginLabel) loginLabel.textContent = '🏢 ' + name;
-}
-
-// Cambia la empresa activa: guarda estado actual, establece nueva empresa y recarga la página
-async function switchToCompany(companyId) {
-    if (companyId === getActiveCompanyId()) return;
-
-    // Guardar estado actual antes de cambiar
-    if (typeof saveData === 'function') {
-        await saveData().catch(() => {});
-    }
-
-    // Detener sincronizaciones
-    if (typeof stopCountersSync === 'function') stopCountersSync();
-    if (typeof stopHistorySync === 'function') stopHistorySync();
-
-    // Establecer nueva empresa y recargar
-    setActiveCompanyId(companyId);
-    window.location.reload();
-}
-
-// Crea una nueva empresa y cambia a ella
-async function createNewCompany() {
-    const name = document.getElementById('newCompanyName').value.trim();
-
-    if (!name) {
-        alert('El nombre de la empresa es obligatorio.');
-        document.getElementById('newCompanyName').focus();
-        return;
-    }
-
-    // Heredar credenciales de la empresa activa (mismo administrador para todas)
-    const currentCreds = (typeof getActiveCompanyCredentials === 'function')
-        ? getActiveCompanyCredentials()
-        : { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
-
-    const id = 'company_' + Date.now();
-    const newCompany = {
-        id,
-        name,
-        slogan: '',
-        nit: '',
-        adminUsername: currentCreds.adminUsername || 'CiamP25',
-        adminPassword: currentCreds.adminPassword || 'CiamP25'
-    };
-
-    const companies = getCompanies();
-    companies.push(newCompany);
-    saveCompaniesList(companies);
-
-    closeModal('createCompanyModal');
-    document.getElementById('newCompanyName').value = '';
-
-    // Activar nueva empresa y recargar
-    setActiveCompanyId(id);
-    window.location.reload();
-}
-
-// Confirmar y eliminar empresa del listado local (no borra datos en Firebase)
-function confirmRemoveCompany(companyId, companyName) {
-    if (!confirm(`¿Quitar la empresa "${companyName}" de este dispositivo?\n\nLos datos en Firebase se conservan y pueden volver a agregarse ingresando las credenciales.`)) return;
-
-    const companies = getCompanies();
-    const filtered = companies.filter(c => c.id !== companyId);
-    saveCompaniesList(filtered);
-
-    // Si la empresa eliminada era la activa, regresar a la principal
-    if (getActiveCompanyId() === companyId) {
-        switchToCompany('default');
-    } else {
-        renderCompanyDropdown();
-    }
-}
-
-// Abre un pequeño modal para "agregar" una empresa existente por su ID
-function openAddExistingCompanyModal() {
-    // No implementado aún — las empresas se crean con "Nueva Empresa"
-    // Reservado para importación futura
 }
 
 // Exponer funciones globalmente
-window.toggleCompanyDropdown = toggleCompanyDropdown;
-window.toggleLoginCompanyDropdown = toggleLoginCompanyDropdown;
-window.renderCompanyDropdown = renderCompanyDropdown;
-window.renderLoginCompanyDropdown = renderLoginCompanyDropdown;
-window.updateCompanySelectorLabel = updateCompanySelectorLabel;
-window.switchToCompany = switchToCompany;
+window.detectCompanyByAdmin = detectCompanyByAdmin;
+window.detectCompanyBySeller = detectCompanyBySeller;
+window.switchCompanyData = switchCompanyData;
+window.resetCompanyScopedData = resetCompanyScopedData;
+window.openCreateCompanyModal = openCreateCompanyModal;
+window.isAdminUsernameAvailable = isAdminUsernameAvailable;
 window.createNewCompany = createNewCompany;
-window.confirmRemoveCompany = confirmRemoveCompany;
+window.updateCompanySelectorLabel = updateCompanySelectorLabel;
