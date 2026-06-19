@@ -422,29 +422,24 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Nombre de la Empresa *</label>
-                    <input type="text" id="newCompanyName" placeholder="Ej: Mi Empresa S.A." style="text-transform:none;">
+                    <label>Nombre de la Empresa <span style="color:#e74c3c;">*</span></label>
+                    <input type="text" id="newCompanyName" placeholder="Ej: Mi Empresa S.A." style="text-transform:none;" autofocus>
                 </div>
-                <div class="form-group">
-                    <label>Eslogan</label>
-                    <input type="text" id="newCompanySlogan" placeholder="Ej: Calidad y confianza" style="text-transform:none;">
-                </div>
-                <div class="form-group">
-                    <label>NIT</label>
-                    <input type="text" id="newCompanyNit" placeholder="Número de NIT">
-                </div>
-                <div style="border-top:2px solid #f0f0f0; padding-top:16px; margin-top:4px;">
-                    <label style="font-weight:700; color:#2c3e50; font-size:14px; display:block; margin-bottom:12px;">🔐 Credenciales de Administrador</label>
-                    <div class="form-group">
-                        <label>Usuario Admin *</label>
-                        <input type="text" id="newCompanyAdminUser" placeholder="usuario_admin" style="text-transform:none;">
+                <p style="font-size:12px; color:#7f8c8d; margin:8px 0 16px;">💡 El logo, eslogan, NIT y demás datos puedes completarlos después desde <strong>Configuración de Empresa</strong>.</p>
+                <details style="border-top:1px solid #f0f0f0; padding-top:12px;">
+                    <summary style="cursor:pointer; font-weight:600; color:#2c3e50; font-size:13px; margin-bottom:12px;">🔐 Credenciales de Administrador (opcional)</summary>
+                    <div style="margin-top:12px;">
+                        <div class="form-group">
+                            <label>Usuario Admin</label>
+                            <input type="text" id="newCompanyAdminUser" placeholder="Dejar vacío para usar credencial predeterminada" style="text-transform:none;">
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña Admin</label>
+                            <input type="password" id="newCompanyAdminPass" placeholder="Dejar vacío para usar credencial predeterminada">
+                        </div>
+                        <p style="font-size:11px; color:#95a5a6; margin-top:4px;">⚠️ Si no configuras credenciales, se usarán las del sistema por defecto. Puedes cambiarlas después.</p>
                     </div>
-                    <div class="form-group">
-                        <label>Contraseña Admin *</label>
-                        <input type="password" id="newCompanyAdminPass" placeholder="Mínimo 4 caracteres">
-                    </div>
-                </div>
-                <p style="font-size:12px; color:#7f8c8d; margin-top:8px;">⚠️ Guarda las credenciales en un lugar seguro. Se usarán para iniciar sesión en esta empresa.</p>
+                </details>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('createCompanyModal')">Cancelar</button>

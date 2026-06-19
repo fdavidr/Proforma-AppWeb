@@ -141,32 +141,35 @@ async function switchToCompany(companyId) {
 // Crea una nueva empresa y cambia a ella
 async function createNewCompany() {
     const name = document.getElementById('newCompanyName').value.trim();
-    const slogan = document.getElementById('newCompanySlogan').value.trim();
-    const nit = document.getElementById('newCompanyNit').value.trim();
     const adminUser = document.getElementById('newCompanyAdminUser').value.trim();
-    const adminPass = document.getElementById('newCompanyAdminPass').value;
+    const adminPass = document.getElementById('newCompanyAdminPass').value.trim();
 
     if (!name) {
         alert('El nombre de la empresa es obligatorio.');
+        document.getElementById('newCompanyName').focus();
         return;
     }
-    if (!adminUser || !adminPass) {
-        alert('El usuario y contraseña de administrador son obligatorios.');
-        return;
-    }
-    if (adminPass.length < 4) {
-        alert('La contraseña debe tener al menos 4 caracteres.');
-        return;
+
+    // Si se proporcionan credenciales, validar que estén completas
+    if (adminUser || adminPass) {
+        if (!adminUser || !adminPass) {
+            alert('Si configuras credenciales, debes ingresar tanto usuario como contraseña.');
+            return;
+        }
+        if (adminPass.length < 4) {
+            alert('La contraseña debe tener al menos 4 caracteres.');
+            return;
+        }
     }
 
     const id = 'company_' + Date.now();
     const newCompany = {
         id,
         name,
-        slogan: slogan || '',
-        nit: nit || '',
-        adminUsername: adminUser,
-        adminPassword: adminPass
+        slogan: '',
+        nit: '',
+        adminUsername: adminUser || 'CiamP25',
+        adminPassword: adminPass || 'CiamP25'
     };
 
     const companies = getCompanies();
@@ -177,8 +180,6 @@ async function createNewCompany() {
 
     // Limpiar campos del formulario
     document.getElementById('newCompanyName').value = '';
-    document.getElementById('newCompanySlogan').value = '';
-    document.getElementById('newCompanyNit').value = '';
     document.getElementById('newCompanyAdminUser').value = '';
     document.getElementById('newCompanyAdminPass').value = '';
 
