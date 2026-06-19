@@ -1,5 +1,87 @@
 // ==================== GESTIÓN MULTI-EMPRESA ====================
 
+// ---- Selector de empresa en el LOGIN ----
+
+function toggleLoginCompanyDropdown() {
+    const menu = document.getElementById('loginCompanyDropdownMenu');
+    if (!menu) return;
+    if (menu.style.display === 'none' || menu.style.display === '') {
+        renderLoginCompanyDropdown();
+        menu.style.display = 'block';
+        setTimeout(() => document.addEventListener('click', _closeLoginDropdownOutside), 0);
+    } else {
+        menu.style.display = 'none';
+    }
+}
+
+function _closeLoginDropdownOutside(e) {
+    const container = document.getElementById('loginCompanySelectorWrap');
+    if (container && !container.contains(e.target)) {
+        const menu = document.getElementById('loginCompanyDropdownMenu');
+        if (menu) menu.style.display = 'none';
+        document.removeEventListener('click', _closeLoginDropdownOutside);
+    }
+}
+
+function renderLoginCompanyDropdown() {
+    const menu = document.getElementById('loginCompanyDropdownMenu');
+    if (!menu) return;
+
+    const activeId = getActiveCompanyId();
+    const companies = getCompanies();
+    const defaultName = (typeof appData !== 'undefined' && appData.company && appData.company.name)
+        ? appData.company.name
+        : 'Empresa Principal';
+
+    const allCompanies = [{ id: 'default', name: defaultName }].concat(companies);
+
+    menu.innerHTML = '';
+
+    allCompanies.forEach(company => {
+        const item = document.createElement('div');
+        item.className = 'company-dropdown-item' + (company.id === activeId ? ' active' : '');
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'company-dropdown-name';
+        nameSpan.textContent = company.name;
+        item.appendChild(nameSpan);
+
+        if (company.id === activeId) {
+            const check = document.createElement('span');
+            check.className = 'company-dropdown-check';
+            check.textContent = '✓';
+            item.appendChild(check);
+        } else {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', function () {
+                menu.style.display = 'none';
+                document.removeEventListener('click', _closeLoginDropdownOutside);
+                setActiveCompanyId(company.id);
+                window.location.reload();
+            });
+        }
+
+        menu.appendChild(item);
+    });
+
+    const divider = document.createElement('div');
+    divider.className = 'company-dropdown-divider';
+    menu.appendChild(divider);
+
+    const createBtn = document.createElement('div');
+    createBtn.className = 'company-dropdown-item company-dropdown-create';
+    createBtn.innerHTML = '<span>➕ Nueva Empresa</span>';
+    createBtn.style.cursor = 'pointer';
+    createBtn.addEventListener('click', function () {
+        menu.style.display = 'none';
+        document.removeEventListener('click', _closeLoginDropdownOutside);
+        openModal('createCompanyModal');
+    });
+    menu.appendChild(createBtn);
+}
+
+// ---- Selector de empresa en el HEADER ----
+
 // Muestra/oculta el dropdown de selección de empresa en el header
 function toggleCompanyDropdown() {
     const menu = document.getElementById('companyDropdownMenu');
@@ -141,8 +223,6 @@ async function switchToCompany(companyId) {
 // Crea una nueva empresa y cambia a ella
 async function createNewCompany() {
     const name = document.getElementById('newCompanyName').value.trim();
-    const adminUser = document.getElementById('newCompanyAdminUser').value.trim();
-    const adminPass = document.getElementById('newCompanyAdminPass').value.trim();
 
     if (!name) {
         alert('El nombre de la empresa es obligatorio.');
@@ -150,17 +230,10 @@ async function createNewCompany() {
         return;
     }
 
-    // Si se proporcionan credenciales, validar que estén completas
-    if (adminUser || adminPass) {
-        if (!adminUser || !adminPass) {
-            alert('Si configuras credenciales, debes ingresar tanto usuario como contraseña.');
-            return;
-        }
-        if (adminPass.length < 4) {
-            alert('La contraseña debe tener al menos 4 caracteres.');
-            return;
-        }
-    }
+    // Heredar credenciales de la empresa activa (mismo administrador para todas)
+    const currentCreds = (typeof getActiveCompanyCredentials === 'function')
+        ? getActiveCompanyCredentials()
+        : { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
 
     const id = 'company_' + Date.now();
     const newCompany = {
@@ -168,8 +241,8 @@ async function createNewCompany() {
         name,
         slogan: '',
         nit: '',
-        adminUsername: adminUser || 'CiamP25',
-        adminPassword: adminPass || 'CiamP25'
+        adminUsername: currentCreds.adminUsername || 'CiamP25',
+        adminPassword: currentCreds.adminPassword || 'CiamP25'
     };
 
     const companies = getCompanies();
@@ -177,14 +250,11 @@ async function createNewCompany() {
     saveCompaniesList(companies);
 
     closeModal('createCompanyModal');
-
-    // Limpiar campos del formulario
     document.getElementById('newCompanyName').value = '';
-    document.getElementById('newCompanyAdminUser').value = '';
-    document.getElementById('newCompanyAdminPass').value = '';
 
-    // Cambiar a la nueva empresa
-    await switchToCompany(id);
+    // Activar nueva empresa y recargar
+    setActiveCompanyId(id);
+    window.location.reload();
 }
 
 // Confirmar y eliminar empresa del listado local (no borra datos en Firebase)
@@ -211,7 +281,9 @@ function openAddExistingCompanyModal() {
 
 // Exponer funciones globalmente
 window.toggleCompanyDropdown = toggleCompanyDropdown;
+window.toggleLoginCompanyDropdown = toggleLoginCompanyDropdown;
 window.renderCompanyDropdown = renderCompanyDropdown;
+window.renderLoginCompanyDropdown = renderLoginCompanyDropdown;
 window.updateCompanySelectorLabel = updateCompanySelectorLabel;
 window.switchToCompany = switchToCompany;
 window.createNewCompany = createNewCompany;
