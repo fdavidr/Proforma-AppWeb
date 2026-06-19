@@ -74,6 +74,7 @@ function saveCompanySettings() {
     
     saveData();
     updateUI();
+    if (typeof updateCompanySelectorLabel === 'function') updateCompanySelectorLabel();
     closeModal('companyModal');
     
     alert('Configuración guardada correctamente');

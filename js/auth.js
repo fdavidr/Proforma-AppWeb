@@ -10,8 +10,11 @@ function initLogin() {
         let userRole = null;
         let sellerData = null;
 
-        // Detectar rol automáticamente por credenciales
-        if (username === 'CiamP25' && password === 'CiamP25') {
+        // Detectar rol automáticamente por credenciales (credenciales según empresa activa)
+        const _creds = (typeof getActiveCompanyCredentials === 'function')
+            ? getActiveCompanyCredentials()
+            : { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
+        if (username === _creds.adminUsername && password === _creds.adminPassword) {
             isValid = true;
             userRole = 'admin';
         } else {
@@ -38,6 +41,9 @@ function initLogin() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             
+            // Actualizar label de empresa en header
+            if (typeof updateCompanySelectorLabel === 'function') updateCompanySelectorLabel();
+            
             // Forzar render del DOM antes de init
             setTimeout(() => init(), 0);
         } else {
@@ -50,8 +56,11 @@ function initLogin() {
 
 function handleForgotPassword() {
     const username = document.getElementById('username').value.trim();
+    const _creds = (typeof getActiveCompanyCredentials === 'function')
+        ? getActiveCompanyCredentials()
+        : { adminUsername: 'CiamP25' };
 
-    if (username === 'CiamP25') {
+    if (username === _creds.adminUsername) {
         const recoveryEmail = appData.company.adminRecoveryEmail;
 
         if (recoveryEmail) {

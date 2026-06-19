@@ -302,6 +302,142 @@ select:focus {
     color: #34495e;
 }
 
+/* ==================== SELECTOR MULTI-EMPRESA ==================== */
+.company-selector-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.btn-company-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.35);
+}
+
+.btn-company-selector:hover {
+    background: linear-gradient(135deg, #5a72d6 0%, #6a3fa8 100%);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
+    transform: translateY(-1px);
+}
+
+.company-selector-arrow {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.company-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    border: 1px solid #e8ecf0;
+    z-index: 9999;
+    overflow: hidden;
+    animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.company-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    font-size: 14px;
+    color: #2c3e50;
+    transition: background 0.15s;
+    user-select: none;
+}
+
+.company-dropdown-item:hover:not(.active) {
+    background: #f0f4ff;
+}
+
+.company-dropdown-item.active {
+    background: #eef2ff;
+    font-weight: 600;
+    color: #5a72d6;
+    cursor: default;
+}
+
+.company-dropdown-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.company-dropdown-check {
+    color: #27ae60;
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.company-dropdown-del {
+    background: none;
+    border: none;
+    color: #bbb;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+}
+
+.company-dropdown-del:hover {
+    color: #e74c3c;
+    background: #fdecea;
+}
+
+.company-dropdown-divider {
+    height: 1px;
+    background: #ecf0f1;
+    margin: 4px 0;
+}
+
+.company-dropdown-create {
+    color: #27ae60 !important;
+    font-weight: 600;
+}
+
+.company-dropdown-create:hover {
+    background: #eafaf1 !important;
+}
+
+/* Banner de empresa activa en la pantalla de login */
+.login-company-banner {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #eef2ff 0%, #f3e8ff 100%);
+    border-radius: 10px;
+    border: 1px solid #d4d9f5;
+    font-size: 14px;
+    font-weight: 600;
+    color: #5a72d6;
+}
+
 .quote-number {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 15px;

@@ -23,6 +23,10 @@
     <div id="loginScreen" class="login-container">
         <div class="login-box">
             <h1>Sistema de Cotizaciones</h1>
+            <!-- Indicador de empresa activa -->
+            <div class="login-company-banner">
+                <span id="loginCompanyLabel">🏢 Empresa Principal</span>
+            </div>
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">Usuario</label>
@@ -66,6 +70,14 @@
                     <p id="companySlogan">Eslogan de la empresa</p>
                     <p id="companyNit" class="company-nit" style="display: none;"></p>
                 </div>
+            </div>
+            <!-- Selector de empresa (multi-empresa) -->
+            <div class="company-selector-wrap" id="companySelectorContainer">
+                <button class="btn-company-selector" onclick="toggleCompanyDropdown()" type="button">
+                    <span id="activeBranchLabel">🏢 Empresa</span>
+                    <span class="company-selector-arrow">&#9660;</span>
+                </button>
+                <div id="companyDropdownMenu" class="company-dropdown-menu" style="display:none;"></div>
             </div>
         </div>
         
@@ -398,6 +410,45 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('companyModal')">Cancelar</button>
                 <button class="btn btn-primary" onclick="saveCompanySettings()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Company Modal -->
+    <div id="createCompanyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏢 Nueva Empresa</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre de la Empresa *</label>
+                    <input type="text" id="newCompanyName" placeholder="Ej: Mi Empresa S.A." style="text-transform:none;">
+                </div>
+                <div class="form-group">
+                    <label>Eslogan</label>
+                    <input type="text" id="newCompanySlogan" placeholder="Ej: Calidad y confianza" style="text-transform:none;">
+                </div>
+                <div class="form-group">
+                    <label>NIT</label>
+                    <input type="text" id="newCompanyNit" placeholder="Número de NIT">
+                </div>
+                <div style="border-top:2px solid #f0f0f0; padding-top:16px; margin-top:4px;">
+                    <label style="font-weight:700; color:#2c3e50; font-size:14px; display:block; margin-bottom:12px;">🔐 Credenciales de Administrador</label>
+                    <div class="form-group">
+                        <label>Usuario Admin *</label>
+                        <input type="text" id="newCompanyAdminUser" placeholder="usuario_admin" style="text-transform:none;">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña Admin *</label>
+                        <input type="password" id="newCompanyAdminPass" placeholder="Mínimo 4 caracteres">
+                    </div>
+                </div>
+                <p style="font-size:12px; color:#7f8c8d; margin-top:8px;">⚠️ Guarda las credenciales en un lugar seguro. Se usarán para iniciar sesión en esta empresa.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createCompanyModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="createNewCompany()">Crear Empresa</button>
             </div>
         </div>
     </div>
@@ -849,6 +900,7 @@
 
     <!-- ==================== SCRIPTS ==================== -->
     <script src="js/firebase-config.js?v=20260315c"></script>
+    <script src="js/multicompany.js?v=20260618"></script>
     <script src="js/data.js?v=20260315c"></script>
     <script src="js/utils.js?v=20260315b"></script>
     <script src="js/auth.js?v=20260315b"></script>

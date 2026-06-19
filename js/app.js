@@ -171,6 +171,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Cargar datos antes del login (necesario para verificar vendedores)
     await loadData();
     
+    // Mostrar empresa activa en el login y en el header
+    if (typeof updateCompanySelectorLabel === 'function') updateCompanySelectorLabel();
+    
     // Inicializar sistema de login
     initLogin();
 });

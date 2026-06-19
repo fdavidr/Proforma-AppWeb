@@ -32,6 +32,81 @@ let countersSyncInterval = null;
 // datos a la nube, de modo que otros dispositivos (celular) puedan verlos.
 let pendingFirestoreResync = false;
 
+// ==================== MULTI-EMPRESA: HELPERS DE RUTAS ====================
+const COMPANIES_STORAGE_KEY = 'proformaCompanies';
+const ACTIVE_COMPANY_KEY = 'proformaActiveCompanyId';
+
+function getCompanies() {
+    try {
+        const raw = localStorage.getItem(COMPANIES_STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return [];
+}
+
+function saveCompaniesList(companies) {
+    try {
+        localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies));
+    } catch (e) {}
+}
+
+function getActiveCompanyId() {
+    return localStorage.getItem(ACTIVE_COMPANY_KEY) || 'default';
+}
+
+function setActiveCompanyId(id) {
+    localStorage.setItem(ACTIVE_COMPANY_KEY, id || 'default');
+}
+
+// Retorna las credenciales de admin de la empresa activa
+function getActiveCompanyCredentials() {
+    const id = getActiveCompanyId();
+    if (id === 'default') {
+        return { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
+    }
+    const companies = getCompanies();
+    const company = companies.find(c => c.id === id);
+    if (company) {
+        return { adminUsername: company.adminUsername, adminPassword: company.adminPassword };
+    }
+    return { adminUsername: 'CiamP25', adminPassword: 'CiamP25' };
+}
+
+// Clave dinámica de localStorage según empresa activa
+function getLocalCacheKey() {
+    const id = getActiveCompanyId();
+    return id === 'default' ? 'proformaAppData' : `proformaAppData_${id}`;
+}
+
+// Claves dinámicas de cache de imágenes
+function getImageCacheKey() {
+    const id = getActiveCompanyId();
+    return id === 'default' ? 'proformaImageCache' : `proformaImageCache_${id}`;
+}
+
+function getImageUrlCacheKey() {
+    const id = getActiveCompanyId();
+    return id === 'default' ? 'proformaImageUrlCache' : `proformaImageUrlCache_${id}`;
+}
+
+// Referencia dinámica al documento principal de Firestore según empresa activa
+function getAppDocRef() {
+    const id = getActiveCompanyId();
+    if (id === 'default') {
+        return db.collection('proformaApp').doc('appData');
+    }
+    return db.collection('companies').doc(id).collection('data').doc('appData');
+}
+
+// Colección dinámica de productos en Firestore según empresa activa
+function getProductsCollection() {
+    const id = getActiveCompanyId();
+    if (id === 'default') {
+        return db.collection('proformaProducts');
+    }
+    return db.collection('companies').doc(id).collection('products');
+}
+
 function initFirebase() {
     try {
         // Inicializar Firebase
@@ -68,22 +143,17 @@ async function uploadProductImageToStorage(productId, base64Image) {
 // Cache separado del appData para no inflar Firestore ni el localStorage principal.
 // Clave: productId (string), Valor: base64 data URL.
 
-const IMAGE_CACHE_KEY = 'proformaImageCache';
-// Cache de URLs de Firebase Storage. Permite recuperar la URL original cuando
-// product.image ha sido reemplazado por base64 en memoria (hidratación).
-const IMAGE_URL_CACHE_KEY = 'proformaImageUrlCache';
-
 function saveProductImageUrlToCache(productId, url) {
     try {
-        const cache = JSON.parse(localStorage.getItem(IMAGE_URL_CACHE_KEY) || '{}');
+        const cache = JSON.parse(localStorage.getItem(getImageUrlCacheKey()) || '{}');
         cache[String(productId)] = url;
-        localStorage.setItem(IMAGE_URL_CACHE_KEY, JSON.stringify(cache));
+        localStorage.setItem(getImageUrlCacheKey(), JSON.stringify(cache));
     } catch (e) { /* ignorar errores de cuota */ }
 }
 
 function getProductImageUrlFromCache(productId) {
     try {
-        const cache = JSON.parse(localStorage.getItem(IMAGE_URL_CACHE_KEY) || '{}');
+        const cache = JSON.parse(localStorage.getItem(getImageUrlCacheKey()) || '{}');
         return cache[String(productId)] || null;
     } catch (e) {
         return null;
@@ -92,15 +162,15 @@ function getProductImageUrlFromCache(productId) {
 
 function saveProductImageToCache(productId, base64) {
     try {
-        const cache = JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || '{}');
+        const cache = JSON.parse(localStorage.getItem(getImageCacheKey()) || '{}');
         cache[String(productId)] = base64;
-        localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+        localStorage.setItem(getImageCacheKey(), JSON.stringify(cache));
     } catch (e) { /* ignorar errores de cuota */ }
 }
 
 function getProductImageFromCache(productId) {
     try {
-        const cache = JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || '{}');
+        const cache = JSON.parse(localStorage.getItem(getImageCacheKey()) || '{}');
         return cache[String(productId)] || null;
     } catch (e) {
         return null;
@@ -149,14 +219,15 @@ function createLocalCachePayload(data) {
 }
 
 function saveLocalCacheSafe(data) {
+    const _localKey = getLocalCacheKey();
     try {
-        localStorage.setItem('proformaAppData', JSON.stringify(data));
+        localStorage.setItem(_localKey, JSON.stringify(data));
         return true;
     } catch (error) {
         if (error.name === 'QuotaExceededError') {
             try {
                 const compactData = createLocalCachePayload(data);
-                localStorage.setItem('proformaAppData', JSON.stringify(compactData));
+                localStorage.setItem(_localKey, JSON.stringify(compactData));
                 return true;
             } catch (compactError) {
                 return false;
@@ -172,7 +243,7 @@ async function saveProductsInChunks(products) {
         return false;
     }
 
-    const productsCollection = db.collection('proformaProducts');
+    const productsCollection = getProductsCollection();
     const chunks = [];
 
     // Guardar la imagen tal como está (base64 o URL). Las imágenes base64 comprimidas
@@ -211,7 +282,7 @@ async function loadProductsFromChunks() {
         return [];
     }
 
-    const snapshot = await db.collection('proformaProducts').orderBy('index').get();
+    const snapshot = await getProductsCollection().orderBy('index').get();
     if (snapshot.empty) {
         return [];
     }
@@ -249,7 +320,7 @@ async function reserveDocumentNumber(documentType, cityId) {
     }
 
     try {
-        const appDocRef = db.collection('proformaApp').doc('appData');
+        const appDocRef = getAppDocRef();
         const result = await db.runTransaction(async transaction => {
             const snapshot = await transaction.get(appDocRef);
             const existingData = snapshot.exists ? snapshot.data() : {};
@@ -284,7 +355,7 @@ async function syncDocumentCounters() {
     }
 
     try {
-        const doc = await db.collection('proformaApp').doc('appData').get();
+        const doc = await getAppDocRef().get();
         if (!doc.exists) {
             return false;
         }
@@ -348,7 +419,7 @@ function startHistorySync() {
     if (!isFirebaseEnabled || !db) return;
     if (historyUnsubscribe) historyUnsubscribe();
 
-    historyUnsubscribe = db.collection('proformaApp').doc('appData')
+    historyUnsubscribe = getAppDocRef()
         .onSnapshot(snapshot => {
             // Ignorar el disparo inmediato causado por el propio guardado de este navegador
             if (isSavingNow) return;
@@ -415,7 +486,7 @@ function stopHistorySync() {
 async function syncMovementsFromFirestore() {
     if (!isFirebaseEnabled || !db || isSavingNow) return;
     try {
-        const doc = await db.collection('proformaApp').doc('appData').get();
+        const doc = await getAppDocRef().get();
         if (!doc.exists) return;
         const remoteData = doc.data();
 
@@ -520,7 +591,7 @@ async function saveAllData(appData) {
                 productsUpdatedAt: dataToSave.lastUpdated
             };
 
-            const appDocRef = db.collection('proformaApp').doc('appData');
+            const appDocRef = getAppDocRef();
             isSavingNow = true;
             await db.runTransaction(async transaction => {
                 const snapshot = await transaction.get(appDocRef);
@@ -645,7 +716,7 @@ async function loadAllData() {
     // Intentar cargar desde Firebase primero
     if (isFirebaseEnabled) {
         try {
-            const doc = await db.collection('proformaApp').doc('appData').get();
+            const doc = await getAppDocRef().get();
             if (doc.exists) {
                 firebaseData = doc.data();
 
@@ -657,7 +728,7 @@ async function loadAllData() {
                     let localProducts = [];
                     let localUpdatedAt = '';
                     try {
-                        const localStr = localStorage.getItem('proformaAppData');
+                        const localStr = localStorage.getItem(getLocalCacheKey());
                         if (localStr) {
                             const localData = JSON.parse(localStr);
                             localProducts = localData.products || [];
@@ -696,7 +767,7 @@ async function loadAllData() {
                 }
 
                 // Fusionar con localStorage para recuperar ventas que fallaron al guardarse en Firebase
-                const localStr = localStorage.getItem('proformaAppData');
+                const localStr = localStorage.getItem(getLocalCacheKey());
                 if (localStr) {
                     try {
                         const localData = JSON.parse(localStr);
@@ -755,7 +826,7 @@ async function loadAllData() {
     }
     
     // Cargar desde localStorage si Firebase no tiene datos o falló
-    const localDataStr = localStorage.getItem('proformaAppData');
+    const localDataStr = localStorage.getItem(getLocalCacheKey());
     if (localDataStr) {
         try {
             const localData = JSON.parse(localDataStr);
@@ -787,3 +858,10 @@ window.uploadProductImageToStorage = uploadProductImageToStorage;
 window.saveProductImageToCache = saveProductImageToCache;
 window.getProductImageFromCache = getProductImageFromCache;
 window.hydrateProductImagesFromCache = hydrateProductImagesFromCache;
+// Multi-empresa
+window.getCompanies = getCompanies;
+window.saveCompaniesList = saveCompaniesList;
+window.getActiveCompanyId = getActiveCompanyId;
+window.setActiveCompanyId = setActiveCompanyId;
+window.getActiveCompanyCredentials = getActiveCompanyCredentials;
+window.getLocalCacheKey = getLocalCacheKey;
