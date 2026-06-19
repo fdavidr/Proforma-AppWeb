@@ -371,20 +371,51 @@ function addPDFSellerInfo(doc, margin, yPos) {
 }
 
 function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
-    // Columnas: # | Código | IMG | Descripción | Cant. | Descuento | Precio U. | Subtotal
-    // Separadores (offset desde margin): 6, 24, 50, 98, 110, 130, 152, 180(=pageRight)
+    const showNum = appData.pdfShowNum !== false;
+    const showImg = appData.pdfShowImg !== false;
+
+    // Calcular layout dinámico de columnas izquierdas
+    let xOff = 0;
+    const dividers = [];
+    let numTextX, codeTextX, imgTextX, imgDrawX, descTextX;
+
+    if (showNum) {
+        numTextX = xOff + 2;
+        xOff += 6;
+        dividers.push(xOff);
+    }
+    codeTextX = xOff + 2;
+    xOff += 18;
+    dividers.push(xOff);
+
+    if (showImg) {
+        imgDrawX  = xOff + 1;
+        imgTextX  = xOff + 9;
+        xOff += 26;
+        dividers.push(xOff);
+    }
+    descTextX = xOff + 2;
+    const descWidth = 98 - xOff - 4; // descripción ocupa hasta donde empieza Cant.
+
+    // Columnas derechas (posición fija independiente de las izquierdas)
+    const cantX  = 99;
+    const discX  = 111;
+    const priceX = 131;
+    dividers.push(98, 110, 130, 152);
+
+    // ---- Encabezado ----
     doc.setFont(undefined, 'bold');
     doc.setFillColor(112, 55, 205);
     doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'FD');
-
     doc.setTextColor(255, 255, 255);
-    doc.text('#',           margin + 2,   yPos + 5);
-    doc.text('Código',      margin + 7,   yPos + 5);
-    doc.text('IMG',         margin + 33,  yPos + 5);
-    doc.text('Descripción', margin + 52,  yPos + 5);
-    doc.text('Cant.',       margin + 99,  yPos + 5);
-    doc.text('Descuento',   margin + 111, yPos + 5);
-    doc.text('Precio U.',   margin + 131, yPos + 5);
+
+    if (showNum) doc.text('#',           margin + numTextX, yPos + 5);
+    doc.text('Código',      margin + codeTextX, yPos + 5);
+    if (showImg) doc.text('IMG',         margin + imgTextX,  yPos + 5);
+    doc.text('Descripción', margin + descTextX, yPos + 5);
+    doc.text('Cant.',       margin + cantX,     yPos + 5);
+    doc.text('Descuento',   margin + discX,     yPos + 5);
+    doc.text('Precio U.',   margin + priceX,    yPos + 5);
     doc.text('Subtotal',    pageWidth - margin - 2, yPos + 5, { align: 'right' });
 
     yPos += 10;
@@ -394,56 +425,43 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
     const tableLeft  = margin;
     const tableRight = pageWidth - margin;
 
-    // Filas de productos
+    // ---- Filas de productos ----
     appData.currentQuoteItems.forEach((item, index) => {
         if (yPos > pageHeight - 50) {
             doc.addPage();
             yPos = margin;
         }
 
-        // Calcular altura de la fila
-        const description = doc.splitTextToSize(item.product.description.toUpperCase(), 46);
-        const rowHeight   = Math.max(7, description.length * 5, item.product.image ? 26 : 7);
+        const description = doc.splitTextToSize(item.product.description.toUpperCase(), descWidth);
+        const rowHeight   = Math.max(7, description.length * 5, (showImg && item.product.image) ? 26 : 7);
         const textYCenter = yPos + (rowHeight / 2);
 
-        // #
-        doc.text((index + 1).toString(), margin + 2, textYCenter);
+        if (showNum) doc.text((index + 1).toString(), margin + numTextX, textYCenter);
+        doc.text((item.product.code || '-').toUpperCase(), margin + codeTextX, textYCenter);
 
-        // Código
-        doc.text((item.product.code || '-').toUpperCase(), margin + 7, textYCenter);
-
-        // Imagen del producto
-        if (item.product.image) {
+        if (showImg && item.product.image) {
             try {
                 const imgHeight = 24;
                 const imgY = yPos + (rowHeight / 2) - (imgHeight / 2) - 3;
-                doc.addImage(item.product.image, 'PNG', margin + 25, imgY, 24, imgHeight);
-            } catch(e) {
-                // Imagen del producto no disponible
-            }
+                doc.addImage(item.product.image, 'PNG', margin + imgDrawX, imgY, 24, imgHeight);
+            } catch(e) {}
         }
 
-        // Descripción centrada verticalmente
         const descHeight  = description.length * 5;
         const descYCenter = yPos + (rowHeight / 2) - (descHeight / 2) + 2;
-        doc.text(description, margin + 52, descYCenter);
+        doc.text(description, margin + descTextX, descYCenter);
 
-        // Cantidad
-        doc.text(item.quantity.toString(), margin + 99, textYCenter);
+        doc.text(item.quantity.toString(), margin + cantX, textYCenter);
 
-        // Descuento
         const discountText = (item.discount && item.discount > 0)
             ? item.discount + ' ' + item.discountType
             : '-';
-        doc.text(discountText, margin + 111, textYCenter);
+        doc.text(discountText, margin + discX, textYCenter);
 
-        // Precio unitario: con descuento aplicado si corresponde
         const displayPrice = (item.discount && item.discount > 0 && item.quantity > 0)
             ? item.subtotal / item.quantity
             : item.price;
-        doc.text('Bs ' + displayPrice.toFixed(2), margin + 131, textYCenter);
-
-        // Subtotal
+        doc.text('Bs ' + displayPrice.toFixed(2), margin + priceX, textYCenter);
         doc.text('Bs ' + item.subtotal.toFixed(2), pageWidth - margin - 2, textYCenter, { align: 'right' });
 
         // Bordes de la fila
@@ -451,26 +469,17 @@ function addPDFProductsTable(doc, margin, yPos, pageWidth, pageHeight) {
         doc.line(tableLeft,  yPos + rowHeight - 3, tableRight, yPos + rowHeight - 3);
         doc.line(tableLeft,  yPos - 3, tableLeft,  yPos + rowHeight - 3);
         doc.line(tableRight, yPos - 3, tableRight, yPos + rowHeight - 3);
-
-        // Líneas verticales entre columnas
-        doc.line(margin +   6, yPos - 3, margin +   6, yPos + rowHeight - 3); // # | Código
-        doc.line(margin +  24, yPos - 3, margin +  24, yPos + rowHeight - 3); // Código | IMG
-        doc.line(margin +  50, yPos - 3, margin +  50, yPos + rowHeight - 3); // IMG | Desc
-        doc.line(margin +  98, yPos - 3, margin +  98, yPos + rowHeight - 3); // Desc | Cant
-        doc.line(margin + 110, yPos - 3, margin + 110, yPos + rowHeight - 3); // Cant | Desc
-        doc.line(margin + 130, yPos - 3, margin + 130, yPos + rowHeight - 3); // Desc | PU
-        doc.line(margin + 152, yPos - 3, margin + 152, yPos + rowHeight - 3); // PU | Sub
+        dividers.forEach(d => doc.line(margin + d, yPos - 3, margin + d, yPos + rowHeight - 3));
 
         yPos += rowHeight;
     });
 
-    // Borde inferior de la tabla
+    // Borde inferior
     doc.setDrawColor(0, 0, 0);
     doc.line(tableLeft, yPos - 3, tableRight, yPos - 3);
-
     yPos += 5;
     doc.line(margin, yPos, pageWidth - margin, yPos);
-    
+
     return yPos + 8;
 }
 

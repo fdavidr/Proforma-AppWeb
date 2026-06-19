@@ -306,8 +306,8 @@ function renderQuoteItems() {
         tr.draggable = true;
         tr.dataset.index = index;
         tr.innerHTML = `
-            <td><img src="${item.product.image || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'25\' height=\'25\'%3E%3Crect fill=\'%23ecf0f1\' width=\'25\' height=\'25\'/%3E%3C/svg%3E'}" class="product-image" alt=""></td>
-            <td>${index + 1}</td>
+            <td class="col-img"><img src="${item.product.image || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'25\' height=\'25\'%3E%3Crect fill=\'%23ecf0f1\' width=\'25\' height=\'25\'/%3E%3C/svg%3E'}" class="product-image" alt=""></td>
+            <td class="col-num">${index + 1}</td>
             <td>${item.product.code || '-'}</td>
             <td>${item.product.description}</td>
             <td>${item.quantity}</td>
@@ -325,6 +325,44 @@ function renderQuoteItems() {
         
         tbody.appendChild(tr);
     });
+
+    updateTableColVisibility();
+}
+
+// Alterna la visibilidad de la columna Img o # en la tabla y en el PDF
+function toggleTableCol(col) {
+    if (col === 'img') {
+        appData.pdfShowImg = !appData.pdfShowImg;
+    } else if (col === 'num') {
+        appData.pdfShowNum = !appData.pdfShowNum;
+    }
+    updateTableColVisibility();
+}
+
+// Aplica la visibilidad actual de las columnas Img y # a la tabla y a los botones toggle
+function updateTableColVisibility() {
+    const table = document.getElementById('productsTable');
+    if (!table) return;
+
+    const showImg = appData.pdfShowImg !== false;
+    const showNum = appData.pdfShowNum !== false;
+
+    table.classList.toggle('hide-img-col', !showImg);
+    table.classList.toggle('hide-num-col', !showNum);
+
+    const imgBtn = document.getElementById('toggleImgBtn');
+    const numBtn = document.getElementById('toggleNumBtn');
+
+    if (imgBtn) {
+        imgBtn.classList.toggle('active', showImg);
+        imgBtn.classList.toggle('inactive', !showImg);
+        imgBtn.title = showImg ? 'Ocultar imagen en PDF' : 'Mostrar imagen en PDF';
+    }
+    if (numBtn) {
+        numBtn.classList.toggle('active', showNum);
+        numBtn.classList.toggle('inactive', !showNum);
+        numBtn.title = showNum ? 'Ocultar # en PDF' : 'Mostrar # en PDF';
+    }
 }
 
 let draggedElement = null;
@@ -447,3 +485,5 @@ window.selectSaleCity = selectSaleCity;
 window.addProductToQuote = addProductToQuote;
 window.removeQuoteItem = removeQuoteItem;
 window.newQuote = newQuote;
+window.toggleTableCol = toggleTableCol;
+window.updateTableColVisibility = updateTableColVisibility;

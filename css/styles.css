@@ -704,6 +704,32 @@ select:focus {
     font-size: 13px;
 }
 
+/* Botones toggle en encabezado de tabla (visible en PDF = verde, oculto = rojo) */
+.col-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 7px;
+    color: white;
+    padding: 0;
+    margin-right: 3px;
+    vertical-align: middle;
+    transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
+}
+.col-toggle-btn.active  { background: #27ae60; }
+.col-toggle-btn.inactive { background: #e74c3c; }
+.col-toggle-btn:hover { transform: scale(1.2); }
+
+/* Ocultar columnas en la tabla según el estado del toggle */
+#productsTable.hide-img-col .col-img { display: none; }
+#productsTable.hide-num-col .col-num { display: none; }
+
 .products-table td {
     padding: 10px 8px;
     border-bottom: 1px solid #ecf0f1;

@@ -230,8 +230,14 @@
                     <table class="products-table" id="productsTable">
                         <thead>
                             <tr>
-                                <th>Img</th>
-                                <th>#</th>
+                                <th class="col-img">
+                                    <button class="col-toggle-btn active" id="toggleImgBtn" onclick="toggleTableCol('img')" title="Ocultar imagen en PDF">●</button>
+                                    Img
+                                </th>
+                                <th class="col-num">
+                                    <button class="col-toggle-btn active" id="toggleNumBtn" onclick="toggleTableCol('num')" title="Ocultar # en PDF">●</button>
+                                    #
+                                </th>
                                 <th>Código</th>
                                 <th>Descripción</th>
                                 <th>Cantidad</th>

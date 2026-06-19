@@ -33,6 +33,9 @@ async function init() {
     if (typeof startHistorySync === 'function') {
         startHistorySync();
     }
+
+    // Aplicar estado de columnas toggle (img, #)
+    if (typeof updateTableColVisibility === 'function') updateTableColVisibility();
 }
 
 // ==================== MENÚ MÓVIL ====================

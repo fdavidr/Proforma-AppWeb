@@ -29,6 +29,8 @@ let appData = {
     selectedSaleCity: 'cochabamba',
     userRole: null,
     loggedSeller: null,
+    pdfShowImg: true,
+    pdfShowNum: true,
     terms: {
         cotizacion: [
             'Precios sujetos a cambio sin previo aviso',
