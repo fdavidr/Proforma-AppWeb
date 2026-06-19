@@ -23,24 +23,48 @@
     <div id="loginScreen" class="login-container">
         <div class="login-box">
             <h1>Sistema de Cotizaciones</h1>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Usuario</label>
-                    <input type="text" id="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Contraseña</label>
-                    <input type="password" id="password" required>
-                </div>
-                <div style="text-align: center; margin-bottom: 15px;">
-                    <button type="button" onclick="handleForgotPassword()" style="background: none; border: none; color: #3498db; text-decoration: underline; cursor: pointer; font-size: 14px; padding: 0;">¿Olvidaste tu contraseña?</button>
-                </div>
-                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
-                <div id="loginError" class="error-message hidden"></div>
-            </form>
-            <div class="login-create-company">
-                <button type="button" onclick="openCreateCompanyModal()" style="background: none; border: none; color: #3498db; text-decoration: underline; cursor: pointer; font-size: 14px; padding: 0;">➕ Crear nueva empresa</button>
+
+            <!-- MODO: INICIAR SESIÓN -->
+            <div id="loginModeSection">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Usuario</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div id="loginError" class="error-message hidden"></div>
+                    <div class="login-links">
+                        <button type="button" onclick="handleForgotPassword()" class="btn-link-login">¿Olvidaste tu contraseña?</button>
+                        <button type="button" onclick="showCreateCompanySection()" class="btn-link-login">➕ Crear nueva empresa</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-login-action">Iniciar Sesión</button>
+                </form>
             </div>
+
+            <!-- MODO: CREAR EMPRESA -->
+            <div id="createCompanySection" style="display:none;">
+                <div class="form-group">
+                    <label>Nombre de la Empresa <span style="color:#e74c3c;">*</span></label>
+                    <input type="text" id="newCompanyName" placeholder="Ej: Mi Empresa S.A." style="text-transform:none;">
+                </div>
+                <div class="form-group">
+                    <label>Usuario Admin <span style="color:#e74c3c;">*</span></label>
+                    <input type="text" id="newCompanyAdminUser" placeholder="usuario_admin" style="text-transform:none;">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña Admin <span style="color:#e74c3c;">*</span></label>
+                    <input type="password" id="newCompanyAdminPass" placeholder="Mínimo 4 caracteres">
+                </div>
+                <div class="login-links">
+                    <button type="button" onclick="showLoginSection()" class="btn-link-login">← Volver al login</button>
+                </div>
+                <button type="button" onclick="createNewCompany()" class="btn btn-primary btn-login-action">Crear Empresa</button>
+                <p style="font-size:11px;color:#95a5a6;text-align:center;margin-top:10px;">💡 Logo, eslogan y NIT puedes completarlos después desde Configuración de Empresa.</p>
+            </div>
+
         </div>
     </div>
 
@@ -401,37 +425,6 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('companyModal')">Cancelar</button>
                 <button class="btn btn-primary" onclick="saveCompanySettings()">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Create Company Modal -->
-    <div id="createCompanyModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🏢 Nueva Empresa</h3>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Nombre de la Empresa <span style="color:#e74c3c;">*</span></label>
-                    <input type="text" id="newCompanyName" placeholder="Ej: Mi Empresa S.A." style="text-transform:none;">
-                </div>
-                <div style="border-top:1px solid #f0f0f0; padding-top:14px; margin-top:6px;">
-                    <label style="font-weight:700; color:#2c3e50; font-size:14px; display:block; margin-bottom:12px;">🔐 Credenciales de Administrador</label>
-                    <div class="form-group">
-                        <label>Usuario Admin <span style="color:#e74c3c;">*</span></label>
-                        <input type="text" id="newCompanyAdminUser" placeholder="usuario_admin" style="text-transform:none;">
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña Admin <span style="color:#e74c3c;">*</span></label>
-                        <input type="password" id="newCompanyAdminPass" placeholder="Mínimo 4 caracteres">
-                    </div>
-                </div>
-                <p style="font-size:12px; color:#7f8c8d; margin:8px 0 0;">💡 El logo, eslogan y NIT puedes completarlos después desde <strong>Configuración de Empresa</strong>. Con estas credenciales iniciarás sesión en la nueva empresa.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('createCompanyModal')">Cancelar</button>
-                <button class="btn btn-primary" onclick="createNewCompany()">Crear Empresa</button>
             </div>
         </div>
     </div>

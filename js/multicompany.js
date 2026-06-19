@@ -84,10 +84,10 @@ function resetCompanyScopedData() {
     appData.currentDeliveryNumber = 100000;
 }
 
-// ---- Creación de empresa (solo desde el login) ----
+// ---- Creación de empresa (solo desde el login, sección inline) ----
 
-// Abre el modal de creación de empresa
-function openCreateCompanyModal() {
+// Muestra la sección de crear empresa y oculta el login
+function showCreateCompanySection() {
     if (getCompanies().length >= MAX_COMPANIES) {
         alert(`Solo se pueden crear un máximo de ${MAX_COMPANIES} empresas.`);
         return;
@@ -98,7 +98,20 @@ function openCreateCompanyModal() {
     if (nameInput) nameInput.value = '';
     if (userInput) userInput.value = '';
     if (passInput) passInput.value = '';
-    openModal('createCompanyModal');
+    document.getElementById('loginModeSection').style.display = 'none';
+    document.getElementById('createCompanySection').style.display = 'block';
+    if (nameInput) nameInput.focus();
+}
+
+// Vuelve al modo login
+function showLoginSection() {
+    document.getElementById('createCompanySection').style.display = 'none';
+    document.getElementById('loginModeSection').style.display = 'block';
+}
+
+// Alias para compatibilidad con llamadas anteriores
+function openCreateCompanyModal() {
+    showCreateCompanySection();
 }
 
 // Verifica que un nombre de usuario de administrador esté disponible (no usado por
@@ -154,7 +167,7 @@ function createNewCompany() {
     });
     saveCompaniesList(companies);
 
-    closeModal('createCompanyModal');
+    // Limpiar campos
     document.getElementById('newCompanyName').value = '';
     document.getElementById('newCompanyAdminUser').value = '';
     document.getElementById('newCompanyAdminPass').value = '';
@@ -189,6 +202,8 @@ window.detectCompanyByAdmin = detectCompanyByAdmin;
 window.detectCompanyBySeller = detectCompanyBySeller;
 window.switchCompanyData = switchCompanyData;
 window.resetCompanyScopedData = resetCompanyScopedData;
+window.showCreateCompanySection = showCreateCompanySection;
+window.showLoginSection = showLoginSection;
 window.openCreateCompanyModal = openCreateCompanyModal;
 window.isAdminUsernameAvailable = isAdminUsernameAvailable;
 window.createNewCompany = createNewCompany;
