@@ -551,8 +551,7 @@
                 <h2 style="margin:0;">📦 Inventario de Productos</h2>
                 <div style="display:flex; gap:10px;">
                     <button class="btn btn-success" onclick="handleProductAction()" style="white-space:nowrap;">➕ Producto</button>
-                    <button class="btn btn-primary" onclick="generateInventoryPDF()" style="white-space:nowrap;">📄 PDF</button>
-                    <button class="btn btn-success" onclick="generateInventoryExcel()" style="white-space:nowrap; background:#1d6f42;">📊 Excel</button>
+                    <button class="btn btn-primary" onclick="openInventoryExportModal()" style="white-space:nowrap;">📥 Descargar</button>
                 </div>
             </div>
             
@@ -602,6 +601,31 @@
                         <tbody id="inventoryTableBody"></tbody>
                     </table>
                 </div>
+        </div>
+    </div>
+
+    <!-- Modal de exportación exclusiva de Inventario -->
+    <div id="inventoryExportModal" class="modal">
+        <div class="modal-content inventory-export-modal-content">
+            <div class="modal-header">
+                <h3>📥 Exportar Inventario</h3>
+            </div>
+            <div class="modal-body">
+                <div class="inventory-export-format">
+                    <strong>Formato</strong>
+                    <label><input type="radio" name="inventoryExportFormat" value="pdf" checked> PDF</label>
+                    <label><input type="radio" name="inventoryExportFormat" value="excel"> Excel</label>
+                </div>
+                <div class="inventory-export-columns-header">
+                    <strong>Columnas a exportar</strong>
+                    <span id="inventoryExportSelectedCount">0 columnas seleccionadas</span>
+                </div>
+                <div id="inventoryExportColumns" class="inventory-export-columns"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('inventoryExportModal')">Cancelar</button>
+                <button id="inventoryExportSubmit" class="btn btn-primary" onclick="exportInventory()">Descargar PDF</button>
+            </div>
         </div>
     </div>
 

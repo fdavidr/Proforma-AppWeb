@@ -486,6 +486,185 @@ function generateInventoryExcel() {
     XLSX.writeFile(wb, `Inventario_${cityName}_${date}.xlsx`);
 }
 
+// Columnas de datos que ya existen en la tabla/exportación de Inventario (sin Acciones).
+const inventoryExportColumns = [
+    { key: 'number', label: '#' },
+    { key: 'code', label: 'Código' },
+    { key: 'description', label: 'Descripción' },
+    { key: 'stock', label: 'Stock' },
+    { key: 'cost', label: 'Costo Unit. (Bs)' },
+    { key: 'price', label: 'Precio Unit. (Bs)' },
+    { key: 'costTotal', label: 'Costo Total (Bs)' },
+    { key: 'priceTotal', label: 'Precio Total (Bs)' }
+];
+
+function openInventoryExportModal() {
+    const columnsContainer = document.getElementById('inventoryExportColumns');
+    if (!columnsContainer) return;
+
+    columnsContainer.innerHTML = inventoryExportColumns.map(column => `
+        <label><input type="checkbox" value="${column.key}" checked> ${column.label}</label>
+    `).join('');
+
+    columnsContainer.querySelectorAll('input').forEach(input => {
+        input.addEventListener('change', updateInventoryExportSelection);
+    });
+    document.querySelectorAll('input[name="inventoryExportFormat"]').forEach(input => {
+        input.onchange = updateInventoryExportButton;
+    });
+    updateInventoryExportSelection();
+    document.getElementById('inventoryExportModal').classList.add('active');
+}
+
+function updateInventoryExportSelection() {
+    const count = document.querySelectorAll('#inventoryExportColumns input:checked').length;
+    const countElement = document.getElementById('inventoryExportSelectedCount');
+    if (countElement) countElement.textContent = `${count} ${count === 1 ? 'columna' : 'columnas'} seleccionada${count === 1 ? '' : 's'}`;
+    updateInventoryExportButton();
+}
+
+function updateInventoryExportButton() {
+    const format = document.querySelector('input[name="inventoryExportFormat"]:checked');
+    const button = document.getElementById('inventoryExportSubmit');
+    if (button) button.textContent = format && format.value === 'excel' ? 'Descargar Excel' : 'Descargar PDF';
+}
+
+function getInventoryExportData() {
+    return appData.products.map((product, index) => {
+        const stock = (product.stock && product.stock[selectedInventoryCity]) || 0;
+        const cost = product.cost || 0;
+        const price = product.price || 0;
+        return {
+            number: index + 1,
+            code: product.code || '',
+            description: product.description || '',
+            stock,
+            cost,
+            price,
+            costTotal: parseFloat((stock * cost).toFixed(2)),
+            priceTotal: parseFloat((stock * price).toFixed(2))
+        };
+    });
+}
+
+function getSelectedInventoryExportColumns() {
+    return inventoryExportColumns.filter(column =>
+        document.querySelector(`#inventoryExportColumns input[value="${column.key}"]`)?.checked
+    );
+}
+
+function exportInventory() {
+    const selectedColumns = getSelectedInventoryExportColumns();
+    if (selectedColumns.length === 0) {
+        alert('Selecciona al menos una columna para exportar.');
+        return;
+    }
+
+    const format = document.querySelector('input[name="inventoryExportFormat"]:checked')?.value;
+    if (format === 'excel') {
+        generateSelectedInventoryExcel(selectedColumns);
+    } else {
+        generateSelectedInventoryPDF(selectedColumns);
+    }
+    closeModal('inventoryExportModal');
+}
+
+function generateSelectedInventoryPDF(selectedColumns) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF(selectedColumns.length > 5 ? 'landscape' : 'portrait');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPos = margin;
+    const currentInventory = appData.inventories.find(inv => inv.id === selectedInventoryCity);
+    const cityName = currentInventory ? currentInventory.name : selectedInventoryCity;
+
+    if (appData.company.logo) {
+        try { doc.addImage(appData.company.logo, 'JPEG', margin, yPos, 30, 30); } catch (e) { /* Logo no disponible */ }
+    }
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(appData.company.name, margin + 35, yPos + 8);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(appData.company.slogan || '', margin + 35, yPos + 15);
+    if (appData.company.nit) doc.text(`NIT: ${appData.company.nit}`, margin + 35, yPos + 21);
+
+    yPos += 40;
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`INVENTARIO DE PRODUCTOS - ${cityName.toUpperCase()}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 18;
+
+    const tableWidth = pageWidth - (margin * 2);
+    const columnWidth = tableWidth / selectedColumns.length;
+    const rowHeight = 7;
+    const rows = getInventoryExportData();
+    const drawHeader = () => {
+        doc.setFillColor(112, 55, 205);
+        doc.rect(margin, yPos, tableWidth, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(selectedColumns.length > 6 ? 7 : 8);
+        doc.setFont('helvetica', 'bold');
+        selectedColumns.forEach((column, index) => doc.text(column.label, margin + (index * columnWidth) + 2, yPos + 5));
+        yPos += 10;
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(selectedColumns.length > 6 ? 7 : 8);
+    };
+    drawHeader();
+    rows.forEach((row, rowIndex) => {
+        if (yPos > pageHeight - 20) {
+            doc.addPage();
+            yPos = margin;
+            drawHeader();
+        }
+        selectedColumns.forEach((column, columnIndex) => {
+            let value = row[column.key];
+            if (typeof value === 'number' && column.key !== 'number') value = value.toFixed(2);
+            const text = String(value ?? '—');
+            doc.text(text.length > 25 ? `${text.substring(0, 25)}...` : text, margin + (columnIndex * columnWidth) + 2, yPos);
+        });
+        yPos += rowHeight;
+        if (rowIndex < rows.length - 1) {
+            doc.setDrawColor(220, 220, 220);
+            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+        }
+    });
+
+    doc.save(`Inventario_${cityName.replace(/\s+/g, '')}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function generateSelectedInventoryExcel(selectedColumns) {
+    if (!window.XLSX) {
+        alert('La librería de Excel no está disponible. Revisa tu conexión a internet.');
+        return;
+    }
+    const currentInventory = appData.inventories.find(inv => inv.id === selectedInventoryCity);
+    const cityName = currentInventory ? currentInventory.name : selectedInventoryCity;
+    const rows = getInventoryExportData();
+    const wsRows = [selectedColumns.map(column => column.label)];
+    rows.forEach(row => wsRows.push(selectedColumns.map(column => row[column.key])));
+    const totalCost = rows.reduce((sum, row) => sum + row.costTotal, 0);
+    const totalPrice = rows.reduce((sum, row) => sum + row.priceTotal, 0);
+    const totalRow = selectedColumns.map(column => {
+        if (column.key === 'description') return 'TOTAL';
+        if (column.key === 'costTotal') return parseFloat(totalCost.toFixed(2));
+        if (column.key === 'priceTotal') return parseFloat(totalPrice.toFixed(2));
+        return '';
+    });
+    wsRows.push([], totalRow);
+    const ws = XLSX.utils.aoa_to_sheet(wsRows);
+    ws['!cols'] = selectedColumns.map(column => ({ wch: column.key === 'description' ? 36 : 16 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, cityName.substring(0, 31));
+    XLSX.writeFile(wb, `Inventario_${cityName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
 // Exponer funciones globalmente
 window.openInventory = openInventory;
 window.filterInventoryByCity = filterInventoryByCity;
@@ -496,3 +675,5 @@ window.handleInventoryRowAction = handleInventoryRowAction;
 window.openInventoryEditModal = openInventoryEditModal;
 window.generateInventoryPDF = generateInventoryPDF;
 window.generateInventoryExcel = generateInventoryExcel;
+window.openInventoryExportModal = openInventoryExportModal;
+window.exportInventory = exportInventory;
