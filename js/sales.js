@@ -23,6 +23,16 @@ function parseDateStr(dateStr) {
     }
 }
 
+function getEntrySellerName(entry) {
+    if (!entry || !entry.seller) return '';
+    if (typeof entry.seller === 'string') return entry.seller;
+    return entry.seller.name || '';
+}
+
+function entryMatchesSeller(entry, sellerName) {
+    return getEntrySellerName(entry) === sellerName;
+}
+
 function switchMovimientosTab(tab) {
     // Sincronizar el select desplegable
     const tipoSelect = document.getElementById('movimientosTipoSelect');
@@ -241,11 +251,11 @@ function filterSalesByMonth() {
     function matchesCityAndSeller(entry) {
         if (entry.city !== selectedSalesCity) return false;
         if (isVendedor && appData.loggedSeller) {
-            return entry.seller && entry.seller.name === appData.loggedSeller.name;
+            return entryMatchesSeller(entry, appData.loggedSeller.name);
         }
         const sellerFilter = document.getElementById('salesSellerFilter');
         if (sellerFilter && sellerFilter.value !== 'all') {
-            return entry.seller && entry.seller.name === sellerFilter.value;
+            return entryMatchesSeller(entry, sellerFilter.value);
         }
         return true;
     }
@@ -289,11 +299,11 @@ function filterSalesByMonth() {
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa' || entry.city !== selectedSalesCity) return false;
         if (isVendedor && appData.loggedSeller) {
-            return entry.seller && entry.seller.name === appData.loggedSeller.name;
+            return entryMatchesSeller(entry, appData.loggedSeller.name);
         }
         const sellerFilter = document.getElementById('salesSellerFilter');
         if (sellerFilter && sellerFilter.value !== 'all') {
-            return entry.seller && entry.seller.name === sellerFilter.value;
+            return entryMatchesSeller(entry, sellerFilter.value);
         }
         return true;
     });

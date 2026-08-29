@@ -56,6 +56,7 @@ function initLogin() {
 
         appData.userRole = userRole;
         appData.loggedSeller = sellerData;
+        appData.currentSeller = sellerData;
 
         // Si es vendedor, configurar ciudad automáticamente
         if (userRole === 'vendedor' && sellerData) {

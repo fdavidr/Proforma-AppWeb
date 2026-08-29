@@ -671,6 +671,12 @@ function saveToHistory(fileName) {
     const paymentMethodEl = document.getElementById('salePaymentMethod');
     const paymentMethod = (appData.documentType === 'notaventa' && paymentMethodEl) ? paymentMethodEl.value : '';
 
+    const sellerRecord = appData.currentSeller || appData.loggedSeller || null;
+    const sellerData = sellerRecord ? JSON.parse(JSON.stringify({
+        name: sellerRecord.name || '',
+        phone: sellerRecord.phone || ''
+    })) : { name: 'Sin vendedor', phone: '' };
+
     const historyEntry = {
         id: Date.now(),
         type: appData.documentType,
@@ -683,10 +689,7 @@ function saveToHistory(fileName) {
             ci: appData.currentClient.ci || '',
             company: appData.currentClient.company || ''
         })),
-        seller: JSON.parse(JSON.stringify({
-            name: appData.currentSeller.name,
-            phone: appData.currentSeller.phone || ''
-        })),
+        seller: sellerData,
         items: JSON.parse(JSON.stringify(appData.currentQuoteItems)),
         subtotal: subtotal,
         totalDiscount: totalDiscount,

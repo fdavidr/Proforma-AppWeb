@@ -14,9 +14,10 @@ function renderHistory() {
     
     // Si es vendedor, filtrar solo las suyas
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
-        cotizaciones = cotizaciones.filter(entry =>
-            entry.seller && entry.seller.name === appData.loggedSeller.name
-        );
+        cotizaciones = cotizaciones.filter(entry => {
+            const sellerName = typeof entry.seller === 'string' ? entry.seller : (entry.seller && entry.seller.name) || '';
+            return sellerName === appData.loggedSeller.name;
+        });
     }
 
     if (cotizaciones.length === 0) {
