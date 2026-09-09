@@ -6,6 +6,35 @@ let estadisticasMonth = new Date().getMonth() + 1;
 let estadisticasSeller = null;
 const chartInstances = {};
 
+function getLocalDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getEstadisticasDayFilterState() {
+    const mode = document.getElementById('estadisticasDateModeFilter')?.value || 'all';
+    const dateInput = document.getElementById('estadisticasDateInput');
+    const selectedDay = dateInput && dateInput.value ? dateInput.value : '';
+    return { mode, selectedDay };
+}
+
+function toggleEstadisticasDayFilter() {
+    const mode = document.getElementById('estadisticasDateModeFilter')?.value || 'all';
+    const dateInput = document.getElementById('estadisticasDateInput');
+    if (!dateInput) return;
+    if (mode === 'custom') {
+        dateInput.style.display = 'block';
+        if (!dateInput.value) {
+            dateInput.value = getLocalDateKey(new Date());
+        }
+    } else {
+        dateInput.style.display = 'none';
+        dateInput.value = '';
+    }
+}
+
 function openEstadisticas() {
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('inventorySection').style.display = 'none';
@@ -125,18 +154,26 @@ function renderEstadisticasMonthFilter() {
 }
 
 function getFilteredSalesForStats() {
+    const { mode, selectedDay } = getEstadisticasDayFilterState();
+    const todayKey = getLocalDateKey(new Date());
     return (appData.pdfHistory || []).filter(e => {
         if (e.type !== 'notaventa' || e.cancelled) return false;
-        // Si es vendedor, mostrar solo sus propias ventas
         if (appData.userRole === 'vendedor' && appData.loggedSeller) {
             if (!(e.seller && e.seller.name === appData.loggedSeller.name)) return false;
         }
         if (estadisticasCity && e.city !== estadisticasCity) return false;
         if (estadisticasSeller && !(e.seller && e.seller.name === estadisticasSeller)) return false;
-        const parts = e.date.split(',')[0].trim().split('/');
+
+        const datePart = (e.date || '').split(',')[0].trim();
+        const parts = datePart.split('/');
         if (parts.length === 3) {
             if (estadisticasYear && parseInt(parts[2]) !== estadisticasYear) return false;
             if (estadisticasMonth && parseInt(parts[1]) !== estadisticasMonth) return false;
+            const localKey = `${parts[2]}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+            if (mode === 'today' && localKey !== todayKey) return false;
+            if (mode === 'custom' && selectedDay && localKey !== selectedDay) return false;
+        } else {
+            if (mode === 'today' || (mode === 'custom' && selectedDay)) return false;
         }
         return true;
     });
@@ -151,6 +188,39 @@ function destroyChart(id) {
 
 function renderEstadisticas() {
     const sales = getFilteredSalesForStats();
+    if (!sales.length) {
+        const el = document.getElementById('estadisticasKPIs');
+        if (el) {
+            el.innerHTML = `
+                <div class="kpi-card kpi-blue">
+                    <div class="kpi-icon">🧾</div>
+                    <div class="kpi-value">0</div>
+                    <div class="kpi-label">Ventas realizadas</div>
+                </div>
+                <div class="kpi-card kpi-green">
+                    <div class="kpi-icon">💰</div>
+                    <div class="kpi-value">Bs 0.00</div>
+                    <div class="kpi-label">Ingresos totales</div>
+                </div>
+                <div class="kpi-card kpi-orange">
+                    <div class="kpi-icon">📦</div>
+                    <div class="kpi-value">0</div>
+                    <div class="kpi-label">Unidades vendidas</div>
+                </div>
+                <div class="kpi-card kpi-purple">
+                    <div class="kpi-icon">📊</div>
+                    <div class="kpi-value">Bs 0.00</div>
+                    <div class="kpi-label">Ticket promedio</div>
+                </div>
+            `;
+        }
+        renderTopProducts([]);
+        renderTopClientsByFrequency([]);
+        renderTopClientsByVolume([]);
+        renderPaymentMethods([]);
+        renderMonthlySales([]);
+        return;
+    }
     renderKPICards(sales);
     renderTopProducts(sales);
     renderTopClientsByFrequency(sales);

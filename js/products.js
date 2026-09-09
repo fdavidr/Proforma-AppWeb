@@ -181,7 +181,7 @@ function compressImage(base64, maxWidth, maxHeight, callback) {
     img.src = base64;
 }
 
-function saveProduct() {
+async function saveProduct() {
     const description = document.getElementById('modalProductDescription').value.trim();
     if (!description) {
         alert('La descripción es obligatoria');
@@ -202,6 +202,9 @@ function saveProduct() {
             return;
         }
     }
+
+    const previousProducts = [...appData.products];
+    const previousCurrentProduct = appData.currentProduct ? { ...appData.currentProduct } : null;
 
     // Recopilar stocks de todos los inventarios
     const stock = {};
@@ -239,14 +242,26 @@ function saveProduct() {
     }
 
     appData.currentProduct = product;
-    saveData();
-    selectProduct(product);
-    closeModal('productModal');
-    
-    // Si la sección de inventario está visible, recargar datos
-    const inventorySection = document.getElementById('inventorySection');
-    if (inventorySection && inventorySection.style.display === 'block') {
-        loadInventoryData();
+
+    try {
+        const saved = await saveData();
+        if (!saved) {
+            throw new Error('saveData retornó falso');
+        }
+
+        selectProduct(product);
+        closeModal('productModal');
+        
+        // Si la sección de inventario está visible, recargar datos
+        const inventorySection = document.getElementById('inventorySection');
+        if (inventorySection && inventorySection.style.display === 'block') {
+            loadInventoryData();
+        }
+    } catch (error) {
+        console.error('Error al guardar producto en la base central:', error);
+        appData.products = previousProducts;
+        appData.currentProduct = previousCurrentProduct;
+        alert('No se pudo guardar el producto en la base central. Revisa tu conexión e intenta de nuevo.');
     }
 }
 

@@ -751,47 +751,7 @@ async function loadAllData() {
                 firebaseData = doc.data();
 
                 if (firebaseData.productsStorage === 'chunks') {
-                    const chunksProducts = await loadProductsFromChunks();
-                    const firebaseUpdatedAt = firebaseData.productsUpdatedAt || '';
-
-                    // Cargar productos de localStorage para comparar
-                    let localProducts = [];
-                    let localUpdatedAt = '';
-                    try {
-                        const localStr = localStorage.getItem(getLocalCacheKey());
-                        if (localStr) {
-                            const localData = JSON.parse(localStr);
-                            localProducts = localData.products || [];
-                            localUpdatedAt = localData.productsUpdatedAt || localData.lastUpdated || '';
-                        }
-                    } catch (e) { /* ignorar */ }
-
-                    if (localProducts.length > 0 && chunksProducts.length > 0) {
-                        if (firebaseUpdatedAt > localUpdatedAt) {
-                            // Firebase fue actualizado desde OTRO dispositivo—usar sus productos.
-                            // Agregar también productos que solo existan en localStorage
-                            // (aún no sincronizados) y restaurar imágenes locales.
-                            const chunkMap = new Map(chunksProducts.map(p => [p.id, p]));
-                            const localMap = new Map(localProducts.map(p => [p.id, p]));
-                            const onlyLocal = localProducts.filter(p => !chunkMap.has(p.id));
-                            // Restaurar imágenes de localStorage a los productos de Firebase
-                            const merged = chunksProducts.map(p => {
-                                const lp = localMap.get(p.id);
-                                return lp && lp.image ? { ...p, image: lp.image } : p;
-                            });
-                            firebaseData.products = [...merged, ...onlyLocal];
-                        } else {
-                            // localStorage es igual o más reciente → este dispositivo guardó de último.
-                            // Agregar productos que solo existan en Firebase (de otro dispositivo).
-                            const localMap = new Map(localProducts.map(p => [p.id, p]));
-                            const onlyInFirebase = chunksProducts.filter(p => !localMap.has(p.id));
-                            firebaseData.products = [...localProducts, ...onlyInFirebase];
-                        }
-                    } else if (localProducts.length > 0) {
-                        firebaseData.products = localProducts;
-                    } else {
-                        firebaseData.products = chunksProducts;
-                    }
+                    firebaseData.products = await loadProductsFromChunks();
                 } else {
                     firebaseData.products = firebaseData.products || [];
                 }

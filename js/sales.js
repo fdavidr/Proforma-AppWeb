@@ -2,6 +2,49 @@
 
 let selectedSalesCity = 'cochabamba';
 
+function getDatePartsFromEntry(entry) {
+    const raw = (entry && entry.date) ? String(entry.date) : '';
+    const datePart = raw.split(',')[0].trim();
+    const [day, month, year] = datePart.split('/');
+    return { day: day || '', month: month || '', year: year || '', rawDate: datePart };
+}
+
+function getEntryDateLocalKey(entry) {
+    const { day, month, year } = getDatePartsFromEntry(entry);
+    if (!day || !month || !year) return '';
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function getTodayLocalDateKey() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getSalesDayFilterState() {
+    const mode = document.getElementById('salesDayModeFilter')?.value || 'all';
+    const dateInput = document.getElementById('salesDayFilterInput');
+    const selectedDay = dateInput && dateInput.value ? dateInput.value : '';
+    return { mode, selectedDay };
+}
+
+function toggleSalesDayFilter() {
+    const mode = document.getElementById('salesDayModeFilter')?.value || 'all';
+    const dateInput = document.getElementById('salesDayFilterInput');
+    if (!dateInput) return;
+    if (mode === 'custom') {
+        dateInput.style.display = 'block';
+        if (!dateInput.value) {
+            dateInput.value = getTodayLocalDateKey();
+        }
+    } else {
+        dateInput.style.display = 'none';
+        dateInput.value = '';
+    }
+}
+
 // Convertir fecha string "DD/MM/YYYY, HH:MM:SS" a timestamp
 function parseDateStr(dateStr) {
     try {
@@ -236,18 +279,37 @@ function filterSalesByMonth() {
     const tbody = document.getElementById('salesTableBody');
     tbody.innerHTML = '';
     const isVendedor = appData.userRole === 'vendedor';
+    const { mode, selectedDay } = getSalesDayFilterState();
 
-    // Helper: filtrar entrada de pdfHistory por año/mes
-    function matchesMonth(entry) {
-        if (!selectedYear) return true;
-        const datePart = entry.date.split(',')[0].trim();
-        const [d, m, y] = datePart.split('/');
-        if (y !== selectedYear) return false;
-        if (!selectedMonthVal) return true;
-        return (m || '').padStart(2, '0') === selectedMonthVal;
+    function matchesDate(entry) {
+        const dateKey = getEntryDateLocalKey(entry);
+        if (!dateKey) return false;
+
+        if (selectedYear) {
+            const { year } = getDatePartsFromEntry(entry);
+            if (year !== selectedYear) return false;
+        }
+
+        if (selectedMonthVal) {
+            const { month } = getDatePartsFromEntry(entry);
+            if ((month || '').padStart(2, '0') !== selectedMonthVal) return false;
+        }
+
+        if (mode === 'today') {
+            return dateKey === getTodayLocalDateKey();
+        }
+
+        if (mode === 'custom' && selectedDay) {
+            return dateKey === selectedDay;
+        }
+
+        return true;
     }
 
-    // Helper: filtrar entrada por ciudad y vendedor
+    function matchesMonth(entry) {
+        return matchesDate(entry);
+    }
+
     function matchesCityAndSeller(entry) {
         if (entry.city !== selectedSalesCity) return false;
         if (isVendedor && appData.loggedSeller) {
@@ -260,22 +322,18 @@ function filterSalesByMonth() {
         return true;
     }
 
-    // --- Cotizaciones ---
     const filteredCotizaciones = appData.pdfHistory
         .filter(e => e.type === 'cotizacion' && matchesCityAndSeller(e) && matchesMonth(e))
         .sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
     renderCotizacionesTable(filteredCotizaciones);
 
-    // --- Notas de Entrega ---
     const filteredEntregas = appData.pdfHistory
         .filter(e => e.type === 'notaentrega' && matchesCityAndSeller(e) && matchesMonth(e))
         .sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
     renderEntregasTable(filteredEntregas);
 
-    // --- Gastos: calcular siempre, independientemente de si hay ventas ---
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
     let filteredGastos = allGastos.filter(g => g.city === selectedSalesCity);
-    // Vendedor solo ve sus propios gastos
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
         filteredGastos = filteredGastos.filter(g => g.seller === appData.loggedSeller.name);
     } else {
@@ -284,20 +342,12 @@ function filterSalesByMonth() {
             filteredGastos = filteredGastos.filter(g => g.seller === sellerFilter.value);
         }
     }
-    if (selectedYear) {
-        filteredGastos = filteredGastos.filter(g => {
-            const datePart = g.date.split(',')[0].trim();
-            const [gd, gm, gy] = datePart.split('/');
-            if (gy !== selectedYear) return false;
-            if (!selectedMonthVal) return true;
-            return (gm || '').padStart(2, '0') === selectedMonthVal;
-        });
-    }
+    filteredGastos = filteredGastos.filter(g => matchesDate(g));
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
 
-    // Filtrar solo notas de venta por ciudad
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa' || entry.city !== selectedSalesCity) return false;
+        if (!matchesDate(entry)) return false;
         if (isVendedor && appData.loggedSeller) {
             return entryMatchesSeller(entry, appData.loggedSeller.name);
         }
@@ -310,23 +360,13 @@ function filterSalesByMonth() {
 
     if (sales.length === 0) {
         const cols = isVendedor ? 9 : 11;
-        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas registradas</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">${mode === 'all' ? 'No hay ventas registradas' : 'No hay ventas registradas para esta fecha.'}</td></tr>`;
         updateSalesTotals([], [0, 0, totalGastos]);
         renderGastosTable(filteredGastos);
         return;
     }
 
-    // Filtrar por año/mes si hay selección (notas de venta, ya filtradas por ciudad/vendedor arriba)
-    let filteredSales = sales;
-    if (selectedYear) {
-        filteredSales = sales.filter(sale => {
-            const datePart = sale.date.split(',')[0].trim();
-            const [day, month, year] = datePart.split('/');
-            if (year !== selectedYear) return false;
-            if (!selectedMonthVal) return true;
-            return month.padStart(2, '0') === selectedMonthVal;
-        });
-    }
+    let filteredSales = sales.slice().sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
 
     if (filteredSales.length === 0) {
         const cols = isVendedor ? 9 : 11;
@@ -485,10 +525,8 @@ function updateSalesTotals(sales, totals) {
 function generateSalesPDF() {
     const selectedYear = document.getElementById('salesYearFilter').value;
     const selectedMonthVal = document.getElementById('salesMonthFilter').value;
-    if (!selectedYear) {
-        alert('Seleccione un año para generar el reporte');
-        return;
-    }
+    const { mode, selectedDay } = getSalesDayFilterState();
+    const dayModeLabel = mode === 'today' ? 'hoy' : mode === 'custom' && selectedDay ? selectedDay : 'todos';
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -519,7 +557,6 @@ function generateSalesPDF() {
         doc.text(`NIT: ${appData.company.nit.toUpperCase()}`, margin + 35, yPos + 21);
     }
 
-    // Título del documento
     yPos += 40;
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
@@ -527,29 +564,37 @@ function generateSalesPDF() {
     const cityTitle = inventory ? inventory.name.toUpperCase() : selectedSalesCity.toUpperCase();
     doc.text(`REPORTE DE VENTAS - ${cityTitle}`, pageWidth / 2, yPos, { align: 'center' });
 
-    // Período seleccionado
     yPos += 8;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const periodoText = selectedMonthVal ? `${monthNames[parseInt(selectedMonthVal) - 1]} ${selectedYear}` : `Año ${selectedYear}`;
+    let periodoText = 'Todos los movimientos';
+    if (mode === 'today') {
+        periodoText = `Día: ${new Date().toLocaleDateString('es-ES')}`;
+    } else if (mode === 'custom' && selectedDay) {
+        const dateObj = new Date(`${selectedDay}T00:00:00`);
+        periodoText = `Día: ${dateObj.toLocaleDateString('es-ES')}`;
+    } else if (selectedMonthVal && selectedYear) {
+        periodoText = `${monthNames[parseInt(selectedMonthVal) - 1]} ${selectedYear}`;
+    } else if (selectedYear) {
+        periodoText = `Año ${selectedYear}`;
+    }
     doc.text(`Período: ${periodoText}`, pageWidth / 2, yPos, { align: 'center' });
 
-    // Filtrar ventas del período y ciudad
     const isVendedor = appData.userRole === 'vendedor' && appData.loggedSeller;
     const sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa') return false;
         if (entry.city !== selectedSalesCity) return false;
-        // Si es vendedor, solo sus propias ventas
         if (isVendedor && !(entry.seller && entry.seller.name === appData.loggedSeller.name)) return false;
-        const datePart = entry.date.split(',')[0].trim();
-        const [day, month, year] = datePart.split('/');
-        if (year !== selectedYear) return false;
-        if (!selectedMonthVal) return true;
-        return month.padStart(2, '0') === selectedMonthVal;
+
+        const { year, month, day } = getDatePartsFromEntry(entry);
+        if (selectedYear && year !== selectedYear) return false;
+        if (selectedMonthVal && (month || '').padStart(2, '0') !== selectedMonthVal) return false;
+        if (mode === 'today' && getEntryDateLocalKey(entry) !== getTodayLocalDateKey()) return false;
+        if (mode === 'custom' && selectedDay && getEntryDateLocalKey(entry) !== selectedDay) return false;
+        return true;
     });
 
-    // Ordenar por fecha (más recientes primero)
     sales.sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
 
     // Calcular totales (solo ventas NO anuladas)
@@ -590,15 +635,15 @@ function generateSalesPDF() {
 
     const balance = totalPrice - totalCost;
 
-    // Filtrar gastos del mismo período y ciudad (no aplica para vendedor)
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
     const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
         if (g.city !== selectedSalesCity) return false;
-        const datePart = g.date.split(',')[0].trim();
-        const [gd, gm, gy] = datePart.split('/');
-        if (gy !== selectedYear) return false;
-        if (!selectedMonthVal) return true;
-        return (gm || '').padStart(2, '0') === selectedMonthVal;
+        const { year, month } = getDatePartsFromEntry(g);
+        if (selectedYear && year !== selectedYear) return false;
+        if (selectedMonthVal && (month || '').padStart(2, '0') !== selectedMonthVal) return false;
+        if (mode === 'today' && getEntryDateLocalKey(g) !== getTodayLocalDateKey()) return false;
+        if (mode === 'custom' && selectedDay && getEntryDateLocalKey(g) !== selectedDay) return false;
+        return true;
     });
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
     const gananciaLiquida = totalPrice - totalCost - totalGastos;
@@ -948,7 +993,8 @@ function generateSalesPDF() {
 
     // Guardar PDF
     const cityName = inventory ? inventory.name : selectedSalesCity;
-    const fileName = `Reporte_Ventas_${cityName}_${monthName}_${year}.pdf`;
+    const safeDatePart = mode === 'custom' && selectedDay ? selectedDay.replace(/-/g, '') : (selectedYear ? `${selectedYear}${selectedMonthVal || '00'}` : 'Todos');
+    const fileName = `Reporte_Ventas_${cityName}_${safeDatePart}.pdf`;
     doc.save(fileName);
 }
 

@@ -212,11 +212,15 @@ async function saveInventoryRowChanges(index, buttonElement) {
     let saveOk = false;
     try {
         saveOk = await saveData();
+        if (saveOk !== true) {
+            throw new Error('saveData retornó falso');
+        }
     } catch (error) {
-        // Error al guardar cambios del inventario
+        console.error('Error al guardar cambios del inventario:', error);
+        saveOk = false;
     }
 
-    if (saveOk !== false) {
+    if (saveOk === true) {
         // Actualizar solo las celdas calculadas de esta fila (sin re-renderizar toda la tabla)
         const costTotal = stock * cost;
         const priceTotal = stock * price;
@@ -241,16 +245,30 @@ async function saveInventoryRowChanges(index, buttonElement) {
     } else {
         // En caso de fallo, recargar tabla para reflejar estado real
         loadInventoryData();
-        alert('No se pudo guardar los cambios. Revisa tu conexión e intenta de nuevo.');
+        alert('No se pudo guardar los cambios en la base central. Revisa tu conexión e intenta de nuevo.');
     }
 }
 
 async function deleteProductFromInventory(index) {
     const product = appData.products[index];
+    if (!product) return;
+
     if (confirm(`¿Eliminar el producto "${product.description}"?`)) {
+        const previousProducts = [...appData.products];
         appData.products.splice(index, 1);
-        await saveData();
-        loadInventoryData();
+
+        try {
+            const saved = await saveData();
+            if (!saved) {
+                throw new Error('saveData retornó falso');
+            }
+            loadInventoryData();
+        } catch (error) {
+            console.error('Error al eliminar producto del inventario:', error);
+            appData.products = previousProducts;
+            loadInventoryData();
+            alert('No se pudo eliminar el producto en la base central. Intenta de nuevo.');
+        }
     }
 }
 
