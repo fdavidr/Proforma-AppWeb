@@ -635,6 +635,21 @@ function generateSalesPDF() {
 
     const balance = totalPrice - totalCost;
 
+    const paymentSummary = {
+        efectivo: 0,
+        qr: 0,
+        cheque: 0,
+    };
+
+    sales.forEach(sale => {
+        if (sale.cancelled) return;
+        const paymentValue = Number(sale.total || 0);
+        const pm = (sale.paymentMethod || '').trim().toUpperCase();
+        if (pm.includes('EFECTIVO')) paymentSummary.efectivo += paymentValue;
+        else if (pm.includes('QR') || pm.includes('TRANSFERENCIA')) paymentSummary.qr += paymentValue;
+        else if (pm.includes('CHEQUE')) paymentSummary.cheque += paymentValue;
+    });
+
     const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
     const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
         if (g.city !== selectedSalesCity) return false;
@@ -654,6 +669,27 @@ function generateSalesPDF() {
     doc.setFont('helvetica', 'normal');
     const summaryText = `Ventas Válidas: ${validSalesCount} | Facturadas: ${invoicedSalesCount} | Anuladas: ${cancelledSalesCount} | Total: ${sales.length}`;
     doc.text(summaryText, pageWidth / 2, yPos, { align: 'center' });
+
+    yPos += 10;
+    const paymentSummaryTotal = paymentSummary.efectivo + paymentSummary.qr + paymentSummary.cheque;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN POR MÉTODO DE PAGO', margin, yPos);
+    yPos += 8;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const paymentRows = [
+        ['Efectivo', paymentSummary.efectivo],
+        ['QR', paymentSummary.qr],
+        ['Cheque', paymentSummary.cheque],
+        ['TOTAL', paymentSummaryTotal]
+    ];
+    paymentRows.forEach(([label, value]) => {
+        const valueText = `Bs ${Number(value || 0).toFixed(2)}`;
+        const rowText = `${label}: ${valueText}`;
+        doc.text(rowText, margin + 2, yPos);
+        yPos += 7;
+    });
 
     // Totales en recuadros (4 cajas)
     yPos += 8;
