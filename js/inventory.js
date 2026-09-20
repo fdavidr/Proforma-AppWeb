@@ -40,6 +40,37 @@ function generateInventoryFilters() {
 
     select.addEventListener('change', () => filterInventoryByCity(select.value));
     container.appendChild(select);
+
+    // Crear campo de búsqueda para Inventario (código / descripción)
+    const searchWrapper = document.createElement('div');
+    searchWrapper.style.cssText = 'display:flex; align-items:center; gap:8px; margin-left:8px;';
+
+    const searchInput = document.createElement('input');
+    searchInput.id = 'inventorySearchInput';
+    searchInput.type = 'text';
+    searchInput.placeholder = '🔍 Buscar por código o descripción...';
+    searchInput.className = 'inventory-inline-input';
+    searchInput.style.cssText = 'min-width:220px; padding:7px 10px;';
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.title = 'Limpiar búsqueda';
+    clearBtn.innerText = '×';
+    clearBtn.style.cssText = 'background:transparent; border:none; font-size:18px; line-height:1; cursor:pointer; padding:4px 8px; color:#666;';
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        filterInventoryTable('');
+        searchInput.focus();
+    });
+
+    searchInput.addEventListener('input', () => {
+        filterInventoryTable(searchInput.value || '');
+    });
+
+    searchWrapper.appendChild(searchInput);
+    searchWrapper.appendChild(clearBtn);
+    container.appendChild(searchWrapper);
 }
 
 function filterInventoryByCity(city) {
@@ -127,6 +158,50 @@ function loadInventoryData() {
     // Actualizar totales
     document.getElementById('totalCostInventory').textContent = `Bs ${totalCost.toFixed(2)}`;
     document.getElementById('totalPriceInventory').textContent = `Bs ${totalPrice.toFixed(2)}`;
+
+    // Aplicar filtro de búsqueda si existe
+    const searchInput = document.getElementById('inventorySearchInput');
+    if (searchInput && searchInput.value.trim() !== '') {
+        filterInventoryTable(searchInput.value.trim());
+    } else {
+        // Asegurar que el mensaje "No se encontraron productos." no persista
+        const existing = document.getElementById('inventoryNoResultsRow');
+        if (existing) existing.remove();
+    }
+}
+
+// Filtrar filas de la tabla de inventario por código o descripción (case-insensitive)
+function filterInventoryTable(query) {
+    const tbody = document.getElementById('inventoryTableBody');
+    if (!tbody) return;
+
+    const q = (query || '').toString().trim().toLowerCase();
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    let visibleCount = 0;
+    rows.forEach(row => {
+        if (row.id === 'inventoryNoResultsRow') return;
+        const codeInput = row.querySelector('.inventory-code');
+        const descInput = row.querySelector('.inventory-description');
+        const code = (codeInput && codeInput.value) ? codeInput.value.toString().toLowerCase() : '';
+        const desc = (descInput && descInput.value) ? descInput.value.toString().toLowerCase() : '';
+
+        const match = q === '' || code.includes(q) || desc.includes(q);
+        row.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+    });
+
+    const existing = document.getElementById('inventoryNoResultsRow');
+    if (visibleCount === 0) {
+        if (!existing) {
+            const noRow = document.createElement('tr');
+            noRow.id = 'inventoryNoResultsRow';
+            noRow.innerHTML = `<td colspan="10" style="text-align:center; padding:18px; color:#666;">No se encontraron productos.</td>`;
+            tbody.appendChild(noRow);
+        }
+    } else {
+        if (existing) existing.remove();
+    }
 }
 
 // Recalcular los totales del pie sin re-renderizar la tabla completa
