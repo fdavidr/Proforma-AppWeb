@@ -62,7 +62,11 @@ service cloud.firestore {
    - Si Firebase falla, usa localStorage (respaldo)
    - Si hay datos locales pero no en Firebase, los sincroniza automáticamente
 
-3. **Resultado:**
+3. **Eliminar gastos:**
+   - Con Firebase activo, la eliminación se confirma en Firestore antes de actualizar la interfaz; en modo local se verifica el almacenamiento local.
+   - Se conserva el ID eliminado en la sincronización para evitar que una copia local antigua lo restaure.
+
+4. **Resultado:**
    - ✅ Todos los dispositivos ven los mismos datos
    - ✅ Los datos persisten entre dispositivos
    - ✅ Funciona incluso sin conexión (usa cache local)

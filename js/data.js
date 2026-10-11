@@ -17,6 +17,7 @@ let appData = {
     quotes: [],
     pdfHistory: [],
     gastos: [],
+    deletedGastoIds: [],
     currentQuoteNumber: 100000,
     currentSaleNumber: 100000,
     currentSaleNumbers: {},
@@ -82,6 +83,7 @@ async function loadData() {
             }
             if (saved.pdfHistory) appData.pdfHistory = saved.pdfHistory;
             if (saved.gastos) appData.gastos = saved.gastos;
+            appData.deletedGastoIds = Array.isArray(saved.deletedGastoIds) ? saved.deletedGastoIds : [];
             
             // Cargar inventarios
             if (saved.inventories) {

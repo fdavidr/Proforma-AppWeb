@@ -459,6 +459,12 @@ function startHistorySync() {
             const remoteHistory = remoteData.pdfHistory || [];
             const remoteGastos = remoteData.gastos || [];
             const remoteClients = remoteData.clients || [];
+            const deletedGastoIds = new Set([
+                ...(Array.isArray(remoteData.deletedGastoIds) ? remoteData.deletedGastoIds : []),
+                ...(Array.isArray(appData.deletedGastoIds) ? appData.deletedGastoIds : [])
+            ]);
+            const localGastos = (appData.gastos || []).filter(g => !deletedGastoIds.has(g.id));
+            const remoteGastosFiltered = remoteGastos.filter(g => !deletedGastoIds.has(g.id));
 
             // Fusionar historial remoto con el local (sin perder entradas de ninguno)
             const mergedMap = new Map();
@@ -467,9 +473,9 @@ function startHistorySync() {
             const merged = Array.from(mergedMap.values()).sort((a, b) => b.id - a.id);
 
             // Fusionar gastos: agregar del remoto los que no existen localmente
-            const localGastoIds = new Set((appData.gastos || []).map(g => g.id));
-            const newRemoteGastos = remoteGastos.filter(g => !localGastoIds.has(g.id));
-            const mergedGastos = [...(appData.gastos || []), ...newRemoteGastos]
+            const localGastoIds = new Set(localGastos.map(g => g.id));
+            const newRemoteGastos = remoteGastosFiltered.filter(g => !localGastoIds.has(g.id));
+            const mergedGastos = [...localGastos, ...newRemoteGastos]
                 .sort((a, b) => b.id - a.id);
 
             // Fusionar clientes: agregar del remoto los que no existen localmente
@@ -480,7 +486,8 @@ function startHistorySync() {
             const historyChanged = merged.length !== (appData.pdfHistory || []).length ||
                 (merged.length > 0 && (appData.pdfHistory || []).length > 0 &&
                  merged[0].id !== appData.pdfHistory[0].id);
-            const gastosChanged = newRemoteGastos.length > 0;
+            const gastosChanged = mergedGastos.length !== (appData.gastos || []).length ||
+                newRemoteGastos.length > 0;
             const clientsChanged = newRemoteClients.length > 0;
 
             if (historyChanged || gastosChanged) {
@@ -492,6 +499,7 @@ function startHistorySync() {
                     if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
                 }
             }
+            appData.deletedGastoIds = Array.from(deletedGastoIds);
 
             if (clientsChanged) {
                 appData.clients = mergedClients;
@@ -519,6 +527,10 @@ async function syncMovementsFromFirestore() {
         const doc = await getAppDocRef().get();
         if (!doc.exists) return;
         const remoteData = doc.data();
+        const deletedGastoIds = new Set([
+            ...(Array.isArray(remoteData.deletedGastoIds) ? remoteData.deletedGastoIds : []),
+            ...(Array.isArray(appData.deletedGastoIds) ? appData.deletedGastoIds : [])
+        ]);
 
         // Merge pdfHistory
         const remoteHistory = remoteData.pdfHistory || [];
@@ -528,10 +540,12 @@ async function syncMovementsFromFirestore() {
         const mergedHistory = Array.from(histMap.values()).sort((a, b) => b.id - a.id);
 
         // Merge gastos
-        const remoteGastos = remoteData.gastos || [];
+        const remoteGastos = (remoteData.gastos || [])
+            .filter(g => !deletedGastoIds.has(g.id));
         const gastMap = new Map();
         remoteGastos.forEach(g => gastMap.set(g.id, g));
-        (appData.gastos || []).forEach(g => gastMap.set(g.id, g));
+        (appData.gastos || []).filter(g => !deletedGastoIds.has(g.id))
+            .forEach(g => gastMap.set(g.id, g));
         const mergedGastos = Array.from(gastMap.values()).sort((a, b) => b.id - a.id);
 
         // Merge clientes
@@ -553,12 +567,83 @@ async function syncMovementsFromFirestore() {
                 if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
             }
         }
+        appData.deletedGastoIds = Array.from(deletedGastoIds);
         if (cliChanged) {
             appData.clients = mergedClients;
         }
     } catch (e) {
         // Ignorar errores de red silenciosamente
     }
+}
+
+async function deleteGastoPersistently(gastoId) {
+    if (isFirebaseEnabled && db) {
+        const appDocRef = getAppDocRef();
+        const localGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+        await db.runTransaction(async transaction => {
+            const snapshot = await transaction.get(appDocRef);
+            const existingData = snapshot.exists ? snapshot.data() : {};
+            const deletedGastoIds = new Set([
+                ...(Array.isArray(existingData.deletedGastoIds) ? existingData.deletedGastoIds : []),
+                ...(Array.isArray(appData.deletedGastoIds) ? appData.deletedGastoIds : []),
+                gastoId
+            ]);
+            const gastosMap = new Map();
+            (existingData.gastos || [])
+                .filter(g => !deletedGastoIds.has(g.id))
+                .forEach(g => gastosMap.set(g.id, g));
+            localGastos
+                .filter(g => !deletedGastoIds.has(g.id))
+                .forEach(g => gastosMap.set(g.id, g));
+            const gastos = Array.from(gastosMap.values()).sort((a, b) => b.id - a.id);
+
+            transaction.set(appDocRef, {
+                gastos,
+                deletedGastoIds: Array.from(deletedGastoIds)
+            }, { merge: true });
+        });
+
+        const verifiedSnapshot = await appDocRef.get({ source: 'server' });
+        if (!verifiedSnapshot.exists) {
+            throw new Error('No se pudo verificar el gasto eliminado en Firestore.');
+        }
+        const verifiedData = verifiedSnapshot.data();
+        const verifiedGastos = Array.isArray(verifiedData.gastos) ? verifiedData.gastos : [];
+        const verifiedDeletedIds = Array.isArray(verifiedData.deletedGastoIds)
+            ? verifiedData.deletedGastoIds
+            : [];
+        if (verifiedGastos.some(g => g.id === gastoId) || !verifiedDeletedIds.includes(gastoId)) {
+            throw new Error('Firestore no confirmó la eliminación del gasto.');
+        }
+
+        appData.gastos = verifiedGastos;
+        appData.deletedGastoIds = verifiedDeletedIds;
+        saveLocalCacheSafe({ ...appData, gastos: verifiedGastos, deletedGastoIds: verifiedDeletedIds });
+        return verifiedGastos;
+    }
+
+    const previousGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+    const previousDeletedIds = Array.isArray(appData.deletedGastoIds) ? appData.deletedGastoIds : [];
+    appData.gastos = previousGastos.filter(g => g.id !== gastoId);
+    appData.deletedGastoIds = Array.from(new Set([...previousDeletedIds, gastoId]));
+    if (!await saveAllData(appData)) {
+        appData.gastos = previousGastos;
+        appData.deletedGastoIds = previousDeletedIds;
+        throw new Error('No se pudo guardar la eliminación en el almacenamiento local.');
+    }
+    let savedData = null;
+    try {
+        savedData = JSON.parse(localStorage.getItem(getLocalCacheKey()) || 'null');
+    } catch (error) {
+        // La verificación falló: no confirmar la eliminación.
+    }
+    if (!savedData || (savedData.gastos || []).some(g => g.id === gastoId) ||
+        !Array.isArray(savedData.deletedGastoIds) || !savedData.deletedGastoIds.includes(gastoId)) {
+        appData.gastos = previousGastos;
+        appData.deletedGastoIds = previousDeletedIds;
+        throw new Error('No se pudo verificar la eliminación en el almacenamiento local.');
+    }
+    return appData.gastos;
 }
 
 // Elimina las imágenes base64 de los productos dentro de los items del historial
@@ -595,6 +680,7 @@ async function saveAllData(appData) {
         products: appData.products || [],
         pdfHistory: limitedHistory,
         gastos: appData.gastos || [],
+        deletedGastoIds: appData.deletedGastoIds || [],
         currentQuoteNumber: appData.currentQuoteNumber,
         currentSaleNumber: appData.currentSaleNumber,
         currentSaleNumbers: appData.currentSaleNumbers || {},
@@ -647,8 +733,15 @@ async function saveAllData(appData) {
                 // igual que pdfHistory. Los locales tienen prioridad (preservan ediciones).
                 // El enfoque anterior (filtrar por id > newestLocalId) perdía gastos de
                 // otros navegadores cuando su timestamp era anterior al más reciente local.
-                const existingGastos = existingData.gastos || [];
-                const localGastos = firebasePayload.gastos || [];
+                const deletedGastoIds = new Set([
+                    ...(Array.isArray(existingData.deletedGastoIds) ? existingData.deletedGastoIds : []),
+                    ...(Array.isArray(firebasePayload.deletedGastoIds) ? firebasePayload.deletedGastoIds : [])
+                ]);
+                firebasePayload.deletedGastoIds = Array.from(deletedGastoIds);
+                const existingGastos = (existingData.gastos || [])
+                    .filter(g => !deletedGastoIds.has(g.id));
+                const localGastos = (firebasePayload.gastos || [])
+                    .filter(g => !deletedGastoIds.has(g.id));
                 const mergedGastosMap = new Map();
                 existingGastos.forEach(g => mergedGastosMap.set(g.id, g));
                 localGastos.forEach(g => mergedGastosMap.set(g.id, g)); // local tiene prioridad
@@ -700,6 +793,8 @@ async function saveAllData(appData) {
             dataToSave.pdfHistory = firebasePayload.pdfHistory;
             appData.gastos = firebasePayload.gastos;
             dataToSave.gastos = firebasePayload.gastos;
+            appData.deletedGastoIds = firebasePayload.deletedGastoIds;
+            dataToSave.deletedGastoIds = firebasePayload.deletedGastoIds;
             // Sincronizar clientes fusionados de vuelta al estado local
             appData.clients = firebasePayload.clients;
             dataToSave.clients = firebasePayload.clients;
@@ -749,6 +844,12 @@ async function loadAllData() {
             const doc = await getAppDocRef().get();
             if (doc.exists) {
                 firebaseData = doc.data();
+                const deletedGastoIds = new Set(
+                    Array.isArray(firebaseData.deletedGastoIds) ? firebaseData.deletedGastoIds : []
+                );
+                firebaseData.deletedGastoIds = Array.from(deletedGastoIds);
+                firebaseData.gastos = (firebaseData.gastos || [])
+                    .filter(g => !deletedGastoIds.has(g.id));
 
                 if (firebaseData.productsStorage === 'chunks') {
                     firebaseData.products = await loadProductsFromChunks();
@@ -761,6 +862,18 @@ async function loadAllData() {
                 if (localStr) {
                     try {
                         const localData = JSON.parse(localStr);
+                        const deletedGastoIds = new Set([
+                            ...(Array.isArray(firebaseData.deletedGastoIds) ? firebaseData.deletedGastoIds : []),
+                            ...(Array.isArray(localData.deletedGastoIds) ? localData.deletedGastoIds : [])
+                        ]);
+                        const remoteDeletedGastoIds = new Set(
+                            Array.isArray(firebaseData.deletedGastoIds) ? firebaseData.deletedGastoIds : []
+                        );
+                        firebaseData.deletedGastoIds = Array.from(deletedGastoIds);
+                        if (firebaseData.deletedGastoIds.some(id => !remoteDeletedGastoIds.has(id))) {
+                            pendingFirestoreResync = true;
+                        }
+
                         const localHistory = localData.pdfHistory || [];
                         const fbHistory = firebaseData.pdfHistory || [];
                         if (localHistory.length > fbHistory.length ||
@@ -777,8 +890,11 @@ async function loadAllData() {
                         }
 
                         // Fusionar gastos del localStorage que no estén en Firestore
-                        const localGastos = localData.gastos || [];
-                        const fbGastos = firebaseData.gastos || [];
+                        const localGastos = (localData.gastos || [])
+                            .filter(g => !deletedGastoIds.has(g.id));
+                        const fbGastos = (firebaseData.gastos || [])
+                            .filter(g => !deletedGastoIds.has(g.id));
+                        firebaseData.gastos = fbGastos;
                         const fbGastoIds = new Set(fbGastos.map(g => g.id));
                         const missingGastos = localGastos.filter(g => !fbGastoIds.has(g.id));
                         if (missingGastos.length > 0) {
@@ -842,6 +958,7 @@ window.stopCountersSync = stopCountersSync;
 window.startHistorySync = startHistorySync;
 window.stopHistorySync = stopHistorySync;
 window.syncMovementsFromFirestore = syncMovementsFromFirestore;
+window.deleteGastoPersistently = deleteGastoPersistently;
 window.needsFirestoreResync = () => pendingFirestoreResync;
 window.clearFirestoreResyncFlag = () => { pendingFirestoreResync = false; };
 window.uploadProductImageToStorage = uploadProductImageToStorage;

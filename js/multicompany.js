@@ -74,6 +74,7 @@ function resetCompanyScopedData() {
     appData.products = [];
     appData.pdfHistory = [];
     appData.gastos = [];
+    appData.deletedGastoIds = [];
     appData.inventories = [
         { id: 'cochabamba', name: 'Cochabamba' },
         { id: 'santacruz', name: 'Santa Cruz' }

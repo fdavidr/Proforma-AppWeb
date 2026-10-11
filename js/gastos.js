@@ -156,11 +156,30 @@ function renderGastosList() {
 
 async function deleteGasto(id) {
     if (!confirm('¿Eliminar este gasto?')) return;
-    if (!Array.isArray(appData.gastos)) appData.gastos = [];
-    appData.gastos = appData.gastos.filter(g => g.id !== id);
-    await saveData();
-    renderGastosList();
-    if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
+    const gasto = Array.isArray(appData.gastos)
+        ? appData.gastos.find(g => g.id === id)
+        : null;
+    if (id === undefined || id === null || !gasto) {
+        alert('No se encontró el gasto seleccionado.');
+        return;
+    }
+    const ownsGasto = appData.userRole === 'vendedor' &&
+        appData.loggedSeller &&
+        gasto.seller === appData.loggedSeller.name;
+    if (appData.userRole !== 'admin' && !ownsGasto) {
+        alert('No tienes permiso para eliminar este gasto.');
+        return;
+    }
+
+    try {
+        await deleteGastoPersistently(id);
+        renderGastosList();
+        if (typeof filterSalesByMonth === 'function') filterSalesByMonth();
+        alert('✅ Gasto eliminado correctamente');
+    } catch (error) {
+        console.error('Error al eliminar el gasto:', error);
+        alert(`No se pudo eliminar el gasto. ${error.message || 'Verifica tu conexión y permisos e inténtalo nuevamente.'}`);
+    }
 }
 
 // Exponer globalmente
