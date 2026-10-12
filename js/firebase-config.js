@@ -579,41 +579,118 @@ async function syncMovementsFromFirestore() {
 async function deleteGastoPersistently(gastoId) {
     if (isFirebaseEnabled && db) {
         const appDocRef = getAppDocRef();
+        const deleteContext = {
+            path: appDocRef.path,
+            documentId: appDocRef.id,
+            gastoId,
+            gastoIdType: typeof gastoId,
+            validGastoId: (typeof gastoId === 'number' && Number.isFinite(gastoId)) ||
+                (typeof gastoId === 'string' && gastoId.trim() !== '')
+        };
         const localGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
-        await db.runTransaction(async transaction => {
-            const snapshot = await transaction.get(appDocRef);
-            const existingData = snapshot.exists ? snapshot.data() : {};
-            const deletedGastoIds = new Set([
-                ...(Array.isArray(existingData.deletedGastoIds) ? existingData.deletedGastoIds : []),
-                ...(Array.isArray(appData.deletedGastoIds) ? appData.deletedGastoIds : []),
-                gastoId
-            ]);
-            const gastosMap = new Map();
-            (existingData.gastos || [])
-                .filter(g => !deletedGastoIds.has(g.id))
-                .forEach(g => gastosMap.set(g.id, g));
-            localGastos
-                .filter(g => !deletedGastoIds.has(g.id))
-                .forEach(g => gastosMap.set(g.id, g));
-            const gastos = Array.from(gastosMap.values()).sort((a, b) => b.id - a.id);
+        if (!deleteContext.validGastoId) {
+            const error = new Error('El identificador del gasto no es válido.');
+            error.code = 'invalid-gasto-id';
+            console.error('No se pudo iniciar la eliminación del gasto en Firestore.', {
+                ...deleteContext,
+                phase: 'validation',
+                operationCompleted: false,
+                errorCode: error.code,
+                errorMessage: error.message
+            });
+            throw error;
+        }
 
-            transaction.set(appDocRef, {
-                gastos,
-                deletedGastoIds: Array.from(deletedGastoIds)
-            }, { merge: true });
-        });
+        try {
+            await db.runTransaction(async transaction => {
+                const snapshot = await transaction.get(appDocRef);
+                const existingData = snapshot.exists ? snapshot.data() : {};
+                const deletedGastoIds = new Set([
+                    ...(Array.isArray(existingData.deletedGastoIds) ? existingData.deletedGastoIds : []),
+                    ...(Array.isArray(appData.deletedGastoIds) ? appData.deletedGastoIds : []),
+                    gastoId
+                ]);
+                const gastosMap = new Map();
+                (existingData.gastos || [])
+                    .filter(g => !deletedGastoIds.has(g.id))
+                    .forEach(g => gastosMap.set(g.id, g));
+                localGastos
+                    .filter(g => !deletedGastoIds.has(g.id))
+                    .forEach(g => gastosMap.set(g.id, g));
+                const gastos = Array.from(gastosMap.values()).sort((a, b) => b.id - a.id);
 
-        const verifiedSnapshot = await appDocRef.get({ source: 'server' });
+                transaction.set(appDocRef, {
+                    gastos,
+                    deletedGastoIds: Array.from(deletedGastoIds)
+                }, { merge: true });
+            });
+        } catch (error) {
+            console.error('Firestore rechazó la transacción de eliminación del gasto.', {
+                ...deleteContext,
+                phase: 'transaction',
+                operationCompleted: false,
+                errorCode: error.code || null,
+                errorMessage: error.message || String(error)
+            });
+            throw error;
+        }
+
+        let verifiedSnapshot;
+        try {
+            verifiedSnapshot = await appDocRef.get({ source: 'server' });
+        } catch (error) {
+            console.error('No se pudo leer el resultado de la eliminación en Firestore.', {
+                ...deleteContext,
+                phase: 'server-verification',
+                operationCompleted: true,
+                errorCode: error.code || null,
+                errorMessage: error.message || String(error)
+            });
+            throw error;
+        }
         if (!verifiedSnapshot.exists) {
-            throw new Error('No se pudo verificar el gasto eliminado en Firestore.');
+            const error = new Error('El documento central de gastos no existe después de la operación.');
+            error.code = 'expense-document-not-found';
+            console.error('Firestore no permitió verificar el documento central tras la eliminación.', {
+                ...deleteContext,
+                phase: 'server-verification',
+                operationCompleted: true,
+                documentExists: false,
+                errorCode: error.code,
+                errorMessage: error.message
+            });
+            throw error;
         }
         const verifiedData = verifiedSnapshot.data();
         const verifiedGastos = Array.isArray(verifiedData.gastos) ? verifiedData.gastos : [];
         const verifiedDeletedIds = Array.isArray(verifiedData.deletedGastoIds)
             ? verifiedData.deletedGastoIds
             : [];
-        if (verifiedGastos.some(g => g.id === gastoId) || !verifiedDeletedIds.includes(gastoId)) {
-            throw new Error('Firestore no confirmó la eliminación del gasto.');
+        const gastoStillExists = verifiedGastos.some(g => g.id === gastoId);
+        if (gastoStillExists) {
+            const error = new Error('El gasto todavía aparece en el documento central de Firestore.');
+            error.code = 'expense-still-present';
+            console.error('Firestore no confirmó la eliminación del gasto seleccionado.', {
+                ...deleteContext,
+                phase: 'server-verification',
+                operationCompleted: true,
+                documentExists: true,
+                gastoStillExists,
+                tombstonePresent: verifiedDeletedIds.includes(gastoId),
+                errorCode: error.code,
+                errorMessage: error.message
+            });
+            throw error;
+        }
+        if (!verifiedDeletedIds.includes(gastoId)) {
+            console.warn('El gasto ya no está en Firestore, pero falta su marcador de sincronización.', {
+                ...deleteContext,
+                phase: 'server-verification',
+                operationCompleted: true,
+                documentExists: true,
+                gastoStillExists: false,
+                tombstonePresent: false
+            });
         }
 
         appData.gastos = verifiedGastos;

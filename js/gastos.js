@@ -178,7 +178,7 @@ async function deleteGasto(id) {
         alert('✅ Gasto eliminado correctamente');
     } catch (error) {
         console.error('Error al eliminar el gasto:', error);
-        alert(`No se pudo eliminar el gasto. ${error.message || 'Verifica tu conexión y permisos e inténtalo nuevamente.'}`);
+        alert('No se pudo confirmar la eliminación del gasto. Verifica tu conexión y permisos e inténtalo nuevamente.');
     }
 }
 
