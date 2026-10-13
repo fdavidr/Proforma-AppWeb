@@ -80,13 +80,17 @@ async function generatePDF() {
     }
 
     isGeneratingPDF = true;
+    let reservedNumber = null;
     try {
         // Asegurar que las imágenes de productos estén en base64 (jsPDF no acepta URLs HTTP)
         await resolveStorageImagesForPDF(appData.currentQuoteItems);
 
-        const reservedNumber = typeof reserveDocumentNumber === 'function'
+        reservedNumber = typeof reserveDocumentNumber === 'function'
             ? await reserveDocumentNumber(appData.documentType, appData.documentType === 'notaventa' ? appData.selectedSaleCity : null)
             : null;
+        if (appData.documentType === 'notaventa' && isFirebaseEnabled && reservedNumber && reservedNumber.source !== 'firebase') {
+            throw new Error('Firestore no confirmó la reserva del número de nota de venta.');
+        }
 
         if (reservedNumber) {
             if (appData.documentType === 'cotizacion') {
@@ -210,7 +214,13 @@ async function generatePDF() {
         }
         
         // Guardar datos (esperar a que termine)
-        await saveData();
+        const saveConfirmed = await saveData({ requireFirestore: appData.documentType === 'notaventa' });
+        if (appData.documentType === 'notaventa' && !saveConfirmed) {
+            updateUI();
+            updateDocumentNumber();
+            alert(`La nota de venta ${reservedNumber ? `N.º ${reservedNumber.number} ` : ''}quedó guardada en este dispositivo, pero Firestore no confirmó la sincronización. No la registres nuevamente; cuando haya conexión, recarga la aplicación y verifica Movimientos antes de continuar.`);
+            return;
+        }
         
         // Actualizar UI y número de documento
         updateUI();
@@ -224,6 +234,17 @@ async function generatePDF() {
             successMsg = 'Nota de entrega generada exitosamente.';
         }
         alert(successMsg + ' Use el botón "Nueva Cotización" para limpiar los datos.');
+    } catch (error) {
+        console.error('No se pudo completar la generación del documento.', {
+            documentType: appData.documentType,
+            city: appData.documentType === 'notaventa' ? appData.selectedSaleCity : null,
+            reservedNumber: reservedNumber ? reservedNumber.number : null,
+            errorCode: error.code || null,
+            errorMessage: error.message || String(error)
+        });
+        alert(appData.documentType === 'notaventa'
+            ? `No se pudo confirmar la nota de venta.${reservedNumber ? ` El número ${reservedNumber.number} pudo quedar reservado.` : ''} Verifica la conexión y el estado de Movimientos antes de volver a intentarlo.`
+            : 'No se pudo generar el documento. Verifica los datos e inténtalo nuevamente.');
     } finally {
         isGeneratingPDF = false;
     }

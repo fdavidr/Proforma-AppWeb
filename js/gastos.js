@@ -93,9 +93,20 @@ async function saveGasto() {
         notes: notesEl ? notesEl.value.trim().toUpperCase() : ''
     };
 
+    const previousGastos = Array.isArray(appData.gastos) ? [...appData.gastos] : [];
     appData.gastos.unshift(gasto);
 
-    await saveData();
+    try {
+        const saved = await saveData();
+        if (!saved) {
+            throw new Error('saveData retornó falso');
+        }
+    } catch (error) {
+        appData.gastos = previousGastos;
+        console.error('Error al guardar el gasto:', error);
+        alert('No se pudo guardar el gasto. Verifica tu conexión e inténtalo nuevamente.');
+        return;
+    }
 
     // Limpiar formulario
     if (conceptEl) conceptEl.value = '';

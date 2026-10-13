@@ -115,8 +115,8 @@ async function loadData() {
     }
 }
 
-async function saveData() {
-    return await saveAllData(appData);
+async function saveData(options) {
+    return await saveAllData(appData, options);
 }
 
 // ==================== FUNCIONES DE GESTIÓN DE INVENTARIOS ====================

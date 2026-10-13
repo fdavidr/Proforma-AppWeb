@@ -371,6 +371,16 @@ async function reserveDocumentNumber(documentType, cityId) {
 
         return result;
     } catch (error) {
+        if (documentType === 'notaventa') {
+            console.error('Firestore no confirmó la reserva del número de nota de venta.', {
+                documentType,
+                cityId: cityId || 'cochabamba',
+                counterField,
+                errorCode: error.code || null,
+                errorMessage: error.message || String(error)
+            });
+            throw error;
+        }
         return {
             number: localCurrent,
             next: localCurrent + 1,
@@ -743,7 +753,8 @@ function stripImagesFromHistoryItems(historyArray) {
 }
 
 // Función para guardar todos los datos de la aplicación
-async function saveAllData(appData) {
+async function saveAllData(appData, options = {}) {
+    const requireFirestore = options.requireFirestore === true;
     // Mantener todas las cotizaciones, ventas y entregas sin límite
     let limitedHistory = stripImagesFromHistoryItems(
         (appData.pdfHistory || []).sort((a, b) => b.id - a.id)
@@ -883,6 +894,16 @@ async function saveAllData(appData) {
             return true;
         } catch (error) {
             isSavingNow = false;
+            if (requireFirestore) {
+                console.error('Firestore no confirmó el guardado requerido del movimiento.', {
+                    errorCode: error.code || null,
+                    errorMessage: error.message || String(error)
+                });
+                if (saveLocalCacheSafe(dataToSave)) {
+                    return false;
+                }
+                throw error;
+            }
             // Fallo en Firebase — guardar solo en localStorage como respaldo
         }
     }
@@ -890,7 +911,7 @@ async function saveAllData(appData) {
     // Guardar en localStorage (si Firebase falla o no está disponible)
     try {
         if (saveLocalCacheSafe(dataToSave)) {
-            return true;
+            return !requireFirestore;
         }
 
         throw new Error('No se pudo guardar en localStorage');

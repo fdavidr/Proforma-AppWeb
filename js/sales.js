@@ -1,6 +1,7 @@
 // ==================== GESTIÓN DE VENTAS ====================
 
 let selectedSalesCity = 'cochabamba';
+let salesFiltersInitialized = false;
 
 function getDatePartsFromEntry(entry) {
     const raw = (entry && entry.date) ? String(entry.date) : '';
@@ -171,10 +172,11 @@ function populateSalesYearFilter() {
 }
 
 function openSales() {
-    // Establecer ciudad antes de generar el select para que quede preseleccionada
+    // Los vendedores siempre quedan limitados a su ciudad; en admin se conserva el filtro elegido.
     if (appData.userRole === 'vendedor' && appData.loggedSeller) {
         selectedSalesCity = appData.loggedSeller.city;
-    } else {
+    } else if (!salesFiltersInitialized ||
+        !appData.inventories.some(inventory => inventory.id === selectedSalesCity)) {
         selectedSalesCity = appData.inventories.length > 0 ? appData.inventories[0].id : 'cochabamba';
     }
 
@@ -182,11 +184,14 @@ function openSales() {
     generateSalesCityFilterButtons();
     generateSalesSellerFilter();
 
-    // Poblar el select de año y establecer mes actual por defecto
+    // Poblar el select de año y aplicar el período actual solo la primera vez.
     populateSalesYearFilter();
-    const today = new Date();
-    document.getElementById('salesYearFilter').value = String(today.getFullYear());
-    document.getElementById('salesMonthFilter').value = String(today.getMonth() + 1).padStart(2, '0');
+    if (!salesFiltersInitialized) {
+        const today = new Date();
+        document.getElementById('salesYearFilter').value = String(today.getFullYear());
+        document.getElementById('salesMonthFilter').value = String(today.getMonth() + 1).padStart(2, '0');
+        salesFiltersInitialized = true;
+    }
 
     setActiveMenuButton('salesBtn');
 
@@ -366,7 +371,7 @@ function filterSalesByMonth() {
         return;
     }
 
-    let filteredSales = sales.slice().sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
+    const filteredSales = sales.slice().sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
 
     if (filteredSales.length === 0) {
         const cols = isVendedor ? 9 : 11;
@@ -375,9 +380,6 @@ function filterSalesByMonth() {
         renderGastosTable(filteredGastos);
         return;
     }
-
-    // Ordenar por fecha (más recientes primero)
-    filteredSales.sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
 
     let totalCost = 0;
     let totalPrice = 0;
