@@ -936,6 +936,26 @@
         </div> <!-- End of app-layout-container -->
     </div> <!-- End of app -->
 
+    <div id="salesDetailModal" class="modal">
+        <div class="modal-content sales-detail-modal-content">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 id="salesDetailTitle">Detalle de nota de venta</h3>
+                <button type="button" class="btn btn-secondary" onclick="closeSalesDetail()" aria-label="Cerrar">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="salesDetailStatus" style="margin-bottom:10px;"></div>
+                <div id="salesDetailInfo" class="sales-detail-grid"></div>
+                <div class="table-responsive" style="margin-top:16px;">
+                    <table class="sales-detail-table">
+                        <thead><tr><th>Producto</th><th>Código</th><th>Cantidad</th><th>Precio unitario</th><th>Subtotal</th></tr></thead>
+                        <tbody id="salesDetailItems"></tbody>
+                    </table>
+                </div>
+                <div id="salesDetailTotals" style="margin-top:16px; text-align:right;"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="salesExportModal" class="modal">
         <div class="modal-content sales-export-modal-content">
             <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">

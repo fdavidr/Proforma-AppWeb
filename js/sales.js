@@ -1084,6 +1084,9 @@ function filterSalesByMonth() {
                 <div class="actions-menu-container">
                     <button class="btn-menu-toggle" onclick="toggleActionsMenu(event, ${sale.id})" title="Acciones">☰</button>
                     <div class="actions-dropdown" id="menu-${sale.id}">
+                        <button class="view-pdf" onclick="openSalesDetail(${sale.id}); closeActionsMenu(${sale.id})">
+                            🔎 Ver detalle
+                        </button>
                         <button class="view-pdf" onclick="viewSalePDF(${sale.id}); closeActionsMenu(${sale.id})">
                             👁️ Ver PDF
                         </button>
@@ -2527,6 +2530,106 @@ function toggleActionsMenu(event, saleId) {
     }
 }
 
+function openSalesDetail(saleId) {
+    const sale = (appData.pdfHistory || []).find(entry => String(entry.id) === String(saleId));
+    if (!sale) {
+        alert('No se encontró la nota de venta');
+        return;
+    }
+    const client = typeof sale.client === 'object' ? sale.client : { name: sale.client };
+    const seller = typeof sale.seller === 'object' ? sale.seller : { name: sale.seller };
+    const cityName = (appData.inventories.find(inv => inv.id === sale.city) || {}).name || sale.city || '—';
+
+    document.getElementById('salesDetailTitle').textContent = `Nota de venta N.º ${sale.number || '—'}`;
+    const status = document.getElementById('salesDetailStatus');
+    status.innerHTML = '';
+    if (sale.cancelled) {
+        const badge = document.createElement('span');
+        badge.style.cssText = 'display:inline-block;padding:5px 9px;border-radius:12px;background:#fdeaea;color:#c0392b;font-weight:bold;font-size:12px;';
+        badge.textContent = 'ANULADA';
+        status.appendChild(badge);
+    }
+
+    const info = document.getElementById('salesDetailInfo');
+    info.innerHTML = '';
+    const fields = [
+        ['Fecha', sale.date || '—'],
+        ['Cliente', client.name || client.company || '—'],
+        ['Vendedor', seller.name || '—'],
+        ['Ciudad / sucursal', cityName],
+        ['Estado', sale.cancelled ? 'Anulada' : (sale.invoiced ? 'Facturada' : 'Válida')],
+        ['Método de pago', sale.paymentMethod || '—'],
+        ['Observaciones', sale.terms && Array.isArray(sale.terms) ? sale.terms.join(' · ') : '—']
+    ];
+    fields.forEach(([label, value]) => {
+        const wrapper = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = `${label}: `;
+        wrapper.appendChild(strong);
+        wrapper.appendChild(document.createTextNode(String(value)));
+        info.appendChild(wrapper);
+    });
+
+    const tbody = document.getElementById('salesDetailItems');
+    tbody.innerHTML = '';
+    const items = Array.isArray(sale.items) ? sale.items : [];
+    items.forEach(item => {
+        const product = getSaleItemProduct(item);
+        const quantity = getSaleItemQuantity(item);
+        const lineSubtotal = getSaleItemSubtotal(item);
+        const price = Number(item.price);
+        const unitPrice = Number.isFinite(price)
+            ? price
+            : (quantity && lineSubtotal != null ? lineSubtotal / quantity : 0);
+        const tr = document.createElement('tr');
+        [
+            product.description || product.name || 'Producto sin descripción',
+            product.code || '—',
+            String(quantity),
+            `Bs ${unitPrice.toFixed(2)}`,
+            lineSubtotal == null ? 'No disponible' : `Bs ${lineSubtotal.toFixed(2)}`
+        ].forEach(value => {
+            const td = document.createElement('td');
+            td.textContent = String(value);
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    if (!items.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.style.textAlign = 'center';
+        td.textContent = 'No hay productos registrados en esta nota.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+
+    const subtotal = Number(sale.subtotal);
+    const discount = Number(sale.totalDiscount);
+    const total = Number(sale.total);
+    const totals = document.getElementById('salesDetailTotals');
+    totals.innerHTML = '';
+    const totalLines = [
+        ['Subtotal', Number.isFinite(subtotal) ? subtotal : null],
+        ['Descuentos', Number.isFinite(discount) ? discount : null],
+        ['Total', Number.isFinite(total) ? total : null]
+    ];
+    totalLines.forEach(([label, value]) => {
+        const line = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = `${label}: `;
+        line.appendChild(strong);
+        line.appendChild(document.createTextNode(value == null ? 'No disponible' : `Bs ${value.toFixed(2)}`));
+        totals.appendChild(line);
+    });
+    openModal('salesDetailModal');
+}
+
+function closeSalesDetail() {
+    closeModal('salesDetailModal');
+}
+
 function closeActionsMenu(saleId) {
     const menu = document.getElementById(`menu-${saleId}`);
     if (menu) {
@@ -2576,7 +2679,10 @@ async function toggleInvoiced(saleId) {
 window.openSales = openSales;
 window.filterSalesByCity = filterSalesByCity;
 window.filterSalesByMonth = filterSalesByMonth;
-window.generateSalesPDF = generateSalesPDF;
+window.openSalesExportModal = openSalesExportModal;
+window.closeSalesExportModal = closeSalesExportModal;
+window.updateSalesExportContext = updateSalesExportContext;
+window.downloadSelectedSalesReport = downloadSelectedSalesReport;
 window.showAllSales = showAllSales;
 window.toggleSaleCancellation = toggleSaleCancellation;
 window.viewSalePDF = viewSalePDF;
@@ -2587,9 +2693,18 @@ window.switchMovimientosTab = switchMovimientosTab;
 window.renderGastosTable = renderGastosTable;
 window.renderCotizacionesTable = renderCotizacionesTable;
 window.renderEntregasTable = renderEntregasTable;
+window.filterSalesProductSuggestions = filterSalesProductSuggestions;
+window.handleSalesProductSearchInput = handleSalesProductSearchInput;
+window.selectSalesProductFilter = selectSalesProductFilter;
+window.clearSalesProductFilter = clearSalesProductFilter;
+window.openSalesDetail = openSalesDetail;
+window.closeSalesDetail = closeSalesDetail;
 
 function showAllSales() {
     document.getElementById('salesYearFilter').value = '';
     document.getElementById('salesMonthFilter').value = '';
-    filterSalesByMonth();
+    const dayMode = document.getElementById('salesDayModeFilter');
+    if (dayMode) dayMode.value = 'all';
+    toggleSalesDayFilter();
+    clearSalesProductFilter();
 }
