@@ -2,6 +2,10 @@
 
 let selectedSalesCity = 'cochabamba';
 let salesFiltersInitialized = false;
+let selectedSalesProduct = null;
+let currentProductSalesResults = [];
+let currentMovementsReportSnapshot = null;
+let isGeneratingSalesReport = false;
 
 function getDatePartsFromEntry(entry) {
     const raw = (entry && entry.date) ? String(entry.date) : '';
@@ -64,6 +68,581 @@ function parseDateStr(dateStr) {
         ).getTime();
     } catch (e) {
         return 0;
+    }
+}
+
+function normalizeSalesText(value) {
+    return String(value == null ? '' : value).trim().toLowerCase();
+}
+
+function getSaleItemProduct(item) {
+    return (item && typeof item === 'object')
+        ? (item.product && typeof item.product === 'object' ? item.product : item)
+        : {};
+}
+
+function getSaleItemQuantity(item) {
+    const quantity = Number(item && item.quantity);
+    return Number.isFinite(quantity) ? quantity : 0;
+}
+
+function getSaleItemSubtotal(item) {
+    if (!item || typeof item !== 'object') return null;
+    if (item.subtotal !== undefined && item.subtotal !== null && item.subtotal !== '' &&
+        Number.isFinite(Number(item.subtotal))) return Number(item.subtotal);
+    const quantity = getSaleItemQuantity(item);
+    const price = Number(item.price);
+    if (!Number.isFinite(price) || !Number.isFinite(quantity)) return null;
+    const rawSubtotal = price * quantity;
+    if (item.discountAmount !== undefined && item.discountAmount !== null &&
+        item.discountAmount !== '' && Number.isFinite(Number(item.discountAmount))) {
+        return rawSubtotal - Number(item.discountAmount);
+    }
+    if (item.discount === undefined || item.discount === null || item.discount === '' ||
+        Number(item.discount) === 0) return rawSubtotal;
+    const discount = Number(item.discount);
+    if (!Number.isFinite(discount)) return null;
+    if (item.discountType === '%') {
+        return Number.isFinite(discount) ? rawSubtotal - (rawSubtotal * discount / 100) : rawSubtotal;
+    }
+    if (item.discountType) return rawSubtotal - (discount * quantity);
+    return null;
+}
+
+function saleItemMatchesSelectedProduct(item, selected) {
+    if (!item || !selected) return false;
+    const product = getSaleItemProduct(item);
+    const itemId = item.id != null ? item.id : product.id;
+    const selectedId = selected.id;
+
+    if (selectedId != null && itemId != null) {
+        return String(itemId) === String(selectedId);
+    }
+    if (selected.code && product.code) {
+        if (normalizeSalesText(selected.code) === normalizeSalesText(product.code)) return true;
+    }
+    return Boolean(selected.description && product.description &&
+        normalizeSalesText(selected.description) === normalizeSalesText(product.description));
+}
+
+function getMatchingSaleItems(sale) {
+    if (!selectedSalesProduct || !sale || !Array.isArray(sale.items)) return [];
+    return sale.items.filter(item => saleItemMatchesSelectedProduct(item, selectedSalesProduct));
+}
+
+function getSelectedProductCandidates() {
+    const candidates = new Map();
+    const addCandidate = (product) => {
+        if (!product || typeof product !== 'object') return;
+        const id = product.id;
+        const code = product.code || '';
+        const description = product.description || product.name || '';
+        if (!description && !code && id == null) return;
+        const key = id != null ? `id:${String(id)}` : `text:${normalizeSalesText(code)}|${normalizeSalesText(description)}`;
+        if (!candidates.has(key)) candidates.set(key, { id, code, description });
+    };
+    (appData.products || []).forEach(addCandidate);
+    (appData.pdfHistory || []).forEach(entry => {
+        (entry.items || []).forEach(item => addCandidate(getSaleItemProduct(item)));
+    });
+    return Array.from(candidates.values());
+}
+
+function filterSalesProductSuggestions(query) {
+    const list = document.getElementById('salesProductSuggestions');
+    if (!list) return;
+    list.innerHTML = '';
+    const needle = normalizeSalesText(query);
+    const candidates = getSelectedProductCandidates().filter(product => {
+        if (!needle) return true;
+        return normalizeSalesText(product.description).includes(needle) ||
+            normalizeSalesText(product.code).includes(needle) ||
+            (product.id != null && String(product.id).toLowerCase().includes(needle));
+    }).slice(0, 30);
+    list.classList.toggle('active', candidates.length > 0);
+    candidates.forEach(product => {
+        const div = document.createElement('div');
+        div.className = 'sales-product-suggestion';
+        div.textContent = `${product.code ? product.code + ' - ' : ''}${product.description || 'Producto sin descripción'}${product.id != null ? ` [ID: ${product.id}]` : ''}`;
+        div.onclick = () => selectSalesProductFilter(product);
+        list.appendChild(div);
+    });
+}
+
+function handleSalesProductSearchInput(query) {
+    if (selectedSalesProduct &&
+        normalizeSalesText(query) !== normalizeSalesText(selectedSalesProduct.description || selectedSalesProduct.code || String(selectedSalesProduct.id))) {
+        selectedSalesProduct = null;
+        currentProductSalesResults = [];
+        filterSalesByMonth();
+    }
+    filterSalesProductSuggestions(query);
+}
+
+function selectSalesProductFilter(product) {
+    selectedSalesProduct = { id: product.id, code: product.code || '', description: product.description || '' };
+    const input = document.getElementById('salesProductFilterInput');
+    if (input) input.value = product.description || product.code || String(product.id);
+    const list = document.getElementById('salesProductSuggestions');
+    if (list) list.classList.remove('active');
+    currentProductSalesResults = [];
+    filterSalesByMonth();
+}
+
+function clearSalesProductFilter() {
+    selectedSalesProduct = null;
+    const input = document.getElementById('salesProductFilterInput');
+    if (input) input.value = '';
+    const list = document.getElementById('salesProductSuggestions');
+    if (list) list.classList.remove('active');
+    currentProductSalesResults = [];
+    filterSalesByMonth();
+}
+
+function updateSalesProductSummary(sales) {
+    const container = document.getElementById('salesProductSummary');
+    const exportStatus = document.getElementById('salesProductExportStatus');
+    const hasResults = Boolean(selectedSalesProduct && sales && sales.length);
+    const summary = { product: null, units: 0, notes: 0, movements: sales ? sales.length : 0, amount: 0, amountReliable: true };
+    if (exportStatus) {
+        exportStatus.textContent = !selectedSalesProduct
+            ? 'Selecciona un producto para consultar sus ventas.'
+            : hasResults
+                ? `${sales.length} nota${sales.length === 1 ? '' : 's'} coincidente${sales.length === 1 ? '' : 's'}.`
+                : 'No hay notas coincidentes para el producto y los filtros seleccionados.';
+    }
+    if (!container) return summary;
+    if (!selectedSalesProduct) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return summary;
+    }
+
+    let units = 0;
+    let amount = 0;
+    let amountReliable = true;
+    const notes = new Set();
+    summary.product = selectedSalesProduct.description || selectedSalesProduct.code || `ID ${selectedSalesProduct.id}`;
+    (sales || []).forEach(sale => {
+        if (sale.cancelled) return;
+        const matchingItems = getMatchingSaleItems(sale);
+        if (!matchingItems.length) return;
+        notes.add(sale.id);
+        matchingItems.forEach(item => {
+            units += getSaleItemQuantity(item);
+            const subtotal = getSaleItemSubtotal(item);
+            if (subtotal == null) amountReliable = false;
+            else amount += subtotal;
+        });
+    });
+    summary.units = units;
+    summary.notes = notes.size;
+    summary.amount = amount;
+    summary.amountReliable = amountReliable;
+
+    container.innerHTML = '';
+    container.style.display = 'flex';
+    const name = selectedSalesProduct.description || selectedSalesProduct.code || `ID ${selectedSalesProduct.id}`;
+    const cards = [
+        ['Producto', name],
+        ['Unidades vendidas', String(units)],
+        ['Notas de venta', String(notes.size)],
+        ['Movimientos encontrados', String(sales ? sales.length : 0)],
+        ['Importe de líneas', amountReliable ? `Bs ${amount.toFixed(2)}` : 'No disponible']
+    ];
+    cards.forEach(([label, value]) => {
+        const card = document.createElement('div');
+        card.className = 'sales-product-summary-card';
+        const labelEl = document.createElement('div');
+        labelEl.style.cssText = 'font-size:12px;color:#666;';
+        labelEl.textContent = label;
+        const valueEl = document.createElement('div');
+        valueEl.style.cssText = 'font-size:16px;font-weight:bold;color:#2c3e50;';
+        valueEl.textContent = value;
+        card.appendChild(labelEl);
+        card.appendChild(valueEl);
+        container.appendChild(card);
+    });
+    return summary;
+}
+
+function getProductSalesReportRows() {
+    return currentProductSalesResults.map(sale => {
+        const matchingItems = getMatchingSaleItems(sale);
+        let amount = 0;
+        let amountReliable = true;
+        matchingItems.forEach(item => {
+            const subtotal = getSaleItemSubtotal(item);
+            if (subtotal == null) amountReliable = false;
+            else amount += subtotal;
+        });
+        const client = typeof sale.client === 'object' && sale.client
+            ? (sale.client.name || sale.client.company)
+            : sale.client;
+        const clientName = String(client || '').trim();
+        return {
+            date: sale.date || '',
+            number: sale.number == null ? '' : sale.number,
+            quantity: matchingItems.reduce((sum, item) => sum + getSaleItemQuantity(item), 0),
+            client: clientName || 'Cliente no registrado',
+            amount: amountReliable ? amount : null,
+            cancelled: sale.cancelled === true
+        };
+    });
+}
+
+function sanitizeReportFilePart(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/[. ]+$/g, '')
+        .slice(0, 80) || 'Producto';
+}
+
+function getReportDateValue(value) {
+    const match = String(value || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (!match) return String(value || '');
+    return new Date(
+        Number(match[3]),
+        Number(match[2]) - 1,
+        Number(match[1]),
+        Number(match[4] || 0),
+        Number(match[5] || 0),
+        Number(match[6] || 0)
+    );
+}
+
+function generateLegacyProductSalesExcel() {
+    if (!selectedSalesProduct) {
+        alert('Selecciona un producto antes de descargar el reporte.');
+        return;
+    }
+    if (!currentProductSalesResults.length) {
+        alert('No hay notas de venta coincidentes para generar el reporte.');
+        return;
+    }
+    if (!window.XLSX) {
+        alert('La librería de Excel no está disponible. Revisa tu conexión a internet e inténtalo nuevamente.');
+        return;
+    }
+
+    try {
+        const reportRows = getProductSalesReportRows();
+        if (!reportRows.length) {
+            alert('No hay notas de venta coincidentes para generar el reporte.');
+            return;
+        }
+        const validRows = reportRows.filter(row => !row.cancelled);
+        const cancelledRows = reportRows.filter(row => row.cancelled);
+        const validUnits = validRows.reduce((sum, row) => sum + row.quantity, 0);
+        const cancelledUnits = cancelledRows.reduce((sum, row) => sum + row.quantity, 0);
+        const validAmountsReliable = validRows.every(row => row.amount !== null);
+        const validAmount = validAmountsReliable
+            ? Number(validRows.reduce((sum, row) => sum + row.amount, 0).toFixed(2))
+            : null;
+        const inventory = (appData.inventories || []).find(item => item.id === selectedSalesCity);
+        const sellerSelect = document.getElementById('salesSellerFilter');
+        const sellerName = appData.userRole === 'vendedor' && appData.loggedSeller
+            ? appData.loggedSeller.name
+            : (sellerSelect && sellerSelect.value !== 'all' ? sellerSelect.value : 'Todos');
+        const year = document.getElementById('salesYearFilter')?.value || '';
+        const month = document.getElementById('salesMonthFilter')?.value || '';
+        const { mode, selectedDay } = getSalesDayFilterState();
+        let period = 'Todos los períodos';
+        if (mode === 'today') period = 'Hoy';
+        else if (mode === 'custom' && selectedDay) period = selectedDay;
+        else if (year && month) period = `${month}/${year}`;
+        else if (year) period = year;
+
+        const productName = selectedSalesProduct.description ||
+            selectedSalesProduct.code || `ID ${selectedSalesProduct.id}`;
+        const generatedAt = new Date();
+        const rows = [
+            ['CIAM – EQUIPOS DE LIMPIEZA INDUSTRIAL'],
+            ['REPORTE DE VENTAS POR PRODUCTO'],
+            ['Producto', productName],
+            ['Código', selectedSalesProduct.code || 'No registrado'],
+            ['Generado', generatedAt.toLocaleString('es-BO')],
+            ['Período', period],
+            ['Ciudad / sucursal', inventory ? inventory.name : selectedSalesCity],
+            ['Vendedor', sellerName],
+            [],
+            ['N.º', 'Fecha', 'N.º de nota de venta', 'Cantidad', 'Cliente', 'Precio (Bs)', 'Estado'],
+            ...reportRows.map((row, index) => [
+                index + 1,
+                getReportDateValue(row.date),
+                row.number,
+                row.quantity,
+                row.client,
+                row.amount == null ? '' : row.amount,
+                row.cancelled ? 'ANULADA' : 'VIGENTE'
+            ]),
+            [],
+            ['RESUMEN'],
+            ['Total de notas de venta encontradas', reportRows.length],
+            ['Notas vigentes', validRows.length],
+            ['Unidades vendidas vigentes', validUnits],
+            ['Importe de ventas vigentes (Bs)', validAmount == null ? 'No disponible: faltan importes históricos confiables' : validAmount],
+            ['Notas anuladas', cancelledRows.length],
+            ['Unidades en notas anuladas (no incluidas en ventas efectivas)', cancelledUnits]
+        ];
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const headerRow = 10;
+        const lastDataRow = headerRow + reportRows.length;
+        worksheet['!cols'] = [
+            { wch: 7 }, { wch: 22 }, { wch: 22 }, { wch: 12 },
+            { wch: 34 }, { wch: 18 }, { wch: 14 }
+        ];
+        worksheet['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
+        ];
+        worksheet['!autofilter'] = {
+            ref: `A${headerRow}:G${lastDataRow}`
+        };
+        worksheet['!freeze'] = { xSplit: 0, ySplit: headerRow, topLeftCell: `A${headerRow + 1}`, activePane: 'bottomLeft', state: 'frozen' };
+        for (let rowIndex = headerRow; rowIndex < lastDataRow; rowIndex++) {
+            const dateCell = worksheet[XLSX.utils.encode_cell({ r: rowIndex, c: 1 })];
+            if (dateCell) dateCell.z = 'dd/mm/yyyy hh:mm:ss';
+            const quantityCell = worksheet[XLSX.utils.encode_cell({ r: rowIndex, c: 3 })];
+            if (quantityCell) quantityCell.z = '#,##0.###';
+            const amountCell = worksheet[XLSX.utils.encode_cell({ r: rowIndex, c: 5 })];
+            if (amountCell && typeof amountCell.v === 'number') amountCell.z = '"Bs" #,##0.00';
+        }
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas por producto');
+        const datePart = getTodayLocalDateKey();
+        const fileName = `CIAM_Reporte_Ventas_${sanitizeReportFilePart(productName)}_${datePart}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+    } catch (error) {
+        throw error;
+    }
+}
+
+function generateLegacyProductSalesPDF() {
+    if (!selectedSalesProduct) throw new Error('Selecciona un producto antes de generar el reporte.');
+    if (!currentProductSalesResults.length) {
+        throw new Error('No hay notas de venta coincidentes para generar el reporte.');
+    }
+    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('La librería PDF no está disponible.');
+
+    const reportRows = getProductSalesReportRows();
+    const validRows = reportRows.filter(row => !row.cancelled);
+    const cancelledRows = reportRows.filter(row => row.cancelled);
+    const validAmountReliable = validRows.every(row => row.amount !== null);
+    const validAmount = validAmountReliable
+        ? validRows.reduce((sum, row) => sum + row.amount, 0)
+        : null;
+    const productName = selectedSalesProduct.description ||
+        selectedSalesProduct.code || `ID ${selectedSalesProduct.id}`;
+    const inventory = (appData.inventories || []).find(item => item.id === selectedSalesCity);
+    const sellerSelect = document.getElementById('salesSellerFilter');
+    const sellerName = appData.userRole === 'vendedor' && appData.loggedSeller
+        ? appData.loggedSeller.name
+        : (sellerSelect && sellerSelect.value !== 'all' ? sellerSelect.value : 'Todos');
+    const selectedYear = document.getElementById('salesYearFilter')?.value || '';
+    const selectedMonth = document.getElementById('salesMonthFilter')?.value || '';
+    const { mode, selectedDay } = getSalesDayFilterState();
+    const generatedAt = new Date();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 12;
+    const tableTop = 55;
+    const columns = [
+        { label: 'N.º', width: 10, align: 'center' },
+        { label: 'Fecha', width: 29 },
+        { label: 'N.º de nota', width: 28 },
+        { label: 'Cantidad', width: 19, align: 'right' },
+        { label: 'Cliente', width: 59 },
+        { label: 'Precio (Bs)', width: 30, align: 'right' },
+        { label: 'Estado', width: 25 }
+    ];
+    const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
+    const tableX = Math.max(margin, (pageWidth - tableWidth) / 2);
+
+    function drawHeader() {
+        doc.setFillColor(52, 73, 94);
+        doc.rect(tableX, tableTop, tableWidth, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        let x = tableX + 1;
+        columns.forEach(column => {
+            doc.text(column.label, x + (column.align === 'right' ? column.width - 2 : 1), tableTop + 5.3,
+                { align: column.align || 'left' });
+            x += column.width;
+        });
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(52, 73, 94);
+    doc.text((appData.company && appData.company.name) || 'CIAM – EQUIPOS DE LIMPIEZA INDUSTRIAL', margin, 16);
+    doc.setFontSize(13);
+    doc.text('REPORTE DE VENTAS POR PRODUCTO', margin, 24);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(40, 40, 40);
+    doc.text(`Producto: ${productName}${selectedSalesProduct.code ? `  |  Código: ${selectedSalesProduct.code}` : ''}`, margin, 32);
+    doc.text(`Período: ${getSalesReportPeriodLabel(selectedYear, selectedMonth, mode, selectedDay)}  |  Ciudad: ${(inventory && inventory.name) || selectedSalesCity}  |  Vendedor: ${sellerName}`, margin, 38);
+    doc.text(`Generado: ${generatedAt.toLocaleString('es-BO')}`, margin, 44);
+    drawHeader();
+
+    let y = tableTop + 13;
+    reportRows.forEach((row, index) => {
+        const clientLines = doc.splitTextToSize(row.client || 'Cliente no registrado', columns[4].width - 4);
+        const rowHeight = Math.max(7, clientLines.length * 3.5 + 2);
+        if (y + rowHeight > pageHeight - 23) {
+            doc.addPage();
+            drawHeader();
+            y = tableTop + 13;
+        }
+        doc.setTextColor(row.cancelled ? 190 : 35, row.cancelled ? 45 : 35, row.cancelled ? 45 : 35);
+        const values = [
+            String(index + 1),
+            row.date,
+            String(row.number),
+            String(row.quantity),
+            clientLines,
+            row.amount == null ? 'No disponible' : row.amount.toFixed(2),
+            row.cancelled ? 'ANULADA' : 'VIGENTE'
+        ];
+        let x = tableX + 1;
+        values.forEach((value, columnIndex) => {
+            const column = columns[columnIndex];
+            const text = columnIndex === 4 ? value : String(value);
+            doc.text(text, x + (column.align === 'right' ? column.width - 2 : 1), y + 3.5,
+                { align: column.align || 'left', maxWidth: column.width - 3 });
+            x += column.width;
+        });
+        doc.setDrawColor(225, 225, 225);
+        doc.line(tableX, y + rowHeight, tableX + tableWidth, y + rowHeight);
+        y += rowHeight;
+    });
+
+    const summaryLines = [
+        `Notas encontradas: ${reportRows.length}  |  Vigentes: ${validRows.length}  |  Anuladas: ${cancelledRows.length}`,
+        `Unidades vigentes: ${validRows.reduce((sum, row) => sum + row.quantity, 0)}  |  Importe vigente: ${validAmount == null ? 'No disponible por datos históricos incompletos' : `Bs ${validAmount.toFixed(2)}`}`
+    ];
+    const summaryHeight = summaryLines.length * 5 + 8;
+    if (y + summaryHeight > pageHeight - 10) {
+        doc.addPage();
+        y = margin + 5;
+    }
+    y += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(52, 73, 94);
+    doc.text('RESUMEN', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(30, 30, 30);
+    summaryLines.forEach((line, index) => doc.text(line, margin, y + 5 + index * 5));
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page++) {
+        doc.setPage(page);
+        doc.setFontSize(7);
+        doc.setTextColor(130, 130, 130);
+        doc.text(`Página ${page} de ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+    }
+    doc.save(`Reporte_Ventas_${sanitizeReportFilePart(productName)}_${getTodayLocalDateKey()}.pdf`);
+}
+
+function openSalesExportModal() {
+    updateSalesExportContext();
+    const formatSelect = document.getElementById('salesExportFormat');
+    if (formatSelect) formatSelect.value = 'pdf';
+    openModal('salesExportModal');
+}
+
+function closeSalesExportModal() {
+    if (isGeneratingSalesReport) return;
+    closeModal('salesExportModal');
+}
+
+function updateSalesExportContext() {
+    const snapshot = currentMovementsReportSnapshot;
+    const operation = document.getElementById('salesExportOperation');
+    const filters = document.getElementById('salesExportFilters');
+    const results = document.getElementById('salesExportResults');
+    const downloadButton = document.getElementById('salesExportDownloadButton');
+    if (!snapshot) {
+        if (operation) operation.textContent = '—';
+        if (filters) filters.textContent = '—';
+        if (results) results.textContent = 'Actualiza la vista de Movimientos antes de exportar.';
+        if (downloadButton) downloadButton.disabled = true;
+        return;
+    }
+    if (operation) operation.textContent = snapshot.operationLabel;
+    if (filters) filters.textContent = snapshot.filterDescription;
+    if (results) {
+        results.textContent = snapshot.records.length
+            ? `${snapshot.records.length} registro(s) en la vista actual.`
+            : 'No hay resultados para exportar con los filtros actuales.';
+    }
+    if (downloadButton) downloadButton.disabled = isGeneratingSalesReport || !snapshot.records.length;
+}
+
+function downloadSelectedSalesReport() {
+    if (isGeneratingSalesReport) return;
+    const format = document.getElementById('salesExportFormat')?.value;
+    if (!['pdf', 'excel'].includes(format)) {
+        alert('Selecciona un formato de reporte válido.');
+        return;
+    }
+
+    filterSalesByMonth();
+    const snapshot = currentMovementsReportSnapshot;
+    if (!snapshot || !snapshot.records.length) {
+        updateSalesExportContext();
+        alert('No hay resultados para exportar con los filtros actuales.');
+        return;
+    }
+    if (format === 'pdf' && (!window.jspdf || !window.jspdf.jsPDF)) {
+        alert('La librería PDF no está disponible. Revisa tu conexión a internet e inténtalo nuevamente.');
+        return;
+    }
+    if (format === 'excel' && !window.XLSX) {
+        alert('La librería de Excel no está disponible. Revisa tu conexión a internet e inténtalo nuevamente.');
+        return;
+    }
+
+    isGeneratingSalesReport = true;
+    const button = document.getElementById('salesExportDownloadButton');
+    const openButton = document.getElementById('salesExportOpenButton');
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Generando…';
+    }
+    if (openButton) openButton.disabled = true;
+    try {
+        if (format === 'pdf') generateMovementsReportPDF(snapshot);
+        else generateMovementsReportExcel(snapshot);
+        closeModal('salesExportModal');
+    } catch (error) {
+        console.error('No se pudo generar el reporte seleccionado.', error);
+        alert(error && error.message
+            ? error.message
+            : 'No se pudo generar el reporte. Inténtalo nuevamente.');
+    } finally {
+        window.setTimeout(() => {
+            isGeneratingSalesReport = false;
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'Descargar';
+            }
+            if (openButton) openButton.disabled = false;
+            updateSalesExportContext();
+        }, 500);
     }
 }
 
@@ -283,6 +862,8 @@ function filterSalesByMonth() {
     const selectedMonthVal = document.getElementById('salesMonthFilter').value;
     const tbody = document.getElementById('salesTableBody');
     tbody.innerHTML = '';
+    const productColumnHeader = document.getElementById('thSalesProductColumn');
+    if (productColumnHeader) productColumnHeader.textContent = selectedSalesProduct ? 'Cantidad del producto' : 'Productos';
     const isVendedor = appData.userRole === 'vendedor';
     const { mode, selectedDay } = getSalesDayFilterState();
 
@@ -350,34 +931,66 @@ function filterSalesByMonth() {
     filteredGastos = filteredGastos.filter(g => matchesDate(g));
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
 
-    const sales = appData.pdfHistory.filter(entry => {
+    let sales = appData.pdfHistory.filter(entry => {
         if (entry.type !== 'notaventa' || entry.city !== selectedSalesCity) return false;
         if (!matchesDate(entry)) return false;
         if (isVendedor && appData.loggedSeller) {
-            return entryMatchesSeller(entry, appData.loggedSeller.name);
+            if (!entryMatchesSeller(entry, appData.loggedSeller.name)) return false;
+        } else {
+            const sellerFilter = document.getElementById('salesSellerFilter');
+            if (sellerFilter && sellerFilter.value !== 'all') {
+                if (!entryMatchesSeller(entry, sellerFilter.value)) return false;
+            }
         }
-        const sellerFilter = document.getElementById('salesSellerFilter');
-        if (sellerFilter && sellerFilter.value !== 'all') {
-            return entryMatchesSeller(entry, sellerFilter.value);
-        }
-        return true;
+        return !selectedSalesProduct || getMatchingSaleItems(entry).length > 0;
     });
 
+    let salesReportRows = [];
     if (sales.length === 0) {
+        currentProductSalesResults = [];
         const cols = isVendedor ? 9 : 11;
         tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">${mode === 'all' ? 'No hay ventas registradas' : 'No hay ventas registradas para esta fecha.'}</td></tr>`;
+        const productSummary = updateSalesProductSummary([]);
         updateSalesTotals([], [0, 0, totalGastos]);
         renderGastosTable(filteredGastos);
+        currentMovementsReportSnapshot = createCurrentMovementsReportSnapshot({
+            cotizaciones: filteredCotizaciones,
+            salesRows: salesReportRows,
+            entregas: filteredEntregas,
+            gastos: filteredGastos,
+            productSummary,
+            totals: { cost: 0, price: 0, expenses: totalGastos }
+        });
+        updateSalesExportContext();
         return;
     }
 
-    const filteredSales = sales.slice().sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
+    const filteredSales = sales.slice().sort((a, b) => {
+        const dateDifference = parseDateStr(b.date) - parseDateStr(a.date);
+        if (Number.isFinite(dateDifference) && dateDifference !== 0) return dateDifference;
+        const numberDifference = String(b.number == null ? '' : b.number)
+            .localeCompare(String(a.number == null ? '' : a.number), undefined, { numeric: true });
+        if (numberDifference !== 0) return numberDifference;
+        return String(b.id == null ? '' : b.id).localeCompare(String(a.id == null ? '' : a.id), undefined, { numeric: true });
+    });
+    currentProductSalesResults = selectedSalesProduct ? filteredSales : [];
+    const productSummary = updateSalesProductSummary(filteredSales);
 
     if (filteredSales.length === 0) {
         const cols = isVendedor ? 9 : 11;
         tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 30px; color: #7f8c8d;">No hay ventas en el período seleccionado</td></tr>`;
+        const emptyProductSummary = updateSalesProductSummary([]);
         updateSalesTotals([], [0, 0, totalGastos]);
         renderGastosTable(filteredGastos);
+        currentMovementsReportSnapshot = createCurrentMovementsReportSnapshot({
+            cotizaciones: filteredCotizaciones,
+            salesRows: salesReportRows,
+            entregas: filteredEntregas,
+            gastos: filteredGastos,
+            productSummary: emptyProductSummary,
+            totals: { cost: 0, price: 0, expenses: totalGastos }
+        });
+        updateSalesExportContext();
         return;
     }
 
@@ -421,6 +1034,21 @@ function filterSalesByMonth() {
         // Resumen de productos
         const productCount = sale.items ? sale.items.length : 0;
         const productSummary = `${productCount} producto${productCount !== 1 ? 's' : ''}`;
+        const selectedProductQuantity = getMatchingSaleItems(sale).reduce((sum, item) => sum + getSaleItemQuantity(item), 0);
+        salesReportRows.push({
+            number: sale.number == null ? '' : sale.number,
+            client: getMovementReportClient(sale),
+            seller: getMovementReportSeller(sale),
+            productCount,
+            productQuantity: selectedProductQuantity,
+            cost: saleCost,
+            price: Number(salePrice) || 0,
+            profit,
+            paymentMethod: sale.paymentMethod || '—',
+            date: sale.date || '',
+            cancelled: sale.cancelled === true,
+            status: sale.cancelled === true ? 'ANULADA' : sale.invoiced === true ? 'FACTURADA' : 'VIGENTE'
+        });
 
         // Determinar si está anulada
         const isCancelled = sale.cancelled === true;
@@ -446,7 +1074,7 @@ function filterSalesByMonth() {
             <td>${sale.number}</td>
             <td>${sale.client.name || sale.client}</td>
             <td>${sale.seller.name || sale.seller}</td>
-            <td>${productSummary}</td>
+            <td>${selectedSalesProduct ? selectedProductQuantity : productSummary}</td>
             <td style="color: #e74c3c;${isVendedor ? ' display:none;' : ''}">Bs ${saleCost.toFixed(2)}</td>
             <td style="color: #27ae60;">Bs ${salePrice.toFixed(2)}</td>
             <td style="color: ${profit >= 0 ? '#3498db' : '#e74c3c'}; font-weight: bold;${isVendedor ? ' display:none;' : ''}">Bs ${profit.toFixed(2)}</td>
@@ -475,6 +1103,15 @@ function filterSalesByMonth() {
     // Gastos ya calculados al inicio — renderizar y actualizar totales
     renderGastosTable(filteredGastos);
     updateSalesTotals(filteredSales, [totalCost, totalPrice, totalGastos]);
+    currentMovementsReportSnapshot = createCurrentMovementsReportSnapshot({
+        cotizaciones: filteredCotizaciones,
+        salesRows: salesReportRows,
+        entregas: filteredEntregas,
+        gastos: filteredGastos,
+        productSummary,
+        totals: { cost: totalCost, price: totalPrice, expenses: totalGastos }
+    });
+    updateSalesExportContext();
 }
 
 function renderGastosTable(gastos) {
@@ -524,7 +1161,515 @@ function updateSalesTotals(sales, totals) {
     }
 }
 
-function generateSalesPDF() {
+function getMovementReportClient(entry) {
+    const client = entry && entry.client;
+    if (client && typeof client === 'object') return client.name || client.company || 'Cliente no registrado';
+    return String(client || '').trim() || 'Cliente no registrado';
+}
+
+function getMovementReportSeller(entry) {
+    const seller = entry && entry.seller;
+    if (seller && typeof seller === 'object') return seller.name || '—';
+    return String(seller || '').trim() || '—';
+}
+
+function getCurrentMovementFilterDescription(operation) {
+    const year = document.getElementById('salesYearFilter')?.value || 'Todos';
+    const monthSelect = document.getElementById('salesMonthFilter');
+    const month = monthSelect && monthSelect.value
+        ? monthSelect.options[monthSelect.selectedIndex].text
+        : 'Todos';
+    const { mode, selectedDay } = getSalesDayFilterState();
+    const day = mode === 'today' ? 'Hoy' : mode === 'custom' ? (selectedDay || 'Sin fecha') : 'Todos';
+    const seller = appData.userRole === 'vendedor' && appData.loggedSeller
+        ? appData.loggedSeller.name
+        : (document.getElementById('salesSellerFilter')?.value || 'all') === 'all'
+            ? 'Todos'
+            : document.getElementById('salesSellerFilter').value;
+    const inventory = (appData.inventories || []).find(item => item.id === selectedSalesCity);
+    const product = operation === 'ventas' && selectedSalesProduct
+        ? (selectedSalesProduct.description || selectedSalesProduct.code || `ID ${selectedSalesProduct.id}`)
+        : 'Sin selección';
+    return {
+        city: inventory ? inventory.name : selectedSalesCity,
+        seller,
+        product,
+        year,
+        month,
+        day,
+        description: `Sucursal: ${inventory ? inventory.name : selectedSalesCity} | Vendedor: ${seller} | Año: ${year} | Mes: ${month} | Día: ${day}${operation === 'ventas' && selectedSalesProduct ? ` | Producto: ${product}` : ''}`
+    };
+}
+
+function createCurrentMovementsReportSnapshot(data) {
+    const operationSelect = document.getElementById('movimientosTipoSelect');
+    const operation = operationSelect ? operationSelect.value : 'ventas';
+    const operationLabels = {
+        cotizaciones: 'Cotizaciones',
+        ventas: 'Notas de Venta',
+        entregas: 'Notas de Entrega',
+        gastos: 'Gastos'
+    };
+    const filters = getCurrentMovementFilterDescription(operation);
+    const productIsActive = operation === 'ventas' && Boolean(selectedSalesProduct);
+    const productRows = productIsActive ? getProductSalesReportRows() : [];
+    const productSummary = data.productSummary || {
+        product: productIsActive ? filters.product : null,
+        units: 0,
+        notes: 0,
+        movements: data.salesRows.length,
+        amount: 0,
+        amountReliable: true
+    };
+    const operationRecords = {
+        cotizaciones: data.cotizaciones.map(entry => ({
+            number: entry.number == null ? '' : entry.number,
+            client: getMovementReportClient(entry),
+            seller: getMovementReportSeller(entry),
+            total: Number(entry.total) || 0,
+            date: entry.date || ''
+        })),
+        ventas: data.salesRows.map((row, index) => ({
+            ...row,
+            productLineAmount: productRows[index] ? productRows[index].amount : null,
+            productLineAmountReliable: productRows[index] ? productRows[index].amount !== null : false
+        })),
+        entregas: data.entregas.map(entry => ({
+            number: entry.number == null ? '' : entry.number,
+            client: getMovementReportClient(entry),
+            seller: getMovementReportSeller(entry),
+            date: entry.date || ''
+        })),
+        gastos: data.gastos.map(entry => ({
+            concept: entry.concept || '',
+            category: entry.category || '',
+            amount: Number(entry.amount) || 0,
+            city: filters.city,
+            seller: entry.seller || '—',
+            date: entry.date || '',
+            paymentMethod: entry.paymentMethod || '—',
+            notes: entry.notes || ''
+        }))
+    };
+    const records = operationRecords[operation] || [];
+    const validSales = operationRecords.ventas.filter(row => !row.cancelled);
+    const cancelledSales = operationRecords.ventas.filter(row => row.cancelled);
+    let summary;
+    if (operation === 'ventas') {
+        summary = [
+            ['Notas encontradas', operationRecords.ventas.length],
+            ['Notas vigentes', validSales.length],
+            ['Notas anuladas', cancelledSales.length],
+            ['Costo total (cálculo de pantalla; catálogo actual)', Number(data.totals.cost.toFixed(2))],
+            ['Importe total de notas vigentes', Number(data.totals.price.toFixed(2))],
+            ['Gastos filtrados', Number(data.totals.expenses.toFixed(2))],
+            ['Ganancia líquida (cálculo de pantalla)', Number((data.totals.price - data.totals.cost - data.totals.expenses).toFixed(2))],
+            ['Nota', 'El costo usa el costo actual del catálogo, igual que la pantalla; no se presenta como costo histórico confirmado.']
+        ];
+        if (productIsActive) {
+            summary.push(
+                ['Producto', productSummary.product || filters.product],
+                ['Notas con producto (incluye anuladas)', productSummary.movements],
+                ['Notas vigentes con producto', productSummary.notes],
+                ['Unidades vigentes del producto', productSummary.units],
+                ['Importe vigente de líneas del producto', productSummary.amountReliable ? Number(productSummary.amount.toFixed(2)) : 'No disponible: datos históricos incompletos']
+            );
+        }
+    } else if (operation === 'cotizaciones') {
+        summary = [['Cotizaciones encontradas', records.length], ['Total de cotizaciones (Bs)', Number(records.reduce((sum, row) => sum + row.total, 0).toFixed(2))]];
+    } else if (operation === 'entregas') {
+        summary = [['Notas de entrega encontradas', records.length]];
+    } else {
+        summary = [['Gastos encontrados', records.length], ['Total de gastos (Bs)', Number(records.reduce((sum, row) => sum + row.amount, 0).toFixed(2))]];
+    }
+
+    return {
+        operation,
+        operationLabel: operationLabels[operation] || operationLabels.ventas,
+        city: filters.city,
+        filters,
+        filterDescription: filters.description,
+        records,
+        summary,
+        product: productIsActive ? { ...selectedSalesProduct } : null,
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function getMovementsReportTable(snapshot) {
+    const records = snapshot.records;
+    if (snapshot.operation === 'cotizaciones') {
+        return {
+            columns: [
+                { label: 'N.º', format: 'number' }, { label: 'N.º documento' }, { label: 'Cliente' },
+                { label: 'Vendedor' }, { label: 'Total (Bs)', format: 'currency' }, { label: 'Fecha', format: 'date' }
+            ],
+            rows: records.map((row, index) => [index + 1, row.number, row.client, row.seller, row.total, row.date])
+        };
+    }
+    if (snapshot.operation === 'entregas') {
+        return {
+            columns: [
+                { label: 'N.º', format: 'number' }, { label: 'N.º documento' }, { label: 'Cliente' },
+                { label: 'Vendedor' }, { label: 'Fecha', format: 'date' }
+            ],
+            rows: records.map((row, index) => [index + 1, row.number, row.client, row.seller, row.date])
+        };
+    }
+    if (snapshot.operation === 'gastos') {
+        return {
+            columns: [
+                { label: 'N.º', format: 'number' }, { label: 'Concepto' }, { label: 'Categoría' },
+                { label: 'Monto (Bs)', format: 'currency' }, { label: 'Ciudad' }, { label: 'Vendedor' },
+                { label: 'Fecha', format: 'date' }, { label: 'Método de pago' }, { label: 'Notas' }
+            ],
+            rows: records.map((row, index) => [index + 1, row.concept, row.category, row.amount, row.city, row.seller, row.date, row.paymentMethod, row.notes])
+        };
+    }
+    const isProductView = Boolean(snapshot.product);
+    const columns = [
+        { label: 'N.º', format: 'number' }, { label: 'N.º nota de venta' }, { label: 'Cliente' },
+        { label: 'Vendedor' }, { label: isProductView ? 'Cantidad del producto' : 'Productos', format: 'number' }
+    ];
+    if (isProductView) columns.push({ label: 'Importe líneas producto (Bs)', format: 'currency' });
+    columns.push(
+        { label: 'Total nota (Bs)', format: 'currency' },
+        { label: 'Costo catálogo actual (Bs)', format: 'currency' },
+        { label: 'Ganancia según pantalla (Bs)', format: 'currency' },
+        { label: 'Método de pago' },
+        { label: 'Fecha', format: 'date' },
+        { label: 'Estado' }
+    );
+    return {
+        columns,
+        rows: records.map((row, index) => {
+            const values = [index + 1, row.number, row.client, row.seller, isProductView ? row.productQuantity : row.productCount];
+            if (isProductView) values.push(row.productLineAmountReliable ? row.productLineAmount : 'No disponible');
+            values.push(row.price, row.cost, row.profit, row.paymentMethod, row.date, row.status);
+            return values;
+        })
+    };
+}
+
+function generateMovementsReportExcel(snapshot) {
+    if (!window.XLSX) throw new Error('La librería de Excel no está disponible.');
+    const table = getMovementsReportTable(snapshot);
+    const generatedAt = new Date(snapshot.generatedAt);
+    const rows = [
+        ['CIAM – EQUIPOS DE LIMPIEZA INDUSTRIAL'],
+        [`REPORTE DE ${snapshot.operationLabel.toUpperCase()}`],
+        ['Generado', generatedAt.toLocaleString('es-BO')],
+        ['Filtros', snapshot.filterDescription],
+        [],
+        ...snapshot.summary.map(([label, value]) => [label, value]),
+        [],
+        table.columns.map(column => column.label),
+        ...table.rows
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const headerRow = snapshot.summary.length + 6;
+    const lastRow = headerRow + table.rows.length;
+    worksheet['!cols'] = table.columns.map(column => ({ wch: Math.max(12, Math.min(34, column.label.length + 5)) }));
+    if (table.rows.length) {
+        worksheet['!autofilter'] = { ref: `${XLSX.utils.encode_col(0)}${headerRow + 1}:${XLSX.utils.encode_col(table.columns.length - 1)}${lastRow + 1}` };
+        worksheet['!freeze'] = { xSplit: 0, ySplit: headerRow + 1, topLeftCell: `A${headerRow + 2}`, activePane: 'bottomLeft', state: 'frozen' };
+        table.rows.forEach((row, rowIndex) => {
+            table.columns.forEach((column, columnIndex) => {
+                const cell = worksheet[XLSX.utils.encode_cell({ r: headerRow + rowIndex + 1, c: columnIndex })];
+                if (!cell) return;
+                if (column.format === 'date') {
+                    const dateValue = getReportDateValue(cell.v);
+                    if (dateValue instanceof Date && Number.isFinite(dateValue.getTime())) {
+                        cell.v = dateValue;
+                        cell.t = 'd';
+                        cell.z = 'dd/mm/yyyy hh:mm:ss';
+                    }
+                } else if (column.format === 'currency' && typeof cell.v === 'number') {
+                    cell.z = '"Bs" #,##0.00';
+                } else if (column.format === 'number' && typeof cell.v === 'number') {
+                    cell.z = '#,##0.###';
+                }
+            });
+        });
+    }
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Movimientos');
+    XLSX.writeFile(workbook, `CIAM_Movimientos_${sanitizeReportFilePart(snapshot.operationLabel)}_${getTodayLocalDateKey()}.xlsx`);
+}
+
+function generateMovementsReportPDF(snapshot) {
+    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('La librería PDF no está disponible.');
+    const table = getMovementsReportTable(snapshot);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 10;
+    const widths = table.columns.map(column => Math.max(15, (pageWidth - margin * 2) / table.columns.length));
+    const tableWidth = widths.reduce((sum, width) => sum + width, 0);
+
+    function drawTableHeader(y) {
+        doc.setFillColor(52, 73, 94);
+        doc.rect(margin, y, tableWidth, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(255, 255, 255);
+        let x = margin + 1;
+        table.columns.forEach((column, index) => {
+            doc.text(column.label, x, y + 5.2, { maxWidth: widths[index] - 2 });
+            x += widths[index];
+        });
+        doc.setTextColor(30, 30, 30);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+    }
+
+    let contentY = 13;
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(52, 73, 94);
+    doc.setFontSize(14);
+    doc.text('CIAM – EQUIPOS DE LIMPIEZA INDUSTRIAL', margin, contentY);
+    contentY += 8;
+    doc.setFontSize(12);
+    doc.text(`REPORTE DE ${snapshot.operationLabel.toUpperCase()}`, margin, contentY);
+    contentY += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(8);
+    doc.text(`Generado: ${new Date(snapshot.generatedAt).toLocaleString('es-BO')}`, margin, contentY);
+    contentY += 5;
+    const filterLines = doc.splitTextToSize(`Filtros: ${snapshot.filterDescription}`, pageWidth - margin * 2);
+    doc.text(filterLines, margin, contentY);
+    contentY += filterLines.length * 4;
+    snapshot.summary.forEach(([label, value]) => {
+        const summaryLines = doc.splitTextToSize(`${label}: ${value}`, pageWidth - margin * 2);
+        doc.text(summaryLines, margin, contentY);
+        contentY += summaryLines.length * 4;
+    });
+    const headerY = contentY + 2;
+    if (headerY > pageHeight - 20) {
+        doc.addPage();
+        contentY = margin;
+    }
+    drawTableHeader(headerY <= pageHeight - 20 ? headerY : margin);
+    let y = (headerY <= pageHeight - 20 ? headerY : margin) + 12;
+
+    table.rows.forEach(row => {
+        const cells = row.map((value, index) => {
+            if (table.columns[index].format === 'currency' && typeof value === 'number') return `Bs ${value.toFixed(2)}`;
+            return String(value == null ? '' : value);
+        });
+        const lines = cells.map((value, index) => doc.splitTextToSize(value, widths[index] - 2));
+        const rowHeight = Math.max(7, ...lines.map(value => value.length * 3.2 + 2));
+        if (y + rowHeight > pageHeight - 10) {
+            doc.addPage();
+            drawTableHeader(margin);
+            y = margin + 12;
+        }
+        let x = margin + 1;
+        lines.forEach((value, index) => {
+            doc.text(value, x, y + 3.5, { maxWidth: widths[index] - 2 });
+            x += widths[index];
+        });
+        doc.setDrawColor(225, 225, 225);
+        doc.line(margin, y + rowHeight, margin + tableWidth, y + rowHeight);
+        y += rowHeight;
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page++) {
+        doc.setPage(page);
+        doc.setFontSize(7);
+        doc.setTextColor(130, 130, 130);
+        doc.text(`Página ${page} de ${pageCount}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
+    }
+    doc.save(`CIAM_Movimientos_${sanitizeReportFilePart(snapshot.operationLabel)}_${getTodayLocalDateKey()}.pdf`);
+}
+
+function getLegacyGeneralSalesReportData(selectedYear, selectedMonthVal, mode, selectedDay, isVendedor) {
+    const sales = (appData.pdfHistory || []).filter(entry => {
+        if (entry.type !== 'notaventa') return false;
+        if (entry.city !== selectedSalesCity) return false;
+        if (isVendedor && !(entry.seller && entry.seller.name === appData.loggedSeller.name)) return false;
+
+        const { year, month } = getDatePartsFromEntry(entry);
+        if (selectedYear && year !== selectedYear) return false;
+        if (selectedMonthVal && (month || '').padStart(2, '0') !== selectedMonthVal) return false;
+        if (mode === 'today' && getEntryDateLocalKey(entry) !== getTodayLocalDateKey()) return false;
+        if (mode === 'custom' && selectedDay && getEntryDateLocalKey(entry) !== selectedDay) return false;
+        return true;
+    }).sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
+
+    const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
+    const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
+        if (g.city !== selectedSalesCity) return false;
+        const { year, month } = getDatePartsFromEntry(g);
+        if (selectedYear && year !== selectedYear) return false;
+        if (selectedMonthVal && (month || '').padStart(2, '0') !== selectedMonthVal) return false;
+        if (mode === 'today' && getEntryDateLocalKey(g) !== getTodayLocalDateKey()) return false;
+        if (mode === 'custom' && selectedDay && getEntryDateLocalKey(g) !== selectedDay) return false;
+        return true;
+    });
+
+    return { sales, filteredGastos };
+}
+
+function generateLegacySalesExcel() {
+    if (!window.XLSX) throw new Error('La librería de Excel no está disponible.');
+
+    const selectedYear = document.getElementById('salesYearFilter').value;
+    const selectedMonthVal = document.getElementById('salesMonthFilter').value;
+    const { mode, selectedDay } = getSalesDayFilterState();
+    const isVendedor = appData.userRole === 'vendedor' && appData.loggedSeller;
+    const { sales, filteredGastos } = getLegacyGeneralSalesReportData(
+        selectedYear,
+        selectedMonthVal,
+        mode,
+        selectedDay,
+        isVendedor
+    );
+    if (!sales.length && !filteredGastos.length) {
+        throw new Error('No hay movimientos disponibles para los filtros seleccionados.');
+    }
+
+    const inventory = (appData.inventories || []).find(item => item.id === selectedSalesCity);
+    const cityName = inventory ? inventory.name : selectedSalesCity;
+    const summaryRows = [];
+    const salesCostValues = [];
+    const salesRows = sales.map((sale, index) => {
+        let saleCost = 0;
+        (Array.isArray(sale.items) ? sale.items : []).forEach(item => {
+            const product = (appData.products || []).find(p => p.id === item.id);
+            if (product && product.cost) saleCost += product.cost * item.quantity;
+        });
+        salesCostValues.push(saleCost);
+        const client = typeof sale.client === 'object' && sale.client
+            ? (sale.client.name || sale.client.company || '')
+            : (sale.client || '');
+        const seller = typeof sale.seller === 'object' && sale.seller
+            ? sale.seller.name || ''
+            : (sale.seller || '');
+        return [
+            index + 1,
+            sale.number == null ? '' : sale.number,
+            client,
+            seller,
+            Array.isArray(sale.items) ? sale.items.length : 0,
+            Number(saleCost.toFixed(2)),
+            Number(sale.total || 0),
+            getReportDateValue(sale.date),
+            sale.cancelled ? 'ANULADA' : sale.invoiced ? 'FACTURADA' : 'VENDIDO'
+        ];
+    });
+
+    let totalCost = 0;
+    let totalPrice = 0;
+    let validSalesCount = 0;
+    let cancelledSalesCount = 0;
+    let invoicedSalesCount = 0;
+    const paymentSummary = { efectivo: 0, qr: 0, cheque: 0 };
+    sales.forEach((sale, index) => {
+        if (sale.cancelled) {
+            cancelledSalesCount++;
+            return;
+        }
+        validSalesCount++;
+        if (sale.invoiced) invoicedSalesCount++;
+        totalCost += salesCostValues[index];
+        const price = Number(sale.total || 0);
+        totalPrice += price;
+        const paymentMethod = (sale.paymentMethod || '').trim().toUpperCase();
+        if (paymentMethod.includes('EFECTIVO')) paymentSummary.efectivo += price;
+        else if (paymentMethod.includes('QR') || paymentMethod.includes('TRANSFERENCIA')) paymentSummary.qr += price;
+        else if (paymentMethod.includes('CHEQUE')) paymentSummary.cheque += price;
+    });
+    const totalExpenses = filteredGastos.reduce((sum, gasto) => sum + (Number(gasto.amount) || 0), 0);
+    summaryRows.push(
+        ['CIAM – EQUIPOS DE LIMPIEZA INDUSTRIAL'],
+        ['REPORTE GENERAL DE MOVIMIENTOS DE VENTA'],
+        ['Ciudad / sucursal', cityName],
+        ['Período', getSalesReportPeriodLabel(selectedYear, selectedMonthVal, mode, selectedDay)],
+        ['Vendedor', isVendedor ? appData.loggedSeller.name : 'Todos'],
+        ['Generado', new Date().toLocaleString('es-BO')],
+        [],
+        ['Resumen de ventas'],
+        ['Total de notas', sales.length],
+        ['Ventas válidas', validSalesCount],
+        ['Facturadas', invoicedSalesCount],
+        ['Anuladas', cancelledSalesCount],
+        ['Costo total (ventas válidas)', Number(totalCost.toFixed(2))],
+        ['Ingreso total (ventas válidas)', Number(totalPrice.toFixed(2))],
+        ['Efectivo', Number(paymentSummary.efectivo.toFixed(2))],
+        ['QR / Transferencia', Number(paymentSummary.qr.toFixed(2))],
+        ['Cheque', Number(paymentSummary.cheque.toFixed(2))],
+        ['Total gastos', Number(totalExpenses.toFixed(2))],
+        ['Ganancia líquida', Number((totalPrice - totalCost - totalExpenses).toFixed(2))]
+    );
+
+    const workbook = XLSX.utils.book_new();
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+    summarySheet['!cols'] = [{ wch: 38 }, { wch: 36 }];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
+
+    const salesSheet = XLSX.utils.aoa_to_sheet([
+        ['N.º', 'N.º de venta', 'Cliente', 'Vendedor', 'Productos', 'Costo (Bs)', 'Precio (Bs)', 'Fecha', 'Estado'],
+        ...salesRows
+    ]);
+    salesSheet['!cols'] = [
+        { wch: 8 }, { wch: 18 }, { wch: 32 }, { wch: 24 }, { wch: 12 },
+        { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 14 }
+    ];
+    if (salesRows.length) {
+        salesSheet['!autofilter'] = { ref: `A1:I${salesRows.length + 1}` };
+        salesSheet['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' };
+        for (let rowIndex = 1; rowIndex <= salesRows.length; rowIndex++) {
+            const dateCell = salesSheet[XLSX.utils.encode_cell({ r: rowIndex, c: 7 })];
+            if (dateCell) dateCell.z = 'dd/mm/yyyy hh:mm:ss';
+            [5, 6].forEach(column => {
+                const amountCell = salesSheet[XLSX.utils.encode_cell({ r: rowIndex, c: column })];
+                if (amountCell) amountCell.z = '"Bs" #,##0.00';
+            });
+        }
+    }
+    XLSX.utils.book_append_sheet(workbook, salesSheet, 'Ventas');
+
+    const gastosRows = filteredGastos.map((gasto, index) => [
+        index + 1,
+        gasto.concept || '',
+        gasto.category || '',
+        Number(gasto.amount || 0),
+        gasto.date || '',
+        gasto.paymentMethod || '',
+        gasto.notes || ''
+    ]);
+    const gastosSheet = XLSX.utils.aoa_to_sheet([
+        ['N.º', 'Concepto', 'Categoría', 'Monto (Bs)', 'Fecha', 'Método de pago', 'Notas'],
+        ...gastosRows
+    ]);
+    gastosSheet['!cols'] = [{ wch: 8 }, { wch: 34 }, { wch: 22 }, { wch: 16 }, { wch: 22 }, { wch: 22 }, { wch: 40 }];
+    if (gastosRows.length) {
+        gastosSheet['!autofilter'] = { ref: `A1:G${gastosRows.length + 1}` };
+        gastosSheet['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' };
+        for (let rowIndex = 1; rowIndex <= gastosRows.length; rowIndex++) {
+            const amountCell = gastosSheet[XLSX.utils.encode_cell({ r: rowIndex, c: 3 })];
+            if (amountCell) amountCell.z = '"Bs" #,##0.00';
+        }
+    }
+    XLSX.utils.book_append_sheet(workbook, gastosSheet, 'Gastos');
+
+    const datePart = getTodayLocalDateKey();
+    XLSX.writeFile(workbook, `Reporte_Ventas_${sanitizeReportFilePart(cityName)}_${datePart}.xlsx`);
+}
+
+function getSalesReportPeriodLabel(selectedYear, selectedMonthVal, mode, selectedDay) {
+    if (mode === 'today') return 'Hoy';
+    if (mode === 'custom' && selectedDay) return selectedDay;
+    if (selectedMonthVal && selectedYear) return `${selectedMonthVal}/${selectedYear}`;
+    if (selectedYear) return selectedYear;
+    return 'Todos los movimientos';
+}
+
+function generateLegacySalesPDF() {
     const selectedYear = document.getElementById('salesYearFilter').value;
     const selectedMonthVal = document.getElementById('salesMonthFilter').value;
     const { mode, selectedDay } = getSalesDayFilterState();
@@ -584,20 +1729,13 @@ function generateSalesPDF() {
     doc.text(`Período: ${periodoText}`, pageWidth / 2, yPos, { align: 'center' });
 
     const isVendedor = appData.userRole === 'vendedor' && appData.loggedSeller;
-    const sales = appData.pdfHistory.filter(entry => {
-        if (entry.type !== 'notaventa') return false;
-        if (entry.city !== selectedSalesCity) return false;
-        if (isVendedor && !(entry.seller && entry.seller.name === appData.loggedSeller.name)) return false;
-
-        const { year, month, day } = getDatePartsFromEntry(entry);
-        if (selectedYear && year !== selectedYear) return false;
-        if (selectedMonthVal && (month || '').padStart(2, '0') !== selectedMonthVal) return false;
-        if (mode === 'today' && getEntryDateLocalKey(entry) !== getTodayLocalDateKey()) return false;
-        if (mode === 'custom' && selectedDay && getEntryDateLocalKey(entry) !== selectedDay) return false;
-        return true;
-    });
-
-    sales.sort((a, b) => parseDateStr(b.date) - parseDateStr(a.date));
+    const { sales, filteredGastos } = getLegacyGeneralSalesReportData(
+        selectedYear,
+        selectedMonthVal,
+        mode,
+        selectedDay,
+        isVendedor
+    );
 
     // Calcular totales (solo ventas NO anuladas)
     let totalCost = 0;
@@ -652,16 +1790,6 @@ function generateSalesPDF() {
         else if (pm.includes('CHEQUE')) paymentSummary.cheque += paymentValue;
     });
 
-    const allGastos = Array.isArray(appData.gastos) ? appData.gastos : [];
-    const filteredGastos = isVendedor ? [] : allGastos.filter(g => {
-        if (g.city !== selectedSalesCity) return false;
-        const { year, month } = getDatePartsFromEntry(g);
-        if (selectedYear && year !== selectedYear) return false;
-        if (selectedMonthVal && (month || '').padStart(2, '0') !== selectedMonthVal) return false;
-        if (mode === 'today' && getEntryDateLocalKey(g) !== getTodayLocalDateKey()) return false;
-        if (mode === 'custom' && selectedDay && getEntryDateLocalKey(g) !== selectedDay) return false;
-        return true;
-    });
     const totalGastos = filteredGastos.reduce((sum, g) => sum + (g.amount || 0), 0);
     const gananciaLiquida = totalPrice - totalCost - totalGastos;
 
@@ -1408,6 +2536,10 @@ function closeActionsMenu(saleId) {
 
 // Cerrar menús al hacer clic fuera
 document.addEventListener('click', function(event) {
+    if (!event.target.closest('#salesProductFilterContainer')) {
+        const suggestions = document.getElementById('salesProductSuggestions');
+        if (suggestions) suggestions.classList.remove('active');
+    }
     if (!event.target.closest('.actions-menu-container')) {
         document.querySelectorAll('.actions-dropdown').forEach(menu => {
             menu.classList.remove('show');

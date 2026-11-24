@@ -16,7 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="css/styles.css?v=20260315b">
+    <link rel="stylesheet" href="css/styles.css?v=20261123b">
 </head>
 <body>
     <!-- ==================== PANTALLA DE LOGIN ==================== -->
@@ -635,7 +635,7 @@
             <!-- Título + botón descargar en la misma fila -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2>📊 Movimientos</h2>
-                <button class="btn btn-primary" onclick="generateSalesPDF()" style="white-space:nowrap; padding:7px 12px; font-size:13px; width:fit-content; flex-shrink:0;">&#x1F4C4; Descargar resumen de movimientos</button>
+                <button id="salesExportOpenButton" class="btn btn-primary" type="button" onclick="openSalesExportModal()" style="white-space:nowrap; padding:7px 12px; font-size:13px; width:fit-content; flex-shrink:0;">📥 Descargar reporte</button>
             </div>
             <!-- Barra de filtros + totales -->
             <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:8px;">
@@ -663,6 +663,16 @@
                             <option value="all">Todos</option>
                         </select>
                     </div>
+                    <!-- Filtro producto -->
+                    <div id="salesProductFilterContainer" style="display:flex; align-items:center; gap:8px; position:relative;">
+                        <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F4E6; Producto:</label>
+                        <div style="position:relative;">
+                            <input id="salesProductFilterInput" type="text" autocomplete="off" placeholder="Nombre, código o ID" oninput="handleSalesProductSearchInput(this.value)" onfocus="filterSalesProductSuggestions(this.value)" style="padding:7px 12px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; min-width:220px; outline:none;" />
+                            <div id="salesProductSuggestions" class="sales-product-suggestions"></div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="clearSalesProductFilter()" title="Limpiar producto" style="padding:7px 10px;">×</button>
+                    </div>
+                    <span id="salesProductExportStatus" style="font-size:12px;color:#666;">Selecciona un producto para consultar sus ventas.</span>
                     <!-- Filtro período -->
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <label style="font-size:13px; font-weight:600; color:#555; margin:0; white-space:nowrap;">&#x1F4C5; Período:</label>
@@ -697,6 +707,8 @@
                         </div>
                     </div>
                 </div>
+                <!-- Resumen del filtro de producto -->
+                <div id="salesProductSummary" class="sales-product-summary" style="display:none;"></div>
                 <!-- Fila 2: Totales centrados -->
                 <div style="display:flex; justify-content:center; gap:24px; flex-wrap:wrap; align-items:center;">
                     <div style="text-align:center; min-width:85px;" id="cardCostoTotalSales">
@@ -742,7 +754,7 @@
                                 <th>Nº Venta</th>
                                 <th>Cliente</th>
                                 <th>Vendedor</th>
-                                <th>Productos</th>
+                                <th id="thSalesProductColumn">Productos</th>
                                 <th id="thSalesCosto">Costo</th>
                                 <th>Precio</th>
                                 <th id="thSalesGanancia">Ganancia</th>
@@ -924,6 +936,29 @@
         </div> <!-- End of app-layout-container -->
     </div> <!-- End of app -->
 
+    <div id="salesExportModal" class="modal">
+        <div class="modal-content sales-export-modal-content">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Descargar reporte</h3>
+                <button type="button" class="btn btn-secondary" onclick="closeSalesExportModal()" aria-label="Cerrar">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:10px;"><strong>Operación:</strong> <span id="salesExportOperation">—</span></div>
+                <div style="margin-bottom:10px;"><strong>Filtros:</strong> <span id="salesExportFilters">—</span></div>
+                <p id="salesExportResults" class="sales-export-context" aria-live="polite"></p>
+                <label for="salesExportFormat" style="display:block; margin:14px 0 6px; font-weight:600; color:#2c3e50;">Formato</label>
+                <select id="salesExportFormat" class="sales-export-select">
+                    <option value="pdf">PDF</option>
+                    <option value="excel">Excel (.xlsx)</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button id="salesExportCancelButton" type="button" class="btn btn-secondary" onclick="closeSalesExportModal()">Cancelar</button>
+                <button id="salesExportDownloadButton" type="button" class="btn btn-primary" onclick="downloadSelectedSalesReport()">Descargar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== SCRIPTS ==================== -->
     <script src="js/firebase-config.js?v=20261011a"></script>
     <script src="js/multicompany.js?v=20260618"></script>
@@ -936,7 +971,7 @@
     <script src="js/products.js?v=20260315b"></script>
     <script src="js/inventory.js?v=20260315f"></script>
     <script src="js/gastos.js?v=20261011a"></script>
-    <script src="js/sales.js?v=20260316c"></script>
+    <script src="js/sales.js?v=20261124a"></script>
     <script src="js/quotes.js?v=20260315b"></script>
     <script src="js/pdf.js?v=20260315b"></script>
     <script src="js/history.js?v=20260315c"></script>
